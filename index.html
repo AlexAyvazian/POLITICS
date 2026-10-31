@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050814">
+  <title>POLITICS · United States County Map</title>
+  <link rel="stylesheet" href="assets/css/atlas.css">
+  <link rel="stylesheet" href="assets/css/map.css">
+  <link rel="stylesheet" href="assets/css/politics.css">
+</head>
+<body data-view="map">
+  <nav class="atlasNav" aria-label="Map navigation">
+    <div class="navBrand"><i aria-hidden="true"></i><span>POLITICS · Geographic Explorer</span></div>
+    <div class="navCenter">United States County Atlas</div>
+    <div class="navRight">
+      <div class="crumb" id="crumb" hidden>
+        <span id="crumbText"></span>
+        <button id="crumbClear" type="button" aria-label="Return to U.S. map" title="Clear selection">×</button>
+      </div>
+      <div class="navStats" id="navStats"></div>
+    </div>
+  </nav>
+  <section class="view" id="view-map" aria-label="United States map">
+    <div class="orb one"></div><div class="orb two"></div><div class="orb three"></div>
+    <div class="cursorGlow" id="cursorGlow"></div>
+    <div class="tooltip" id="tooltip"></div>
+    <div class="app">
+      <main class="mapPanel glass">
+        <div class="mapToolbar">
+          <label class="sr-only" for="mapSearch">Search states and counties</label>
+          <input id="mapSearch" placeholder="Jump to a state or county…" autocomplete="off">
+          <div class="results" id="mapResults" hidden></div>
+          <button id="backBtn" type="button" hidden>← U.S. Map</button>
+          <span class="modeBadge" id="modeBadge">U.S. map</span>
+        </div>
+        <div class="mapShell">
+          <svg id="mapSvg" role="img" aria-label="Interactive map of United States states and counties"></svg>
+          <div class="mapLabel" id="mapLabel">Loading U.S. county boundaries…</div>
+          <div class="legend" id="legend"></div>
+          <div class="selectedCard" id="selectedCard" hidden></div>
+          <div class="loading" id="loading">Loading map geometry…</div>
+        </div>
+      </main>
+    </div>
+  </section>
+  <script src="assets/vendor/d3.min.js"></script>
+  <script src="assets/vendor/topojson-client.min.js"></script>
+  <script src="assets/vendor/us-atlas-counties-albers-10m.js"></script>
+  <script src="assets/js/states.js"></script>
+  <script src="assets/js/geo-model.js"></script>
+  <script src="assets/js/map.js"></script>
+</body>
+</html>
