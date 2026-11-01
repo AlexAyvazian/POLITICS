@@ -20,12 +20,31 @@ test('selected place changes reset the sidebar scroll, but snapshots preserve cu
  assert.match(js,/let lastCardSelection=null/);
  assert.match(js,/card\.scrollTop=selectionChanged\?0:priorScroll/);
 });
-test('statewide Census averages remain visible before optional political collection notes',()=>{
+test('the map sidebar shows political control and original state/county statistics without legislative lists',()=>{
  const js=read('assets/js/map.js');
  const start=js.indexOf('function renderCard()');
  const end=js.indexOf('\nfunction selectState(',start);
  const body=js.slice(start,end);
- assert.ok(body.indexOf('renderStatePoliticalControl(')<body.indexOf('metricGrid(vals)'),'political control must lead overview');
- assert.match(body,/metricGrid\(vals\)[\s\S]+collectionStatus;/,'actual averages must be rendered ahead of the single collection note');
- assert.ok(!/\bfetch\s*\(/.test(body));
+ assert.match(body,/renderStatePoliticalControl\(state,stateMode\)/);
+ assert.match(body,/metricGrid\(vals\)/);
+ assert.match(body,/categorySections\(data,'state',state\.fips\)/);
+ assert.match(body,/metricGrid\(CORE_FIELDS\.map\(/);
+ for(const name of ['renderOpenStates','renderHouseVotes','renderBillCommons',
+    'renderCongressionalDelegation','renderCdcPlaces','renderDataCollectionStatus']){
+  assert.doesNotMatch(body,new RegExp(name+'\\\\('),name+' should not clutter the map sidebar');
+ }
+ assert.doesNotMatch(body,/loadBills\?\.|loadOpenStates\?\./,'hidden lists should not be fetched when selecting a state');
+ assert.doesNotMatch(body,/collectionStatus/,'hidden data sources must not add a pending footer');
+ assert.ok(!/\\bfetch\\s*\\(/.test(body));
+});
+test('legislative sources and collectors remain in repository for future dedicated pages',()=>{
+ const js=read('assets/js/map.js');
+ const worker=read('workers/politics-gateway.mjs');
+ const cache=read('assets/js/county-cache.js');
+ for(const name of ['renderOpenStates','renderHouseVotes','renderBillCommons','renderCongressionalDelegation','renderCdcPlaces'])
+  assert.match(js,new RegExp('function '+name+'\\\\('));
+ for(const name of ['refreshOpenStatesState','refreshFederalHouseVotes','refreshBillCommonsState'])
+  assert.match(worker,new RegExp('function '+name+'\\\\('));
+ assert.match(cache,/loadOpenStates\(abbr\)/);
+ assert.match(cache,/loadBills\(abbr\)/);
 });
