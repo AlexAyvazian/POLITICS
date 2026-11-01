@@ -30,6 +30,20 @@ export async function serve(request,env){
   }catch(_){return json({status:'storage_error',count:0},503,request);}
  }
 
+ // Cached Open States / official Congress.gov political snapshots, keyless for site visitors.
+ if(path==='/api/openstates-snapshot'||path==='/api/house-votes-snapshot'){
+  const byState=path==='/api/openstates-snapshot';
+  const state=new URL(request.url).searchParams.get('state')||'';
+  const valid='AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' ');
+  if(byState&&!valid.includes(state))return json({error:'Invalid state abbreviation'},400,request);
+  if(!env?.COUNTY_DB)return json({status:'not_configured',count:0},503,request);
+  try{
+   const source=byState?'openstates_'+state:'congress_house_votes_recent';
+   const row=await env.COUNTY_DB.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?').bind(source).first();
+   return json(row?JSON.parse(row.snapshot_json):{status:'pending',count:0,source},200,request,row?1800:60);
+  }catch(_){return json({status:'storage_error',count:0},503,request);}
+ }
+
  if(path==='/api/bills-snapshot'){
   const state=new URL(request.url).searchParams.get('state')||'';
   const allowed='AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' ');
