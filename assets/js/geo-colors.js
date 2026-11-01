@@ -20,38 +20,46 @@
   {name:'mid-atlantic',hue:294,sat:21,states:['51','54','24','10','11','42','34']},
   {name:'northeast',hue:22,sat:22,states:['36','09','44','25','50','33','23']}
  ];
- // These are fixed state swatches, not approximations. Hex values are preserved verbatim.
- // Six yellow assignments follow the exact state order specified by the user.
- // Carefully balanced geographic swatches; no neon/brilliant yellows.
+ // Explicit state swatches and transfers override only the requested places.
+ // Hex values are deliberate fills; other states retain existing family colors.
  const STATE_SWATCHES=Object.freeze({
-  // Northern brown group: alternating warm, light and deep tones.
-  '27':'#725648', // Minnesota: dark tobacco brown
-  '26':'#8C624B', // Michigan: warm brown
-  '19':'#C2A276', // Iowa: light sand brown
-  '55':'#B28F83', // Wisconsin: light rosewood brown
-  '38':'#8A9A75', // North Dakota: muted sage olive, not bright Persian Green
-  '08':'#587966', // Colorado: softer dark green, closer to the surrounding palette
+  // Great Lakes brown range (Wisconsin specifically uses the requested Mocha).
+  '27':'#725648', // Minnesota — dark tobacco brown
+  '26':'#8C624B', // Michigan — warm brown
+  '19':'#C2A276', // Iowa — light sand brown
+  '55':'#3C280D', // Wisconsin — MOCHA
+  '38':'#8A9A75', // North Dakota — sage olive
+  '08':'#587966', // Colorado — muted dark green
 
-  // Muted differentiated yellow/ochre group, following the requested state order.
-  '54':'#A98D55', // West Virginia: ochre
-  '51':'#B9B68A', // Virginia: olive wheat
-  '24':'#D2BA79', // Maryland: antique wheat
-  '10':'#96805A', // Delaware: bronze
-  '34':'#C2AB7B', // New Jersey: golden tan
-  '42':'#857B5B', // Pennsylvania: dark brass
+  // Exact blues requested: HI first, Alaska second.
+  '15':'#589BD5', // Hawaii
+  '02':'#9ACAF4', // Alaska
 
-  // Northeast: an alternating muted rose / mauve / plum family.
+  // Transfer colors from their former owners (snapshots before this change).
+  '17':'#857B5B', // Illinois takes old Pennsylvania
+  '54':'#B9B68A', // West Virginia takes old Virginia
+  '39':'#C2AB7B', // Ohio takes old New Jersey
+
+  // Southern Mid-Atlantic: restore the former muted pink / mauve character.
+  // Vary lightness to keep adjacent small states visually distinct.
+  '42':'#B996B6', // Pennsylvania — lighter dusty lavender-pink
+  '10':'#CDA7BD', // Delaware — light pink
+  '51':'#AA7E97', // Virginia — dusty rose-pink
+  '34':'#805474', // New Jersey — deeper plum-pink
+  '24':'#9B749B', // Maryland — muted lilac-pink
+
+  // Break up visually similar Midwest earth tones.
+  '29':'#86684F', // Missouri — medium wood brown
+  '18':'#789486', // Indiana — eucalyptus sage
+
+  // Northern pink group: use requested Prince Charming for NH.
   '36':'#86627B', // New York
   '09':'#9F83B2', // Connecticut
   '44':'#79556F', // Rhode Island
   '25':'#C3A3A8', // Massachusetts
   '50':'#AEA0B8', // Vermont
-  '33':'#765A7B', // New Hampshire
-  '23':'#B18BA2', // Maine
-
-  // Pacific: different blues from the nearby WA/OR/CA shades.
-  '02':'#697D9B', // Alaska: subdued indigo/slate blue
-  '15':'#699FA6'  // Hawaii: muted blue/sea teal
+  '33':'#493F5E', // New Hampshire — PRINCE CHARMING
+  '23':'#B18BA2'  // Maine
  });
  // Capture each donor's PREVIOUS color, including its hover and selection identity.
  // Do not resolve these transfers recursively after donor states change to brown/yellow.
