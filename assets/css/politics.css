@@ -56,28 +56,50 @@
   user-select:none;
 }
 #view-map #mapSvg{outline:none!important;-webkit-tap-highlight-color:transparent}
-#view-map #mapSvg .state:hover,
-#view-map #mapSvg .county:hover,
-#view-map #mapSvg .county.active{
+#view-map #mapSvg .state:hover{
   fill:var(--geo-hover);
   stroke:var(--geo-dark);
   stroke-width:1.6;
   filter:drop-shadow(0 0 3px color-mix(in srgb,var(--geo-glow) 50%,transparent));
 }
-#view-map #mapSvg .state:focus-visible,
-#view-map #mapSvg .county:focus-visible{
+#view-map #mapSvg .state:focus-visible{
   outline:none!important;
   stroke:var(--geo-dark);
   stroke-width:2.5;
   filter:drop-shadow(0 0 4px color-mix(in srgb,var(--geo-glow) 55%,transparent));
 }
-#view-map #mapSvg .stateSelectedBoundary .stateOutlineBase,
-#view-map #mapSvg .countySelectedBoundary .countyOutlineBase{
+/* County selection is a fill-only illumination, never a border highlight. */
+#view-map #mapSvg .county:hover,
+#view-map #mapSvg .county:focus-visible{
+  outline:none!important;
+  fill:var(--geo-hover);
+  stroke:rgba(210,230,255,.35);
+  stroke-width:.45;
+  filter:none;
+}
+#view-map #mapSvg .county.active,
+#view-map #mapSvg .county.active:hover,
+#view-map #mapSvg .county.active:focus-visible{
+  outline:none!important;
+  fill:color-mix(in srgb,var(--geo-fill) 72%,white 28%);
+  stroke:rgba(210,230,255,.35);
+  stroke-width:.45;
+  filter:none;
+}
+#view-map #mapSvg .countyInnerLight{
+  stroke:none!important;
+  filter:none!important;
+  pointer-events:none;
+  mix-blend-mode:screen;
+  opacity:.8;
+  animation:countyInteriorPulse 3.2s ease-in-out infinite alternate;
+}
+@keyframes countyInteriorPulse{from{opacity:.5}to{opacity:.92}}
+#view-map #mapSvg .stateSelectedBoundary .stateOutlineBase{
   fill:none;stroke:var(--geo-glow);stroke-opacity:.62;stroke-width:1.65;
   vector-effect:non-scaling-stroke;pointer-events:none;
 }
-#view-map #mapSvg .stateSelectedBoundary .stateLightTrace,
-#view-map #mapSvg .countySelectedBoundary .countyLightTrace{
+#view-map #mapSvg .stateSelectedBoundary .stateLightTrace{
   fill:none;stroke:var(--geo-dark);stroke-width:3;stroke-linecap:round;
   stroke-dasharray:100 900;stroke-dashoffset:0;
   vector-effect:non-scaling-stroke;pointer-events:none;
@@ -92,8 +114,8 @@
 #view-map .countyMetricSection h3{margin:0 0 9px}
 #view-map .countyMetricSection .countyFactGrid{margin-bottom:9px}
 @media(prefers-reduced-motion:reduce){
-  #view-map #mapSvg .stateSelectedBoundary .stateLightTrace,
-  #view-map #mapSvg .countySelectedBoundary .countyLightTrace{
+  #view-map #mapSvg .stateSelectedBoundary .stateLightTrace{
     animation:none;stroke-dasharray:none;stroke-width:2.4;
   }
+  #view-map #mapSvg .countyInnerLight{animation:none;opacity:.82}
 }
