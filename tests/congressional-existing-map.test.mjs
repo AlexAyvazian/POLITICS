@@ -44,3 +44,10 @@ test('no County Atlas geographic rendering and color files are edited',()=>{
  assert.match(index,/href="congressional.html"/);
  assert.match(index,/assets\/js\/map\.js/);
 });
+
+test('district highlighting uses the GeoJSON feature callback supplied by Esri Leaflet',()=>{
+ const js=read('assets/js/congressional-existing-map.js');
+ assert.match(js,/featureLayer\.setStyle\(feature\s*=>/);
+ assert.match(js,/feature\?\.properties\?\.GEOID===code/);
+ assert.doesNotMatch(js,/featureLayer\.setStyle\(layer\s*=>/);
+});
