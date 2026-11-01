@@ -30,7 +30,7 @@
  stroke-dasharray:100 900;stroke-dashoffset:0;
  vector-effect:non-scaling-stroke;
  filter:drop-shadow(0 0 4px #4fe9ff) drop-shadow(0 0 10px rgba(71,217,255,.94));
- animation:statePerimeterOrbit 7s linear infinite;
+ animation:statePerimeterOrbit 7.4s linear infinite;
 }
 @keyframes statePerimeterOrbit{to{stroke-dashoffset:-1000}}
 #view-map .countyCategory{margin:12px 0;border:1px solid rgba(125,211,252,.16);background:rgba(10,25,50,.5);border-radius:12px;overflow:hidden}
@@ -104,7 +104,7 @@
   stroke-dasharray:100 900;stroke-dashoffset:0;
   vector-effect:non-scaling-stroke;pointer-events:none;
   filter:drop-shadow(0 0 3px var(--geo-glow)) drop-shadow(0 0 7px color-mix(in srgb,var(--geo-glow) 38%,transparent));
-  animation:statePerimeterOrbit 7s linear infinite;
+  animation:statePerimeterOrbit 7.4s linear infinite;
 }
 #view-map .legend[hidden]{display:none!important}
 #view-map .legend .stateData{background:linear-gradient(135deg,#e0a445,#48b88c,#b282d9,#df7b78)}
