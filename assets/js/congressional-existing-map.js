@@ -165,10 +165,10 @@ function layerVisible(){
   const code=e.layer?.feature?.properties?.GEOID;
   if(!code)return;
   selectedDistrict={GEOID:code,NAME:e.layer.feature.properties.BASENAME};
-  featureLayer.setStyle(layer=>({
-    color:layer?.feature?.properties?.GEOID===code?'#ffe1a6':'#85dadb',
-    weight:layer?.feature?.properties?.GEOID===code?3:1.45,
-    opacity:1,fillColor:'#6bdccc',fillOpacity:layer?.feature?.properties?.GEOID===code ? 0.18 : 0.045
+  featureLayer.setStyle(feature=>({
+    color:feature?.properties?.GEOID===code?'#ffe1a6':'#85dadb',
+    weight:feature?.properties?.GEOID===code?3:1.45,
+    opacity:1,fillColor:'#6bdccc',fillOpacity:feature?.properties?.GEOID===code ? 0.18 : 0.045
   }));
   renderPanel();saveHash();
  });
