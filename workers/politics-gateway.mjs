@@ -82,6 +82,7 @@ export async function handle(request,env,ctx={},fetcher=fetch){
  const u=new URL(request.url),path=u.pathname.replace(/\/+$/,'');
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
  if(request.method!=='GET')return json({error:'GET only'},405);
+ if(path==='/'||path==='/health')return json({service:'POLITICS Research API',status:'operational',providers:Object.keys(CATALOG).length,catalog:'/api/catalog'},200,300);
  if(path==='/api/catalog')return json({providers:Object.entries(CATALOG).map(([id,[binding,category,description]])=>({id,category,description,configured:id==='lobbyview'?['LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3'].filter(x=>!!key(env,x)).length:!!key(env,binding)}))},200,600);
  const id=path.startsWith('/api/')?path.slice(5):'';
  if(!Object.hasOwn(CATALOG,id))return json({error:'Unknown endpoint'},404);
