@@ -106,11 +106,11 @@ test('three color transfers use the exact previous colors, not reassigned destin
 test('Mid-Atlantic pinks have coordinated muted distinct shades',()=>{
  const c=setup().GEO_COLORS;
  const expected={
-   '42':'#D9A6AE', // Pennsylvania: softened warm dusty pink
-   '10':'#E2C0CB', // Delaware: soft light pastel pink
+   '42':'#E4A6B5', // Pennsylvania: softened warm dusty pink
+   '10':'#F0C3CC', // Delaware: soft light pastel pink
    '51':'#BC7791', // Virginia: muted medium rose
-   '34':'#B978A4', // New Jersey: muted mauve-carnation
-   '24':'#A9829D'  // Maryland: muted dusty lilac pink
+   '34':'#D57E98', // New Jersey: muted mauve-carnation
+   '24':'#C98A9D'  // Maryland: muted dusty lilac pink
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
  assert.equal(new Set(Object.keys(expected).map(id=>c.state(id).fill)).size,5);
