@@ -4,7 +4,7 @@
  'use strict';
  const ROOT='https://politics-daily-snapshot.alxayvazian.workers.dev';
  const cats=['housing','jobs','income','healthcare','education','families','infrastructure'];
- const data={core:null,categories:{},states:null};
+ const data={core:null,categories:{},states:null,places:null,congress:null};
  let job=null;
  const notify=()=>window.dispatchEvent(new Event('politics-county-snapshot-ready'));
  async function fetchSnapshot(path){
@@ -29,7 +29,15 @@
    const states=fetchSnapshot('/api/state-snapshot').then(value=>{
     if(value?.states)data.states=value;notify();
    }).catch(error=>{console.warn('Stored statewide data unavailable:',error.message);notify();});
-   job=Promise.allSettled([core,...other,states]).then(()=>data);
+   const places=fetchSnapshot('/api/places-snapshot').then(value=>{
+    if(value?.counties&&value?.fields&&value?.count)data.places=value;
+    notify();
+   }).catch(error=>{console.warn('CDC PLACES snapshot unavailable:',error.message);notify();});
+   const congress=fetchSnapshot('/api/congress-snapshot').then(value=>{
+    if(value?.states&&value?.count)data.congress=value;
+    notify();
+   }).catch(error=>{console.warn('Congressional delegation snapshot unavailable:',error.message);notify();});
+   job=Promise.allSettled([core,...other,states,places,congress]).then(()=>data);
    return job;
   }
  };
