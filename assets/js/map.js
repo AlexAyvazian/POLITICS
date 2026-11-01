@@ -380,16 +380,9 @@ function renderCard(){
  const base=data?.core||null;
  const stateMode=!county;
  const selected=stateMode?state.fips:sel.fips;
- // Only our own D1 reader is contacted here; no Bill Commons requests on clicks.
- window.POLITICS_COUNTY_CACHE?.loadBills?.(state.abbr);
- window.POLITICS_COUNTY_CACHE?.loadOpenStates?.(state.abbr);
- const publicSources=renderStatePoliticalControl(state,stateMode)+
-  renderOpenStates(data,state,stateMode)+
-  renderHouseVotes(data,state,stateMode)+
-  renderBillCommons(data,state,stateMode)+
-  renderCongressionalDelegation(data,state,stateMode)+
-  renderCdcPlaces(data,stateMode?'state':'county',selected);
- const collectionStatus=renderDataCollectionStatus(data,state);
+ // Legislative and health collectors remain available for a dedicated future view.
+ // Keep this map panel focused on state control and geographic statistics.
+ const publicSources=renderStatePoliticalControl(state,stateMode);
  const restoreCardScroll=()=>{card.scrollTop=selectionChanged?0:priorScroll;};
  card.hidden=false;
  card.innerHTML='<button class="cardClose" type="button" aria-label="'+(stateMode?'Return to U.S. map':'Return to state averages')+'">×</button>'+
@@ -401,8 +394,7 @@ function renderCard(){
  if(!base?.counties){
   target.innerHTML=publicSources+
    '<p class="categoryNote">'+(window.POLITICS_COUNTY_CACHE?.status==='error'?
-    'Saved Census statistics could not be loaded.':'Loading stored Census statistics…')+'</p>'+
-   collectionStatus;
+    'Saved Census statistics could not be loaded.':'Loading stored Census statistics…')+'</p>';
   restoreCardScroll();
   return;
  }
@@ -424,17 +416,15 @@ function renderCard(){
    '<p class="categoryNote">Equal-weight arithmetic averages of the county figures—not population-weighted or statewide estimates.</p>'+
    '<div class="countyFactsTitle">Statewide view · County averages</div>'+metricGrid(vals)+
    stateOnlyPanel+categorySections(data,'state',state.fips)+
-   '<p class="countyFactSource">Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). Averages include counties with available values for each indicator. No provider APIs are called on a selection.</p>'+
-   collectionStatus;
+   '<p class="countyFactSource">Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). Averages include counties with available values for each indicator. No provider APIs are called on a selection.</p>';
  }else{
   const r=base.counties[sel.fips];
-  if(!r){target.innerHTML=publicSources+'<p class="categoryNote">This county is not in the current stored Census snapshot.</p>'+collectionStatus;restoreCardScroll();return;}
+  if(!r){target.innerHTML=publicSources+'<p class="categoryNote">This county is not in the current stored Census snapshot.</p>';restoreCardScroll();return;}
   target.innerHTML=publicSources+'<div class="countyFactsTitle">County conditions</div>'+
    metricGrid(CORE_FIELDS.map(([key,label,unit])=>[label,r[key],unit]))+
    categorySections(data,'county',sel.fips)+
    '<p class="countyFactSource">Source: U.S. Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). '+ 
-   '<a href="'+esc(base.sourceUrl||'https://api.census.gov/data/2024/acs/acs5')+'" target="_blank" rel="noopener noreferrer">Official data</a>.</p>'+
-   collectionStatus;
+   '<a href="'+esc(base.sourceUrl||'https://api.census.gov/data/2024/acs/acs5')+'" target="_blank" rel="noopener noreferrer">Official data</a>.</p>';
  }
  restoreCardScroll();
 }
