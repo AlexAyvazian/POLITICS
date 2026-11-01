@@ -82,3 +82,23 @@ test('unnecessary UI legend copy is removed from both map levels',()=>{
  assert.match(map,/\\$\\('legend'\\)\\.hidden=true/);
  assert.match(style,/\\.legend\\[hidden\\]\\{display:none!important\\}/);
 });
+
+test('rebalanced northern and northeastern colors use earthy tones while preserving other regions', () => {
+ const w=setup(), color=w.GEO_COLORS;
+ // Northwest browns; northern Dakotas softly golden; Northeast warm taupe, not Western blue.
+ assert.equal(color.state('30').hue,35); // Montana
+ assert.equal(color.state('16').hue,35); // Idaho
+ assert.equal(color.state('38').hue,47); // North Dakota
+ assert.equal(color.state('46').hue,47); // South Dakota
+ assert.equal(color.state('23').hue,22); // Maine
+ assert.equal(color.state('36').hue,22); // New York
+ // Colorado is a separate dark hunter-green accent, with all its counties matching.
+ assert.equal(color.state('08').hue,137);
+ assert.ok(Number(color.state('08').fill.match(/ ([\\d.]+)%\\)$/)[1])<=36);
+ assert.equal(color.county('08','08031').hue,137);
+ // Previously approved regions remain untouched.
+ assert.equal(color.state('06').hue,207); // California
+ assert.equal(color.state('27').hue,169); // Minnesota
+ assert.equal(color.state('48').hue,91);  // Texas
+ assert.equal(color.state('12').hue,355); // Florida
+});
