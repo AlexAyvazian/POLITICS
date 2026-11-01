@@ -172,7 +172,7 @@ test('user-protected colors retain their exact approved values',()=>{
 
 test('state outline tracing is only slightly slower, with county glow timing unchanged',()=>{
  const css=read('assets/css/politics.css');
- assert.equal((css.match(/animation:statePerimeterOrbit 7\\.4s linear infinite;/g)||[]).length,2);
+ assert.equal((css.match(/animation:statePerimeterOrbit 7\.4s linear infinite;/g)||[]).length,2);
  assert.doesNotMatch(css,/animation:statePerimeterOrbit 7s linear infinite;/);
- assert.match(css,/animation:countyInteriorPulse 3\\.2s ease-in-out infinite alternate;/);
+ assert.match(css,/animation:countyInteriorPulse 3\.2s ease-in-out infinite alternate;/);
 });
