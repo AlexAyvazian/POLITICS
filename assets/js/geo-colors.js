@@ -54,10 +54,10 @@
 
   // Gradual southern earth-orange shift, retaining muted shade variations and
   // complementing Missouri without recoloring unrelated Southern states.
-  '05':'#98634B', // Arkansas — deep earthy burnt orange
-  '22':'#C39A7C', // Louisiana — lighter warm caramel orange
-  '28':'#B48261', // Mississippi — medium muted orange-brown
-  '01':'#CF9D7B', // Alabama — soft apricot orange
+  '05':'#BE6638', // Arkansas — clear muted burnt orange
+  '22':'#DFA57A', // Louisiana — warm apricot orange
+  '28':'#E28B42', // Mississippi — distinct pumpkin orange
+  '01':'#F0BA91', // Alabama — light peach-orange
 
   // Muted Northeast purples: the same family, with softer value contrasts.
 
