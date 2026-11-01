@@ -28,7 +28,7 @@
   '26':'#8C624B', // Michigan — warm brown
   '19':'#C2A276', // Iowa — light sand brown
   '55':'#3C280D', // Wisconsin — MOCHA
-  '38':'#8A9A75', // North Dakota — sage olive
+  '46':'#8A9A75', // South Dakota — former North Dakota sage olive
   '08':'#587966', // Colorado — muted dark green
 
   // Exact blues requested: HI first, Alaska second.
@@ -67,7 +67,7 @@
   '56':'27', // Wyoming gets the old Minnesota teal
   '16':'26', // Idaho gets the old Michigan teal
   '30':'19', // Montana gets the old Iowa teal
-  '46':'55'  // South Dakota gets the old Wisconsin teal
+  '38':'55'  // North Dakota gets former South Dakota's old Wisconsin teal
  });
  const byState=new Map();
  for(const family of FAMILIES){
