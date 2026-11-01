@@ -4,8 +4,8 @@
  'use strict';
  const ROOT='https://politics-daily-snapshot.alxayvazian.workers.dev';
  const cats=['housing','jobs','income','healthcare','education','families','infrastructure'];
- const data={core:null,categories:{},states:null,places:null,congress:null,bills:{},billStatus:{}};
- const billJobs=new Map();
+ const data={core:null,categories:{},states:null,places:null,congress:null,bills:{},billStatus:{},openstates:{},openstatesStatus:{},houseVotes:null,houseVotesStatus:'loading'};
+ const billJobs=new Map(),openstatesJobs=new Map();
  let job=null;
  const notify=()=>window.dispatchEvent(new Event('politics-county-snapshot-ready'));
  async function fetchSnapshot(path){
@@ -19,6 +19,25 @@
   get:()=>data,
   // On state selection read OUR stored D1 snapshot, never the upstream provider.
   // Memoized per state to avoid extra requests during state/county switching.
+  loadOpenStates(abbr){
+   if(!/^[A-Z]{2}$/.test(abbr))return Promise.resolve();
+   if(openstatesJobs.has(abbr))return openstatesJobs.get(abbr);
+   data.openstatesStatus[abbr]='loading';
+   const task=fetchSnapshot('/api/openstates-snapshot?state='+encodeURIComponent(abbr))
+    .then(value=>{
+     if(value?.state===abbr&&Array.isArray(value?.bills)&&Array.isArray(value?.people)){
+      data.openstates[abbr]=value;
+      data.openstatesStatus[abbr]='ready';
+     }else data.openstatesStatus[abbr]='pending';
+     notify();
+    }).catch(err=>{
+     data.openstatesStatus[abbr]='error';
+     console.warn('Stored Open States data unavailable for '+abbr+':',err.message);
+     notify();
+    });
+   openstatesJobs.set(abbr,task);
+   return task;
+  },
   loadBills(abbr){
    if(!/^[A-Z]{2}$/.test(abbr))return Promise.resolve();
    if(billJobs.has(abbr))return billJobs.get(abbr);
@@ -59,7 +78,18 @@
     if(value?.states&&value?.count)data.congress=value;
     notify();
    }).catch(error=>{console.warn('Congressional delegation snapshot unavailable:',error.message);notify();});
-   job=Promise.allSettled([core,...other,states,places,congress]).then(()=>data);
+   const houseVotes=fetchSnapshot('/api/house-votes-snapshot').then(value=>{
+    if(value?.chamber==='House'&&Array.isArray(value?.votes)&&value?.votes.length){
+     data.houseVotes=value;
+     data.houseVotesStatus='ready';
+    }else data.houseVotesStatus='pending';
+    notify();
+   }).catch(error=>{
+    data.houseVotesStatus='error';
+    console.warn('Stored House vote data unavailable:',error.message);
+    notify();
+   });
+   job=Promise.allSettled([core,...other,states,places,congress,houseVotes]).then(()=>data);
    return job;
   }
  };
