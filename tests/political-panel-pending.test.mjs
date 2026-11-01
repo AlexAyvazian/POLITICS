@@ -26,6 +26,6 @@ test('statewide Census averages remain visible before optional political collect
  const end=js.indexOf('\nfunction selectState(',start);
  const body=js.slice(start,end);
  assert.ok(body.indexOf('renderStatePoliticalControl(')<body.indexOf('metricGrid(vals)'),'political control must lead overview');
- assert.ok(body.indexOf('metricGrid(vals)')<body.indexOf('renderDataCollectionStatus('),'real averages must appear before pending note');
+ assert.match(body,/metricGrid\(vals\)[\s\S]+collectionStatus;/,'actual averages must be rendered ahead of the single collection note');
  assert.ok(!/\bfetch\s*\(/.test(body));
 });
