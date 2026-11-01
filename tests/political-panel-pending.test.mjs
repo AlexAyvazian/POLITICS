@@ -31,20 +31,20 @@ test('the map sidebar shows political control and original state/county statisti
  assert.match(body,/metricGrid\(CORE_FIELDS\.map\(/);
  for(const name of ['renderOpenStates','renderHouseVotes','renderBillCommons',
     'renderCongressionalDelegation','renderCdcPlaces','renderDataCollectionStatus']){
-  assert.doesNotMatch(body,new RegExp(name+'\\\\('),name+' should not clutter the map sidebar');
+  assert.equal(body.includes(name+'('),false,name+' should not clutter the map sidebar');
  }
  assert.doesNotMatch(body,/loadBills\?\.|loadOpenStates\?\./,'hidden lists should not be fetched when selecting a state');
  assert.doesNotMatch(body,/collectionStatus/,'hidden data sources must not add a pending footer');
- assert.ok(!/\\bfetch\\s*\\(/.test(body));
+ assert.ok(!body.includes('fetch('));
 });
 test('legislative sources and collectors remain in repository for future dedicated pages',()=>{
  const js=read('assets/js/map.js');
  const worker=read('workers/politics-gateway.mjs');
  const cache=read('assets/js/county-cache.js');
  for(const name of ['renderOpenStates','renderHouseVotes','renderBillCommons','renderCongressionalDelegation','renderCdcPlaces'])
-  assert.match(js,new RegExp('function '+name+'\\\\('));
+  assert.ok(js.includes('function '+name+'('));
  for(const name of ['refreshOpenStatesState','refreshFederalHouseVotes','refreshBillCommonsState'])
-  assert.match(worker,new RegExp('function '+name+'\\\\('));
+  assert.ok(worker.includes('function '+name+'('));
  assert.match(cache,/loadOpenStates\(abbr\)/);
  assert.match(cache,/loadBills\(abbr\)/);
 });
