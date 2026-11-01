@@ -66,13 +66,13 @@ test('original Great Lakes colors are transferred to Wyoming, Idaho, Montana, an
   };
   for (const [fips,fill] of Object.entries(expected))assert.equal(c.state(fips).fill,fill,fips);
 });
-test('rebalanced Great Lakes browns alternate light and dark tones', () => {
+test('Great Lakes keeps distinct earth browns with softened Mocha for Wisconsin', () => {
  const c=setup().GEO_COLORS;
  const expected={
   '27':'#725648', // Minnesota dark tobacco
   '26':'#8C624B', // Michigan medium warm brown
   '19':'#C2A276', // Iowa lighter sand brown
-  '55':'#3C280D'  // Wisconsin Mocha
+  '55':'#74543D'  // Wisconsin: softened Mocha, same brown family
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
 });
@@ -84,15 +84,15 @@ test('North Dakota, Colorado, Alaska and Hawaii use coordinated subdued colors',
  const pacific=['02','15','06','41','53'].map(id=>c.state(id).fill);
  assert.equal(new Set(pacific).size,5);
 });
-test('the Northeast has visually distinct, coordinated mauve and rose shades',()=>{
+test('Northeast purple group retains softened contrasts for NH, MA and RI',()=>{
  const c=setup().GEO_COLORS;
  const expected={
   '36':'#86627B', // New York
   '09':'#9F83B2', // Connecticut
-  '44':'#784B88', // Rhode Island: muted Eminence #6C3082
-  '25':'#645394', // Massachusetts: Ultra Violet (exact)
+  '44':'#A38DB8', // Rhode Island: softer lighter muted purple
+  '25':'#8875A5', // Massachusetts: softened Ultra Violet
   '50':'#AEA0B8', // Vermont
-  '33':'#493F5E', // New Hampshire, Prince Charming
+  '33':'#6B607C', // New Hampshire: softened Prince Charming
   '23':'#B18BA2'  // Maine
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
@@ -103,14 +103,14 @@ test('three color transfers use the exact previous colors, not reassigned destin
  assert.equal(c.state('54').fill,'#B9B68A','West Virginia receives previous Virginia color');
  assert.equal(c.state('39').fill,'#C2AB7B','Ohio receives previous New Jersey color');
 });
-test('Mid-Atlantic has the explicitly specified pinks and only requested muted variants',()=>{
+test('Mid-Atlantic pinks have coordinated muted distinct shades',()=>{
  const c=setup().GEO_COLORS;
  const expected={
-   '42':'#FFB6C1', // Pennsylvania: Light Pink (exact)
-   '10':'#DEBAC3', // Delaware: muted Pastel Pink #FFD1DC
-   '51':'#C46381', // Virginia: muted Dark Pink #E75480
-   '34':'#FFA6C9', // New Jersey: Carnation (exact)
-   '24':'#F6ADC6'  // Maryland: Nadeshiko Pink (exact)
+   '42':'#D9A6AE', // Pennsylvania: softened warm dusty pink
+   '10':'#E2C0CB', // Delaware: soft light pastel pink
+   '51':'#BC7791', // Virginia: muted medium rose
+   '34':'#B978A4', // New Jersey: muted mauve-carnation
+   '24':'#A9829D'  // Maryland: muted dusty lilac pink
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
  assert.equal(new Set(Object.keys(expected).map(id=>c.state(id).fill)).size,5);
@@ -139,9 +139,33 @@ test('North and South Dakota exchange their former exact colors',()=>{
  assert.equal(c.county('46','46003').hue,c.state('46').hue);
 });
 
-test('Kentucky is muted Apple and Tennessee uses the selected Berry option',()=>{
+test('Kentucky and Tennessee are distinctly softened red family shades',()=>{
  const c=setup().GEO_COLORS;
- assert.equal(c.state('21').fill,'#9F3B30','Kentucky muted from Apple #A91B0D');
- assert.equal(c.state('47').fill,'#7A1712','Tennessee Berry, exact');
+ assert.equal(c.state('21').fill,'#B36A61','Kentucky softened muted Apple);
+ assert.equal(c.state('47').fill,'#92504A','Tennessee softened muted Berry);
  assert.notEqual(c.state('21').fill,c.state('47').fill);
+});
+
+test('Arkansas, Louisiana, Mississippi and Alabama have complementary muted orange tones',()=>{
+ const c=setup().GEO_COLORS;
+ const expected={
+   '05':'#98634B', // Arkansas: earthy orange brown
+   '22':'#C39A7C', // Louisiana: light warm orange
+   '28':'#B48261', // Mississippi: medium apricot brown
+   '01':'#CF9D7B'  // Alabama: warm soft apricot
+ };
+ for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
+});
+test('user-protected colors retain their exact approved values',()=>{
+ const c=setup().GEO_COLORS;
+ const expected={
+   '29':'#D6A55C', // Missouri stays muted pastel orange
+   '18':'hsl(42 30% 51%)', // Indiana is original untouched
+   '17':'#857B5B', // Illinois preserved
+   '54':'#B9B68A', // West Virginia preserved
+   '39':'#C2AB7B', // Ohio preserved
+   '38':'hsl(169 26% 51%)', // North Dakota preserved after swap
+   '46':'#8A9A75' // South Dakota preserved after swap
+ };
+ for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
 });
