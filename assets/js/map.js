@@ -175,6 +175,65 @@ function metricGrid(values){
  return '<div class="countyFactGrid">'+values.map(([label,value,unit])=>
   '<div class="countyFact"><span>'+esc(label)+'</span><strong>'+esc(metricFormat(value,unit))+'</strong></div>').join('')+'</div>';
 }
+/* NCSL published state political control. This is as-of state-level data only,
+ * not a county government claim or an election forecast. */
+function renderStatePoliticalControl(state,stateMode){
+ const src=window.POLITICS_NCSL;
+ const row=src?.states?.[state.abbr];
+ const title='<h3 class="countyFactsTitle">Who controls state government? · NCSL</h3>';
+ if(!row)return '<section class="countyMetricSection" aria-label="State political control">'+title+
+  '<p class="categoryNote">'+(state.abbr==='DC'?'District of Columbia has a city council, not a state legislature or governor.':
+  'State control data unavailable.')+'</p>'+
+  '<p class="countyFactSource"><a href="https://www.ncsl.org/about-state-legislatures/state-partisan-composition" target="_blank" rel="noopener noreferrer">NCSL source</a></p></section>';
+ const party=code=>({D:'Democratic',R:'Republican',S:'Divided / split','N/A':'Not applicable',
+  Nonpartisan:'Nonpartisan'}[code]||'Not classified');
+ const seatText=c=>'Democratic '+c.dem+' · Republican '+c.rep+
+  (c.other?' · Other '+c.other:'')+(c.vacant?' · Vacant '+c.vacant:'');
+ const groups=[
+  ['Governor party',party(row.governor)],
+  ['Legislature',party(row.legislature)],
+  ['Overall state control',party(row.stateControl)],
+  ...(state.abbr==='NE'?[['Unicameral Legislature',seatText(row.senate)]]:[
+   ['State House / Assembly',seatText(row.house)],
+   ['State Senate',seatText(row.senate)]])
+ ];
+ const grid='<div class="countyFactGrid">'+groups.map(([label,val])=>
+  '<div class="countyFact"><span>'+esc(label)+'</span><strong>'+esc(val)+'</strong></div>').join('')+'</div>';
+ const context=stateMode?'Statewide political composition, not a measure of policy outcomes.':
+  'State-level control; does not determine which party governs this county.';
+ return '<section class="countyMetricSection" aria-label="State political control">'+title+grid+
+  '<p class="countyFactSource">'+esc(context)+' NCSL snapshot updated '+esc(src.asOf)+
+  '; control can change after this date. Numerical majorities may differ from coalition arrangements. '+
+  '<a href="'+esc(src.sourceUrl)+'" target="_blank" rel="noopener noreferrer">NCSL source</a>.</p></section>';
+}
+/* Bill Commons data are cached by state in existing D1; never attach a bill or
+ * statewide legislature to a specific county or claim the list is exhaustive. */
+function renderBillCommons(data,state,stateMode){
+ const snapshot=data?.bills?.[state.abbr],status=data?.billStatus?.[state.abbr];
+ const title='<h3 class="countyFactsTitle">State legislation · Bill Commons</h3>';
+ const source='<a href="https://billcommons.org/docs/api" target="_blank" rel="noopener noreferrer">Bill Commons data and coverage</a>';
+ if(!Array.isArray(snapshot?.items)||!snapshot.items.length){
+  const msg=status==='error'?'Saved bill data could not be loaded.':
+   status==='loading'?'Loading stored bill records…':
+   'State bill records pending scheduled collection or unavailable from source.';
+  return '<section class="countyMetricSection" aria-label="State legislative bills">'+title+
+   '<p class="categoryNote">'+esc(msg)+'</p><p class="countyFactSource">'+source+'</p></section>';
+ }
+ const items=snapshot.items.slice(0,12).map(b=>{
+  const url='https://api.billcommons.org/api/v1/bills/'+encodeURIComponent(b.id||'');
+  return '<div class="countyFact"><span>'+esc(b.identifier||'Bill')+' · '+esc(b.status||'Status not reported')+
+   '</span><strong><a href="'+url+'" target="_blank" rel="noopener noreferrer">'+esc(b.title||'Untitled')+
+   '</a></strong></div>';
+ }).join('');
+ const context=stateMode?'':'These are state legislative records, not actions by county government. ';
+ return '<section class="countyMetricSection" aria-label="State legislative bills">'+title+
+  '<div class="countyFactGrid">'+items+'</div>'+
+  '<p class="countyFactSource">'+esc(context)+'Sample of '+snapshot.items.length+
+  ' indexed bills, not the complete session or confirmed latest actions. '+
+  'Last downloaded '+esc(snapshot.retrievedAt||'unknown')+
+  '; upstream freshness is not guaranteed. '+source+'.</p></section>';
+}
+
 /* Keyless indicators are stored in the same D1-backed cache as Census.
  * CDC PLACES rates are model estimates, never a happiness index or a county ranking. */
 function renderCdcPlaces(data,scope,selected){
@@ -256,7 +315,11 @@ function renderCard(){
  const base=data?.core||null;
  const stateMode=!county;
  const selected=stateMode?state.fips:sel.fips;
- const publicSources=renderCongressionalDelegation(data,state,stateMode)+
+ // Only our own D1 reader is contacted here; no Bill Commons requests on clicks.
+ window.POLITICS_COUNTY_CACHE?.loadBills?.(state.abbr);
+ const publicSources=renderStatePoliticalControl(state,stateMode)+
+  renderBillCommons(data,state,stateMode)+
+  renderCongressionalDelegation(data,state,stateMode)+
   renderCdcPlaces(data,stateMode?'state':'county',selected);
  card.hidden=false;
  card.innerHTML='<button class="cardClose" type="button" aria-label="'+(stateMode?'Return to U.S. map':'Return to state averages')+'">×</button>'+
