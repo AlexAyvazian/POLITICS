@@ -89,8 +89,8 @@ test('the Northeast has visually distinct, coordinated mauve and rose shades',()
  const expected={
   '36':'#86627B', // New York
   '09':'#9F83B2', // Connecticut
-  '44':'#79556F', // Rhode Island
-  '25':'#C3A3A8', // Massachusetts
+  '44':'#784B88', // Rhode Island: muted Eminence #6C3082
+  '25':'#645394', // Massachusetts: Ultra Violet (exact)
   '50':'#AEA0B8', // Vermont
   '33':'#493F5E', // New Hampshire, Prince Charming
   '23':'#B18BA2'  // Maine
@@ -103,22 +103,22 @@ test('three color transfers use the exact previous colors, not reassigned destin
  assert.equal(c.state('54').fill,'#B9B68A','West Virginia receives previous Virginia color');
  assert.equal(c.state('39').fill,'#C2AB7B','Ohio receives previous New Jersey color');
 });
-test('Mid-Atlantic matches exact interior pixel colors in the user supplied old screenshot',()=>{
+test('Mid-Atlantic has the explicitly specified pinks and only requested muted variants',()=>{
  const c=setup().GEO_COLORS;
  const expected={
-   '42':'#9772A0', // Pennsylvania — measured solid fill from the supplied screenshot
-   '10':'#A085A7', // Delaware — measured solid fill from the supplied screenshot
-   '51':'#886391', // Virginia — measured solid fill from the supplied screenshot
-   '34':'#8D6896', // New Jersey — measured solid fill from the supplied screenshot
-   '24':'#92689B'  // Maryland — measured solid fill from the supplied screenshot
+   '42':'#FFB6C1', // Pennsylvania: Light Pink (exact)
+   '10':'#DEBAC3', // Delaware: muted Pastel Pink #FFD1DC
+   '51':'#C46381', // Virginia: muted Dark Pink #E75480
+   '34':'#FFA6C9', // New Jersey: Carnation (exact)
+   '24':'#F6ADC6'  // Maryland: Nadeshiko Pink (exact)
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
  assert.equal(new Set(Object.keys(expected).map(id=>c.state(id).fill)).size,5);
- for(const id of Object.keys(expected))assert.ok(c.state(id).hue>=285&&c.state(id).hue<=343,'pink hue: '+id);
+ for(const id of Object.keys(expected))assert.ok(c.state(id).hue>=325&&c.state(id).hue<=359,'pink hue: '+id);
 });
-test('Missouri and Indiana return to their original heartland colors',()=>{
+test('Missouri uses muted Pastel Orange and Indiana remains unchanged',()=>{
  const c=setup().GEO_COLORS;
- assert.equal(c.state('29').fill,'hsl(42 28% 48%)','Missouri original color');
+ assert.equal(c.state('29').fill,'#D6A55C','Missouri muted from #FEBA4F');
  assert.equal(c.state('18').fill,'hsl(42 30% 51%)','Indiana original color');
 });
 
@@ -137,4 +137,11 @@ test('North and South Dakota exchange their former exact colors',()=>{
  assert.equal(c.state('46').fill,'#8A9A75','South Dakota gets former North Dakota');
  assert.equal(c.county('38','38001').hue,c.state('38').hue);
  assert.equal(c.county('46','46003').hue,c.state('46').hue);
+});
+
+test('Kentucky is muted Apple and Tennessee uses the selected Berry option',()=>{
+ const c=setup().GEO_COLORS;
+ assert.equal(c.state('21').fill,'#9F3B30','Kentucky muted from Apple #A91B0D');
+ assert.equal(c.state('47').fill,'#7A1712','Tennessee Berry, exact');
+ assert.notEqual(c.state('21').fill,c.state('47').fill);
 });
