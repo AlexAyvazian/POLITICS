@@ -7,6 +7,8 @@
  <title>Congressional Atlas · POLITICS</title>
  <link rel="stylesheet" href="assets/css/atlas.css">
  <link rel="stylesheet" href="assets/css/congressional.css">
+ <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+ <link rel="stylesheet" href="assets/css/congressional-existing-map.css">
 </head>
 <body data-view="congress">
  <header class="congressTop">
@@ -41,11 +43,11 @@
     <button id="congressBack" type="button" hidden>← U.S. map</button>
    </div>
    <div class="congressMapWrap">
-    <svg id="districtMap" role="img" aria-label="Interactive map of U.S. states and political districts"></svg>
+    <div id="legislativeMap" role="application" aria-label="Independent map of United States congressional and state legislative district boundaries"></div>
     <div class="congressMapLabel" id="districtMapLabel">Select a state to explore its representation</div>
     <div class="congressLoading" id="congressLoading" hidden role="status" aria-live="polite">Loading district boundaries…</div>
    </div>
-   <div class="congressSourceBar"><span id="districtVintage">119th Congress · District boundaries</span><a href="https://tigerweb.geo.census.gov/arcgis/rest/services/Generalized_ACS2025/Legislative/MapServer" target="_blank" rel="noopener noreferrer">Source: U.S. Census Bureau TIGERweb</a></div>
+   <div class="congressSourceBar"><span id="districtVintage">Official district map · U.S. Census</span><a href="https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer" target="_blank" rel="noopener noreferrer">Source: U.S. Census Bureau TIGERweb</a></div>
   </section>
   <aside class="congressSide" aria-label="Political representation details">
     <div class="sideEyebrow">POLITICAL REPRESENTATION</div>
@@ -53,14 +55,11 @@
   </aside>
  </main>
  <div class="congressTooltip" id="congressTooltip" role="status" hidden></div>
- <script src="assets/vendor/d3.min.js"></script>
- <script src="assets/vendor/topojson-client.min.js"></script>
- <script src="assets/vendor/us-atlas-counties-albers-10m.js"></script>
+ <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+ <script src="https://unpkg.com/esri-leaflet@3.0.8/dist/esri-leaflet.js" integrity="sha512-E0DKVahIg0p1UHR2Kf9NX7x7TUewJb30mxkxEm2qOYTVJObgsAGpEol9F6iK6oefCbkJiA4/i6fnTHzM6H1kEA==" crossorigin=""></script>
  <script src="assets/js/states.js"></script>
- <script src="assets/js/geo-colors.js"></script>
  <script src="assets/js/ncsl-control.js"></script>
  <script src="assets/js/governors.js"></script>
- <script src="assets/js/congressional-model.js"></script>
- <script src="assets/js/congressional.js"></script>
+ <script src="assets/js/congressional-existing-map.js"></script>
 </body>
 </html>
