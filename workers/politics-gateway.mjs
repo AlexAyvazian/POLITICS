@@ -249,7 +249,7 @@ async function updateCountyCategory(env,category,fetchImpl=fetch,now=new Date())
  const fields=conf.specs[category],db=env?.[conf.envNames[category]];
  if(!fields||!db)throw Error('Missing category config or D1: '+category);
  const idx=Object.keys(conf.specs).indexOf(category);
- const apiKey=conf.keyNames.slice(idx%6).concat(conf.keyNames.slice(0,idx%6)).map(n=>key(env,n)).find(Boolean);
+ const apiKey=key(env,'CENSUS-API-KEY') || conf.keyNames.slice(idx%6).concat(conf.keyNames.slice(0,idx%6)).map(n=>key(env,n)).find(Boolean);
  if(!apiKey)throw Error('No Census key configured');
  const groups={};
  for(const item of fields){(groups[item[1]] ||= []).push(item);}
@@ -301,10 +301,11 @@ async function refreshStateEnergy(env,fetchImpl=fetch,now=new Date()){
  const items=raw?.response?.data;
  if(!Array.isArray(items))throw Error('EIA response has no data');
  const states={};
+ const allowedStates=new Set('AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC'.split(' '));
  for(const item of items){
   const abbr=String(item.stateid||'');
   const value=Number(item.price);
-  if(!/^[A-Z]{2}$/.test(abbr)||!Number.isFinite(value)||value<0||!item.period||states[abbr])continue;
+  if(!allowedStates.has(abbr)||!Number.isFinite(value)||value<0||!item.period||states[abbr])continue;
   states[abbr]={residentialElectricityCentsKwh:value,period:String(item.period)};
  }
  if(Object.keys(states).length<40)throw Error('Incomplete nationwide EIA state data, previous snapshot retained');
