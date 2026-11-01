@@ -127,7 +127,7 @@ test('unmentioned states preserve their existing map colors',()=>{
   assert.equal(c.state('11').fill,'hsl(294 24% 45%)'); // DC
   assert.equal(c.state('08').fill,'#587966'); // coordinated muted Colorado
   assert.equal(c.state('06').hue,207); // California
-  assert.equal(c.state('12').hue,355); // Florida
+  assert.equal(c.state('12').hue,7); // Florida is now distinctly red
   assert.equal(c.state('48').hue,91); // Texas
 });
 
@@ -175,4 +175,24 @@ test('state outline tracing is only slightly slower, with county glow timing unc
  assert.equal((css.match(/animation:statePerimeterOrbit 7\.4s linear infinite;/g)||[]).length,2);
  assert.doesNotMatch(css,/animation:statePerimeterOrbit 7s linear infinite;/);
  assert.match(css,/animation:countyInteriorPulse 3\.2s ease-in-out infinite alternate;/);
+});
+
+test('North Carolina, South Carolina, Georgia, Florida have true red rather than rose fills',()=>{
+ const colors=setup().GEO_COLORS;
+ const expected={
+  '37':'#BF3B32', // North Carolina — crimson red
+  '45':'#7E211B', // South Carolina — deep red
+  '13':'#A22A20', // Georgia — brick red
+  '12':'#D25242'  // Florida — vermilion red
+ };
+ for(const [fips,fill] of Object.entries(expected)){
+  const state=colors.state(fips);
+  assert.equal(state.fill,fill,fips);
+  assert.ok(state.hue>=0&&state.hue<=9,'must be red, not pink/magenta: '+fips);
+ }
+ assert.equal(new Set(Object.values(expected)).size,4);
+ // Previously approved neighboring reds and Mid-Atlantic pinks are untouched.
+ assert.equal(colors.state('21').fill,'#B36A61');
+ assert.equal(colors.state('47').fill,'#92504A');
+ assert.equal(colors.state('51').fill,'#BC7791');
 });
