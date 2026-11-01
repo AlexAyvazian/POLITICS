@@ -55,25 +55,20 @@ test('state and county panels expose category metrics directly, not collapsed ac
   assert.match(read('index.html'), /assets\\/js\\/geo-colors\\.js/);
 });
 
-test('geographic families cover all 51 regions and keep both levels subdued', () => {
- const w=setup();
- const states=w.GEO_STATES;
- const fills=states.map(s=>w.GEO_COLORS.state(s.fips).fill);
+test('all 51 colors remain unique and every county stays inside its state color family', () => {
+ const w=setup(),states=w.GEO_STATES,colors=w.GEO_COLORS;
+ const fills=states.map(s=>colors.state(s.fips).fill);
  assert.equal(new Set(fills).size,51);
- for(const s of states){
-  const color=w.GEO_COLORS.state(s.fips);
-  assert.notEqual(color.family,undefined,'Missing palette assignment: '+s.name);
-  assert.ok(Number(color.fill.match(/ ([\\d.]+)%/)[1])<=35,'State oversaturated: '+s.name);
- }
  const all=w.US_ATLAS.objects.counties.geometries.map(c=>String(c.id).padStart(5,'0'));
  for(const s of states){
+  const base=colors.state(s.fips);
   const list=all.filter(fips=>fips.startsWith(s.fips));
-  const colors=list.map(fips=>w.GEO_COLORS.county(s.fips,fips));
-  assert.equal(new Set(colors.map(c=>c.fill)).size,list.length,'Repeated county color within '+s.name);
-  assert.ok(colors.every(c=>c.family===w.GEO_COLORS.state(s.fips).family),'County changed color family');
-  assert.ok(colors.every(c=>Number(c.fill.match(/ ([\\d.]+)%/)[1])<=35),'Bright county in '+s.name);
+  const countyColors=list.map(fips=>colors.county(s.fips,fips));
+  assert.equal(new Set(countyColors.map(c=>c.fill)).size,list.length,'Repeated county shade: '+s.name);
+  assert.ok(countyColors.every(c=>c.hue===base.hue),'County hue differs from state: '+s.name);
  }
 });
+
 test('unnecessary UI legend copy is removed from both map levels',()=>{
  const map=read('assets/js/map.js');
  const style=read('assets/css/politics.css');
@@ -83,22 +78,57 @@ test('unnecessary UI legend copy is removed from both map levels',()=>{
  assert.match(style,/\\.legend\\[hidden\\]\\{display:none!important\\}/);
 });
 
-test('rebalanced northern and northeastern colors use earthy tones while preserving other regions', () => {
- const w=setup(), color=w.GEO_COLORS;
- // Northwest browns; northern Dakotas softly golden; Northeast warm taupe, not Western blue.
- assert.equal(color.state('30').hue,35); // Montana
- assert.equal(color.state('16').hue,35); // Idaho
- assert.equal(color.state('38').hue,47); // North Dakota
- assert.equal(color.state('46').hue,47); // South Dakota
- assert.equal(color.state('23').hue,22); // Maine
- assert.equal(color.state('36').hue,22); // New York
- // Colorado is a separate dark hunter-green accent, with all its counties matching.
- assert.equal(color.state('08').hue,137);
- assert.ok(Number(color.state('08').fill.match(/ ([\\d.]+)%\\)$/)[1])<=36);
- assert.equal(color.county('08','08031').hue,137);
- // Previously approved regions remain untouched.
- assert.equal(color.state('06').hue,207); // California
- assert.equal(color.state('27').hue,169); // Minnesota
- assert.equal(color.state('48').hue,91);  // Texas
- assert.equal(color.state('12').hue,355); // Florida
+test('copies the exact original Great Lakes state colors to the requested four states',()=>{
+ const c=setup().GEO_COLORS;
+ const destination={
+  '56':'hsl(169 24% 48%)', // Wyoming <- old Minnesota
+  '16':'hsl(169 21% 59%)', // Idaho <- old Michigan
+  '30':'hsl(169 22% 56%)', // Montana <- old Iowa
+  '46':'hsl(169 26% 51%)'  // South Dakota <- old Wisconsin
+ };
+ for(const [fips,fill] of Object.entries(destination)){
+  assert.equal(c.state(fips).fill,fill,'Transferred original color: '+fips);
+  assert.equal(c.county(fips,fips+'001').hue,c.state(fips).hue);
+ }
+});
+test('sets North Dakota Persian Green and assigns the four specified source states brown shades',()=>{
+ const c=setup().GEO_COLORS;
+ const expected={
+  '38':'#00A693', // Persian Green
+  '27':'#9F8170', // Beaver (Minnesota)
+  '26':'#A67B5B', // Cafe au Lait (Michigan)
+  '19':'#C19A6B', // Wood Brown (Iowa)
+  '55':'#9B7653'  // Dirt (Wisconsin)
+ };
+ for(const [fips,hex] of Object.entries(expected))assert.equal(c.state(fips).fill,hex,'Exact color for '+fips);
+});
+test('moves the previous pink Mid-Atlantic color family to all seven Northeast states',()=>{
+ const c=setup().GEO_COLORS;
+ for(const fips of ['36','09','44','25','50','33','23']){
+  assert.equal(c.state(fips).hue,294,'Northeast state receives former pink family: '+fips);
+  assert.equal(c.county(fips,fips+'001').hue,294);
+ }
+ assert.equal(new Set(['36','09','44','25','50','33','23'].map(id=>c.state(id).fill)).size,7);
+});
+test('uses the six yellows verbatim in the state order requested, while leaving DC unchanged',()=>{
+ const c=setup().GEO_COLORS;
+ const expected={
+  '54':'#F8DE7E', // West Virginia: Mellow Yellow
+  '51':'#FFFF66', // Virginia: Unmellow Yellow
+  '24':'#FFFD74', // Maryland: Butter
+  '10':'#FFFE71', // Delaware: Pastel Yellow
+  '34':'#EEE8AA', // New Jersey: Pale Goldenrod
+  '42':'#F0E68C'  // Pennsylvania: Light Khaki
+ };
+ for(const [fips,hex] of Object.entries(expected)){
+  assert.equal(c.state(fips).fill,hex,'Exact assigned yellow: '+fips);
+  assert.equal(c.county(fips,fips+'001').hue,c.state(fips).hue);
+ }
+ assert.equal(c.state('11').fill,'hsl(294 24% 45%)');
+});
+test('does not alter the existing palette of unmentioned states',()=>{
+ const c=setup().GEO_COLORS;
+ for(const [fips,expectedHue] of [['06',207],['12',355],['48',91],['08',137]]){
+  assert.equal(c.state(fips).hue,expectedHue,'Preserve previous hue for '+fips);
+ }
 });
