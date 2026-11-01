@@ -76,10 +76,17 @@ function officePanel(){
   '<div class="repItem"><small>President of the United States · Republican</small><strong>Donald J. Trump</strong></div>'+
   '<div class="repItem"><small>Vice President · Republican</small><strong>JD Vance</strong></div>'+
   '<p class="sourceNote">Federal executive authority is nationwide, not divided into state or legislative districts. <a href="https://www.usa.gov/presidents" target="_blank" rel="noopener noreferrer">USAGov source</a>.</p>';
- if(currentLayer==='governor')return html+'<h2>Governor</h2>'+
-  '<div class="repItem"><small>Statewide elected executive · '+clean(partyLabel(window.POLITICS_NCSL?.states?.[currentState]?.governor))+'</small>'+
-  '<strong>Governor of '+clean(state.name)+'</strong></div>'+
-  '<p class="sourceNote">The party is sourced from NCSL; the governor\'s name is not supplied by the connected dataset. <a href="https://www.nga.org/governors/" target="_blank" rel="noopener noreferrer">Find the current governor at NGA</a>.</p>';
+ if(currentLayer==='governor'){
+  const source=window.GOVERNORS_2026;
+  const governor=source?.states?.[currentState];
+  return html+'<h2>Governor</h2>'+
+   '<div class="repItem"><small>Statewide elected executive · '+
+   clean(partyLabel(window.POLITICS_NCSL?.states?.[currentState]?.governor))+
+   '</small><strong>'+clean(governor||'Governor name unavailable')+'</strong></div>'+
+   '<p class="sourceNote">Governor roster as of '+clean(source?.asOf||'last recorded date')+
+   ', from the <a href="https://www.nga.org/governors/" target="_blank" rel="noopener noreferrer">National Governors Association</a>. '+
+   'Party control from the NCSL October 2026 snapshot.</p>';
+ }
  if(currentLayer==='senate'){
   html+=sectionMembers('U.S. senators',geo.federalMembers(federalPeople,currentState,'sen',null,dateOfSnapshot),'federal');
   return html+'<p class="sourceNote">U.S. senators represent the entire state. <a href="https://www.senate.gov/senators/" target="_blank" rel="noopener noreferrer">Official Senate directory</a>.</p>';
