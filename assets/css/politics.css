@@ -44,3 +44,55 @@
 #view-map .countyFacts .countyFact{min-width:0}
 #view-map .countyFacts .countyFact strong{overflow-wrap:anywhere}
 @media (prefers-reduced-motion:reduce){#view-map .stateSelectedBoundary .stateLightTrace{animation:none;stroke-dasharray:none;stroke-width:2.2}}
+
+
+/* Geographic color families: never encode party affiliation in default map colors. */
+#view-map #mapSvg .state,
+#view-map #mapSvg .county{
+  fill:var(--geo-fill);
+  outline:none!important;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;
+  user-select:none;
+}
+#view-map #mapSvg{outline:none!important;-webkit-tap-highlight-color:transparent}
+#view-map #mapSvg .state:hover,
+#view-map #mapSvg .county:hover,
+#view-map #mapSvg .county.active{
+  fill:var(--geo-hover);
+  stroke:var(--geo-dark);
+  stroke-width:1.6;
+  filter:drop-shadow(0 0 6px var(--geo-glow));
+}
+#view-map #mapSvg .state:focus-visible,
+#view-map #mapSvg .county:focus-visible{
+  outline:none!important;
+  stroke:var(--geo-dark);
+  stroke-width:2.5;
+  filter:drop-shadow(0 0 8px var(--geo-glow));
+}
+#view-map #mapSvg .stateSelectedBoundary .stateOutlineBase,
+#view-map #mapSvg .countySelectedBoundary .countyOutlineBase{
+  fill:none;stroke:var(--geo-glow);stroke-opacity:.62;stroke-width:1.65;
+  vector-effect:non-scaling-stroke;pointer-events:none;
+}
+#view-map #mapSvg .stateSelectedBoundary .stateLightTrace,
+#view-map #mapSvg .countySelectedBoundary .countyLightTrace{
+  fill:none;stroke:var(--geo-dark);stroke-width:3;stroke-linecap:round;
+  stroke-dasharray:100 900;stroke-dashoffset:0;
+  vector-effect:non-scaling-stroke;pointer-events:none;
+  filter:drop-shadow(0 0 3px var(--geo-glow)) drop-shadow(0 0 10px var(--geo-glow));
+  animation:statePerimeterOrbit 7s linear infinite;
+}
+#view-map .legend .stateData{background:linear-gradient(135deg,#e0a445,#48b88c,#b282d9,#df7b78)}
+#view-map .legend .noData{background:linear-gradient(135deg,#354e74,#7893bf)}
+#view-map .legend .sel{background:#3b2b4c;box-shadow:0 0 5px #b282d9}
+#view-map .countyMetricSection{margin-top:17px;padding-top:13px;border-top:1px solid rgba(125,211,252,.14)}
+#view-map .countyMetricSection h3{margin:0 0 9px}
+#view-map .countyMetricSection .countyFactGrid{margin-bottom:9px}
+@media(prefers-reduced-motion:reduce){
+  #view-map #mapSvg .stateSelectedBoundary .stateLightTrace,
+  #view-map #mapSvg .countySelectedBoundary .countyLightTrace{
+    animation:none;stroke-dasharray:none;stroke-width:2.4;
+  }
+}
