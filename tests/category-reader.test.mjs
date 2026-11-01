@@ -31,3 +31,24 @@ test('invalid category is rejected without any fetch',async()=>{
  const res=await serve(req('/api/category-snapshot?category=everything'),{});
  assert.equal(res.status,404);
 });
+
+test('keyless CDC health and congressional representation read from existing D1 databases',async()=>{
+ const health={source:'CDC PLACES',count:3100,fields:{lonelinessPct:{label:'Loneliness',unit:'percent'}},counties:{'06019':{lonelinessPct:29.1}}};
+ const congress={count:540,states:{CA:{senators:[{name:'Sample Senator',party:'Democrat'}],house:[]}}};
+ const env={CATEGORY_DB_HEALTHCARE:fakeDb({cdc_places_2025:health}),COUNTY_DB:fakeDb({congress_members_current:congress})};
+ const h=await serve(req('/api/places-snapshot'),env),c=await serve(req('/api/congress-snapshot'),env);
+ assert.equal(h.status,200);
+ assert.equal(c.status,200);
+ assert.equal((await h.json()).counties['06019'].lonelinessPct,29.1);
+ assert.equal((await c.json()).states.CA.senators[0].party,'Democrat');
+});
+test('missing keyless datasets stay pending with no invented scores or representatives',async()=>{
+ const env={CATEGORY_DB_HEALTHCARE:fakeDb({}),COUNTY_DB:fakeDb({})};
+ for(const url of ['/api/places-snapshot','/api/congress-snapshot']){
+  const resp=await serve(req(url),env);
+  assert.equal(resp.status,200);
+  const obj=await resp.json();
+  assert.equal(obj.status,'pending');
+  assert.equal(obj.count,0);
+ }
+});
