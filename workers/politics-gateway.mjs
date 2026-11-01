@@ -90,7 +90,25 @@ const CATALOG={
  usgs:['USGS_API_KEY','environment','Water observations (not disaster costs)']
 };
 const TTL={airnow:900,lobbyview:43200,bea:86400,bls:21600,census:86400,congress:3600,datagov:21600,eia:86400,fda:86400,fdic:86400,fec:3600,fred:21600,govinfo:21600,lda:3600,maptiler:86400,noaa:86400,openstates:3600,regulations:3600,usgs:10800};
-const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'GET, OPTIONS'};
+/* Match Healthcare Directory: browser CORS is limited to approved FRONTEND_ORIGIN values. */
+const CORS={};
+function allowedOrigins(env){
+ return String(env?.FRONTEND_ORIGIN||'').split(',').map(v=>v.trim().replace(/\/+$/,'')).filter(Boolean);
+}
+function withOriginCors(response,request,env){
+ const headers=new Headers(response.headers);
+ for(const name of ['Access-Control-Allow-Origin','Access-Control-Allow-Headers','Access-Control-Allow-Methods','Access-Control-Max-Age'])headers.delete(name);
+ const vary=headers.get('Vary');
+ if(vary!=='*' && !(vary||'').toLowerCase().split(',').some(v=>v.trim()==='origin'))headers.set('Vary',vary?vary+', Origin':'Origin');
+ const origin=request.headers?.get?.('Origin')||null;
+ if(origin && allowedOrigins(env).includes(origin)){
+  headers.set('Access-Control-Allow-Origin',origin);
+  headers.set('Access-Control-Allow-Methods','GET, OPTIONS');
+  headers.set('Access-Control-Allow-Headers','Accept, Content-Type');
+  headers.set('Access-Control-Max-Age','86400');
+ }
+ return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+}
 const json=(data,status=200,ttl=0)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json',...CORS,'Cache-Control':ttl?'public, max-age=60, s-maxage='+ttl:'no-store'}});
 const key=(env,name)=>typeof env[name]==='string'&&env[name].trim()?env[name].trim():null;
 const qs=(url,query)=>{const u=new URL(url);for(const [k,v] of Object.entries(query||{}))if(v!==null&&v!==undefined&&v!=='')u.searchParams.set(k,String(v));return u.toString();};
@@ -152,7 +170,7 @@ function clean(obj,depth=0){
  }
  return obj;
 }
-export async function handle(request,env,ctx={},fetcher=fetch){
+async function handleCore(request,env,ctx={},fetcher=fetch){
  const u=new URL(request.url),path=u.pathname.replace(/\/+$/,'');
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
  if(request.method!=='GET')return json({error:'GET only'},405);
@@ -172,5 +190,8 @@ export async function handle(request,env,ctx={},fetcher=fetch){
  const response=json({provider:id,source:(KEYLESS_SOURCES[id]?.[1]||ACCESS_REQUIRED[id]?.[1]||CATALOG[id][2]),retrievedAt:new Date().toISOString(),data:clean(body)},200,(KEYLESS_SOURCES[id]?.[2]||ACCESS_REQUIRED[id]?.[4]||TTL[id]));
  if(cache){try{const p=cache.put(request,response.clone());if(ctx.waitUntil)ctx.waitUntil(p);else await p;}catch{}}
  return response;
+}
+export async function handle(request,env,ctx={},fetcher=fetch){
+ return withOriginCors(await handleCore(request,env,ctx,fetcher),request,env);
 }
 export default {fetch:handle};
