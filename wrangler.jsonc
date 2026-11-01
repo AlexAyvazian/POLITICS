@@ -1,6 +1,6 @@
 {
   "name": "crimson-mud-d254",
-  "main": "workers/airnow-worker.mjs",
+  "main": "workers/politics-gateway.mjs",
   "compatibility_date": "2026-10-31",
   "workers_dev": true,
   "keep_vars": true
