@@ -4,7 +4,8 @@
 - **Same map throughout.** Clicking a state zooms to its county outlines, outlines the real irregular state boundary with a moving PI BorderGlow-style perimeter trace, and opens state statistics.
 - **State panel:** arithmetic, equal-weight averages of available county values per indicator, never population-weighted and never mislabeled official state medians; a distinct "State-only data" section holds measurements such as EIA electricity price that do not exist at county level.
 - **County click:** replaces that card with county-specific statistics. Closing a county card returns to the state panel. No separate state/county maps.
-- The seven categories (housing, jobs, income, healthcare, education, families, infrastructure) are expandable sections of the SAME panel.
+- Available indicators from the seven categories (housing, jobs, income, healthcare, education, families, infrastructure) display **directly as values**, grouped under inline section headings; no collapsed accordions or extra clicks.
+- State colors are distinct, nonpartisan geographic hues; each county uses a stable shade of its state's hue. The actual selected state or county perimeter receives a darker-colored moving trace and same-hue glow. No rectangular selection focus box.
 - Empty or uncollected category snapshots are labeled as pending; no fabricated numbers.
 
 ## Free architecture
