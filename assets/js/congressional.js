@@ -107,7 +107,7 @@ function officePanel(){
 }
 function renderSide(){panel.innerHTML=officePanel();}
 function hashState(){
- const bits=[currentState||'',currentLayer,currentDistrict?geo.districtCode(currentDistrict.properties,currentLayer):''].filter(Boolean);
+ const bits=[currentState||'US',currentLayer,currentDistrict?geo.districtCode(currentDistrict.properties,currentLayer):''].filter(Boolean);
  try{history.replaceState(null,'','#'+bits.join('/'));}catch{}
 }
 function nationalMap(){
