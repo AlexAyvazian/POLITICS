@@ -139,11 +139,18 @@ test('North and South Dakota exchange their former exact colors',()=>{
  assert.equal(c.county('46','46003').hue,c.state('46').hue);
 });
 
-test('Kentucky and Tennessee are distinctly softened red family shades',()=>{
+test('Tennessee inherits the exact prior Kentucky red and Kentucky complements Midwest neutrals',()=>{
  const c=setup().GEO_COLORS;
- assert.equal(c.state('21').fill,'#B36A61','Kentucky softened muted Apple');
- assert.equal(c.state('47').fill,'#92504A','Tennessee softened muted Berry');
- assert.notEqual(c.state('21').fill,c.state('47').fill);
+ assert.equal(c.state('21').fill,'#A39A83','Kentucky uses muted olive-taupe');
+ assert.equal(c.state('47').fill,'#B36A61','Tennessee receives previous Kentucky red exactly');
+ assert.equal(c.state('17').fill,'#857B5B','Illinois stays unchanged');
+ assert.equal(c.state('18').fill,'hsl(42 30% 51%)','Indiana stays unchanged');
+ assert.equal(c.state('39').fill,'#C2AB7B','Ohio stays unchanged');
+ assert.equal(c.state('54').fill,'#B9B68A','West Virginia stays unchanged');
+ assert.notEqual(c.state('21').fill,c.state('17').fill);
+ assert.notEqual(c.state('21').fill,c.state('18').fill);
+ assert.notEqual(c.state('21').fill,c.state('39').fill);
+ assert.notEqual(c.state('21').fill,c.state('54').fill);
 });
 
 test('Arkansas Louisiana Mississippi and Alabama use unmistakably orange, distinct warm shades',()=>{
@@ -192,7 +199,7 @@ test('North Carolina, South Carolina, Georgia, Florida have true red rather than
  }
  assert.equal(new Set(Object.values(expected)).size,4);
  // Previously approved neighboring reds and Mid-Atlantic pinks are untouched.
- assert.equal(colors.state('21').fill,'#B36A61');
- assert.equal(colors.state('47').fill,'#92504A');
+ assert.equal(colors.state('21').fill,'#A39A83');
+ assert.equal(colors.state('47').fill,'#B36A61');
  assert.equal(colors.state('51').fill,'#BC7791');
 });
