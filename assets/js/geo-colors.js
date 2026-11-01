@@ -45,7 +45,7 @@
   '09':'#9F83B2', // Connecticut
   '44':'#79556F', // Rhode Island
   '25':'#C3A3A8', // Massachusetts
-  '50':'#93799E', // Vermont
+  '50':'#AEA0B8', // Vermont
   '33':'#765A7B', // New Hampshire
   '23':'#B18BA2', // Maine
 
