@@ -137,7 +137,12 @@ function target(id,p,env){
  case 'lobbyview':u=qs('https://rest-api.lobbyview.org/api/legislators',{page:1});break;
  case 'maptiler':if(!q)throw Error('Location q required');u=qs('https://api.maptiler.com/geocoding/'+encodeURIComponent(q)+'.json',{key:k,limit:Math.min(n,5)});break;
  case 'noaa':u=qs('https://www.ncei.noaa.gov/cdo-web/api/v2/datasets',{limit:n});options.headers.token=k;break;
- case 'openstates':u=qs('https://v3.openstates.org/bills',{jurisdiction:limited(p.get('jurisdiction')||'ca',/^[a-z]{2,20}$/i,20),per_page:n,...(q?{q}:{})});options.headers['X-API-KEY']=k;break;
+ case 'openstates':{
+  const resource=p.get('record')||'bills';
+  if(!['bills','people'].includes(resource))throw Error('Invalid Open States record type');
+  u=qs('https://v3.openstates.org/'+resource,{jurisdiction:limited(p.get('jurisdiction')||'ca',/^[a-z]{2,20}$/i,20),per_page:n,...(q?{q}:{})});
+  options.headers['X-API-KEY']=k;break;
+ }
  case 'regulations':u=qs('https://api.regulations.gov/v4/documents',{'page[size]':n,sort:'-postedDate',...(q?{'filter[searchTerm]':q}:{})});options.headers['X-Api-Key']=k;break;
  case 'usgs':u=qs('https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items',{limit:n});options.headers['X-Api-Key']=k;break;
  }
