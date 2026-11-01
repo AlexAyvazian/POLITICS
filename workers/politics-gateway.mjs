@@ -453,6 +453,106 @@ async function refreshBillCommonsState(env,state,fetchImpl=fetch,now=new Date())
  return {state,count:items.length};
 }
 
+/* Expand already-configured official API adapters into stored political data.
+ * Avoid provider fetches on map selection, and preserve the last good snapshot on errors. */
+async function politicalSnapshotWrite(db,id,record,now,count){
+ const payload=JSON.stringify(record);
+ if(new TextEncoder().encode(payload).length>=1900000)throw Error('Political snapshot too large: '+id);
+ await db.prepare('INSERT INTO county_snapshots(source,snapshot_json,refreshed_at,record_count) VALUES(?,?,?,?) ON CONFLICT(source) DO UPDATE SET snapshot_json=excluded.snapshot_json,refreshed_at=excluded.refreshed_at,record_count=excluded.record_count')
+  .bind(id,payload,now.toISOString(),count).run();
+}
+async function refreshOpenStatesState(env,state,fetchImpl=fetch,now=new Date()){
+ if(!BILL_COMMONS_STATES.includes(state))throw Error('Invalid state jurisdiction');
+ const db=env?.COUNTY_DB,token=key(env,'OPENSTATES_API_KEY');
+ if(!db||!token)throw Error('Missing core D1 or Open States key');
+ async function request(type,perPage){
+  const u=new URL('https://v3.openstates.org/'+type);
+  u.searchParams.set('jurisdiction',state.toLowerCase());
+  u.searchParams.set('per_page',String(perPage));
+  const res=await fetchImpl(u.toString(),{headers:{Accept:'application/json','X-API-KEY':token}});
+  if(!res.ok)throw Error('Open States '+type+' HTTP '+res.status);
+  const body=await res.json();
+  if(!Array.isArray(body?.results))throw Error('Open States '+type+' schema unavailable');
+  return body;
+ }
+ const [billsResult,peopleResult]=await Promise.all([request('bills',12),request('people',32)]);
+ const bills=billsResult.results.slice(0,12).map(x=>({
+  id:safeBillText(x.id,100),
+  identifier:safeBillText(x.identifier,70),
+  title:safeBillText(x.title,350),
+  action:safeBillText(x.latest_action_description,160),
+  actionDate:safeBillText(x.latest_action_date,32),
+  url:safeBillText(x.openstates_url,500)
+ })).filter(x=>x.id&&x.identifier&&x.title);
+ const people=peopleResult.results.slice(0,32).map(x=>({
+  id:safeBillText(x.id,100),
+  name:safeBillText(x.name,120),
+  party:safeBillText(x.party,80),
+  role:safeBillText(x.current_role?.title,100),
+  district:safeBillText(x.current_role?.district,40),
+  url:safeBillText(x.openstates_url,500)
+ })).filter(x=>x.id&&x.name);
+ if(!bills.length&&!people.length)throw Error('Empty Open States dataset; previous cache retained');
+ const record={source:'Open States / Plural Open',state,
+  retrievedAt:now.toISOString(),sourceUrl:'https://docs.openstates.org/api-v3/',
+  caveat:'Partial API sample, not a complete legislative session or roster. Actions and vote detail vary by jurisdiction.',
+  totalBills:Number.isInteger(billsResult.pagination?.total_items)?billsResult.pagination.total_items:null,
+  totalPeople:Number.isInteger(peopleResult.pagination?.total_items)?peopleResult.pagination.total_items:null,
+  count:bills.length+people.length,bills,people};
+ await politicalSnapshotWrite(db,'openstates_'+state,record,now,record.count);
+ return {state,bills:bills.length,people:people.length};
+}
+/* Official Congress.gov House legislative roll calls (119th Congress, 2nd session).
+ * No assertion about Senate votes, leadership elections or future elections.
+ * Store actual individual choices, not presumed party-line votes. */
+async function refreshFederalHouseVotes(env,fetchImpl=fetch,now=new Date()){
+ const db=env?.COUNTY_DB,token=key(env,'CONGRESS_API_KEY');
+ if(!db||!token)throw Error('Missing core D1 or Congress.gov key');
+ async function get(path,limit){
+  const u=new URL('https://api.congress.gov/v3/'+path);
+  u.searchParams.set('api_key',token);u.searchParams.set('format','json');
+  if(limit)u.searchParams.set('limit',String(limit));
+  const res=await fetchImpl(u.toString(),{headers:{Accept:'application/json'}});
+  if(!res.ok)throw Error('Congress.gov House vote HTTP '+res.status);
+  return res.json();
+ }
+ const index=await get('house-vote/119/2',6);
+ const list=index?.houseRollCallVotes;
+ if(!Array.isArray(list)||!list.length)throw Error('Congress.gov vote list missing');
+ const votes=[];
+ for(const vote of list.slice(0,6)){
+  const num=Number(vote.rollCallNumber);
+  if(!Number.isInteger(num)||num<1)continue;
+  const raw=await get('house-vote/119/2/'+num+'/members');
+  const container=raw?.houseRollCallVoteMemberVotes;
+  const rows=Array.isArray(container?.results)?container.results:container?.results?.item;
+  if(!Array.isArray(rows)||rows.length<100)throw Error('Congress.gov House member vote data incomplete');
+  const stateVotes={};
+  for(const v of rows){
+   const st=String(v.voteState||'').toUpperCase();
+   const cast=String(v.voteCast||'');
+   if(!US_STATE_ABBRS.has(st)||!['Aye','Nay','Present','Not Voting','Yea','No'].includes(cast))continue;
+   const person={
+    bioguide:safeBillText(v.bioguideId,25),name:safeBillText([v.firstName,v.lastName].filter(Boolean).join(' '),100),
+    party:safeBillText(v.voteParty,12),cast
+   };
+   (stateVotes[st] ||= []).push(person);
+  }
+  if(Object.keys(stateVotes).length<40)throw Error('Congress.gov incomplete state vote map');
+  votes.push({voteNumber:num,date:safeBillText(vote.startDate,48),
+   result:safeBillText(vote.result,60),legislationType:safeBillText(vote.legislationType,18),
+   legislationNumber:safeBillText(String(vote.legislationNumber||''),20),
+   question:safeBillText(vote.voteQuestion,200),stateVotes});
+ }
+ if(!votes.length)throw Error('Congress.gov no usable House vote records');
+ const record={source:'Congress.gov',sourceUrl:'https://api.congress.gov/',
+  congress:119,session:2,chamber:'House',retrievedAt:now.toISOString(),count:votes.length,
+  note:'Recent legislative House roll calls only. Senate and non-legislative votes are not included.',
+  votes};
+ await politicalSnapshotWrite(db,'congress_house_votes_recent',record,now,votes.length);
+ return {votes:votes.length};
+}
+
 async function handleCore(request,env,ctx={},fetcher=fetch){
  const u=new URL(request.url),path=u.pathname.replace(/\/+$/,'');
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
@@ -486,12 +586,15 @@ export default {
   const when=new Date(event.scheduledTime??Date.now());
   const slot=when.getUTCHours()*2+(when.getUTCMinutes()>=30?1:0);
   const tasks=['housing','jobs','income','healthcare','education','families','infrastructure','eia','census','places','congressMembers'];
-  // The 37 remaining half-hour slots rotate through all 51 jurisdictions
-  // across successive days (never 51 simultaneous API calls).
-  if(slot>=11&&slot<48){
+  // Slot 11: once/day update recent House roll calls from official Congress.gov.
+  if(slot===11){ctx.waitUntil(refreshFederalHouseVotes(env));return;}
+  // Remaining 36 slots: alternate Open States (primary) and Bill Commons
+  // (optional supplement). Each state rotates roughly every three days.
+  if(slot>=12&&slot<48){
    const days=Math.floor(when.getTime()/86400000);
-   const state=BILL_COMMONS_STATES[(days*37+(slot-11))%BILL_COMMONS_STATES.length];
-   ctx.waitUntil(refreshBillCommonsState(env,state));
+   const index=Math.floor((slot-12)/2);
+   const state=BILL_COMMONS_STATES[(days*18+index)%BILL_COMMONS_STATES.length];
+   ctx.waitUntil(slot%2===0?refreshOpenStatesState(env,state):refreshBillCommonsState(env,state));
    return;
   }
   const task=tasks[slot];if(!task)return;
@@ -500,4 +603,4 @@ export default {
 };
 
 // Named exports for the scheduled-collection regression suite.
-export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState };
+export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes };
