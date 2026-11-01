@@ -54,3 +54,15 @@ test('county atlas source, colors and effects remain independent',()=>{
  assert.match(css,/statePerimeterOrbit 7\.4s/);
  assert.match(css,/countyInteriorPulse 3\.2s/);
 });
+
+test('state executive roster has all fifty verified NGA governor names with clear date',()=>{
+ const ctx={window:{}};vm.runInNewContext(read('assets/js/governors.js'),ctx);
+ const d=ctx.window.GOVERNORS_2026;
+ assert.equal(Object.keys(d.states).length,50);
+ assert.equal(d.states.CA,'Gavin Newsom');
+ assert.equal(d.states.VA,'Abigail Spanberger');
+ assert.equal(d.states.NJ,'Mikie Sherrill');
+ assert.equal(d.asOf,'2026-11-01');
+ assert.match(read('congressional.html'),/assets\/js\/governors\.js/);
+ assert.match(read('assets/js/congressional.js'),/GOVERNORS_2026/);
+});
