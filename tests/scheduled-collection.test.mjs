@@ -167,19 +167,25 @@ test('Congress.gov legislative House roll-call returns actual member choices gro
   assert.equal(u.hostname,'api.congress.gov');
   assert.equal(u.searchParams.get('api_key'),'test-token');
   if(u.pathname.endsWith('/house-vote/119/2'))return new Response(JSON.stringify({houseRollCallVotes:[{congress:119,sessionNumber:2,rollCallNumber:256,startDate:'2026-10-25',legislationType:'HR',legislationNumber:'152',result:'Passed'}]}));
-  if(u.pathname.endsWith('/256/members'))return new Response(JSON.stringify({houseRollCallVoteMemberVotes:{results:{item:[
-   {bioguideId:'A000001',firstName:'A',lastName:'Example',voteCast:'Aye',voteState:'CA',voteParty:'D'},
-   {bioguideId:'B000002',firstName:'B',lastName:'Example',voteCast:'Nay',voteState:'NY',voteParty:'R'},
-   ...Array.from({length:120},(_,i)=>({bioguideId:'T'+i,firstName:'Other',lastName:'Member'+i,voteCast:'Aye',
-    voteState:'AL AK AZ AR CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' ')[i%47],voteParty:'D'}))
-  ]}}}));
+  if(u.pathname.endsWith('/256/members')){
+   assert.equal(u.searchParams.get('limit'),'250');
+   const rows=[
+    {bioguideId:'A000001',firstName:'A',lastName:'Example',voteCast:'Aye',voteState:'CA',voteParty:'D'},
+    {bioguideId:'B000002',firstName:'B',lastName:'Example',voteCast:'Nay',voteState:'NY',voteParty:'R'},
+    ...Array.from({length:428},(_,i)=>({bioguideId:'T'+i,firstName:'Other',lastName:'Member'+i,voteCast:'Aye',
+     voteState:'AL AK AZ AR CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' ')[i%46],voteParty:'D'}))
+   ];
+   const offset=Number(u.searchParams.get('offset')||0);
+   return new Response(JSON.stringify({houseRollCallVoteMemberVotes:{results:{item:rows.slice(offset,offset+250)}}}));
+  }
   throw Error('unexpected '+u.pathname);
  };
  const r=await refreshFederalHouseVotes({COUNTY_DB:store,CONGRESS_API_KEY:'test-token'},mock,now);
- assert.equal(r.votes,1);assert.equal(seen.length,2);
+ assert.equal(r.votes,1);assert.equal(seen.length,3);
  assert.equal(store.writes[0][0],'congress_house_votes_recent');
  const d=JSON.parse(store.writes[0][1]);
  assert.equal(d.votes[0].stateVotes.CA[0].cast,'Aye');
+ assert.ok(Object.values(d.votes[0].stateVotes).reduce((n,v)=>n+v.length,0)>=400);
  assert.equal(d.votes[0].stateVotes.NY[0].party,'R');
  assert.equal(d.votes[0].voteNumber,256);
  assert.equal(d.chamber,'House');assert.equal(d.congress,119);assert.equal(d.session,2);
