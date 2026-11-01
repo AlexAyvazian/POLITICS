@@ -1,0 +1,53 @@
+/* Congressional Atlas: independent layout; leaves County Atlas CSS untouched. */
+:root{color-scheme:dark}
+body[data-view="congress"]{background:radial-gradient(ellipse at 6% 10%,rgba(39,92,137,.28),transparent 34%),radial-gradient(ellipse at 90% 15%,rgba(92,55,115,.22),transparent 38%),#060b19;color:#eaf4ff;overflow:hidden}
+.congressTop{position:relative;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 18px 10px;padding:10px 18px;min-height:58px;border:1px solid rgba(180,222,255,.19);border-radius:22px;background:rgba(11,24,47,.8);backdrop-filter:blur(18px)}
+.congressIdentity{display:flex;gap:13px;align-items:center;font-size:11px;letter-spacing:.14em;font-weight:700}
+.congressDot{width:9px;height:9px;border-radius:50%;background:#69dcff;box-shadow:0 0 12px #69dcff}
+.congressTitle{font-size:14px;letter-spacing:.045em;color:#a8f1e2}
+.atlasViews{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:750}
+.atlasViews a{color:#c4dbeb;text-decoration:none;border:1px solid rgba(160,205,238,.18);padding:9px 13px;border-radius:11px}
+.atlasViews a:hover,.atlasViews a:focus-visible{background:rgba(104,190,216,.14)}
+.atlasViewCurrent{border:1px solid rgba(116,225,209,.45);background:rgba(110,230,212,.1);color:#afffea;border-radius:11px;padding:9px 13px}
+.congressLayout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;padding:0 18px 18px;height:calc(100vh - 96px);min-height:450px}
+.congressStage,.congressSide{min-width:0;border:1px solid rgba(168,207,242,.17);background:linear-gradient(135deg,rgba(14,30,57,.91),rgba(7,14,30,.87));border-radius:24px;box-shadow:0 22px 60px rgba(0,0,0,.27)}
+.congressStage{padding:14px;display:flex;flex-direction:column;overflow:hidden}
+.congressToolbar{display:flex;align-items:end;flex-wrap:wrap;gap:11px;margin-bottom:12px}
+.congressInputs{display:grid;gap:6px;min-width:195px;flex:1}
+.congressInputs label{font-size:10px;color:#9fc7d9;letter-spacing:.085em;text-transform:uppercase;font-weight:800}
+.congressInputs select{min-width:0;padding:11px 30px 11px 12px;border-radius:12px;border:1px solid rgba(143,193,222,.3);background:#0a1a32;color:#eef8ff;font-size:13px}
+.congressToolbar button{background:#1b2d4a;border:1px solid rgba(176,223,248,.25);color:#e4f6ff;border-radius:12px;padding:11px 14px;cursor:pointer}
+.congressToolbar button[hidden]{display:none}
+.congressMapWrap{position:relative;min-height:0;flex:1;border:1px solid rgba(167,194,244,.12);border-radius:19px;overflow:hidden;background:radial-gradient(ellipse at 70% 93%,rgba(15,62,76,.23),transparent 38%),linear-gradient(180deg,#071126,#050d1e)}
+#districtMap{width:100%;height:100%;display:block}
+.congressState{cursor:pointer;fill:var(--geo-fill,#456e8d);stroke:rgba(205,228,252,.45);stroke-width:.65;transition:fill .16s}
+.congressState:hover,.congressState:focus-visible{fill:var(--geo-hover,#78a0b5);outline:none}
+.congressDistrict{cursor:pointer;fill:var(--district-fill,#406a91);stroke:rgba(222,238,255,.7);stroke-width:.75;vector-effect:non-scaling-stroke;transition:fill .14s}
+.congressDistrict:hover,.congressDistrict:focus-visible{fill:var(--district-hover,#83b7c9);outline:none}
+.congressDistrict.selected{fill:var(--district-selected,#9ac7e5);stroke:rgba(229,248,255,.86);stroke-width:1.1;filter:drop-shadow(0 0 6px rgba(165,226,251,.33))}
+.congressSelectedOutline{fill:none;stroke:#9ce3e4;stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none;filter:drop-shadow(0 0 4px rgba(108,214,227,.42))}
+.congressMapLabel{position:absolute;bottom:14px;left:14px;max-width:calc(100% - 28px);border:1px solid rgba(159,209,247,.16);background:rgba(4,11,27,.82);padding:9px 13px;border-radius:999px;font-size:12px;color:#d7eafa}
+.congressLoading{position:absolute;top:16px;left:16px;border:1px solid rgba(140,208,243,.34);border-radius:13px;padding:10px 13px;background:#0d233c;color:#aff1df;font-size:12px}
+.congressLoading[hidden]{display:none}
+.congressSourceBar{display:flex;flex-wrap:wrap;gap:6px 15px;align-items:center;justify-content:space-between;font-size:10px;padding:9px 3px 0;color:#a0b7ce}
+.congressSourceBar a{color:#87dcd6}
+.congressSide{padding:21px 18px 28px;overflow-y:auto;scrollbar-color:#496483 #0b1831}
+.sideEyebrow{letter-spacing:.16em;font-weight:850;color:#75dfd3;font-size:10px;margin-bottom:13px}
+.congressSide h1{font-size:25px;line-height:1.1;margin:0 0 9px;letter-spacing:-.025em}
+.congressSide h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#88e4d9;margin:22px 0 10px}
+.congressSide .sub{color:#a6bacd;font-size:12px;line-height:1.5;margin:0 0 15px}
+.congressSide .representationList{display:grid;gap:9px}
+.congressSide .repItem,.congressSide .controlItem{padding:11px;border:1px solid rgba(160,208,248,.17);border-radius:13px;background:rgba(7,19,38,.55)}
+.congressSide .repItem strong,.congressSide .controlItem strong{display:block;font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+.congressSide .repItem small,.congressSide .controlItem small{display:block;margin-bottom:4px;color:#b2cadb;font-size:10px;line-height:1.4}
+.congressSide .repItem a{color:#b9f1ec}
+.congressSide .facts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.congressSide p{font-size:12px;line-height:1.6}
+.congressSide a{color:#8fe1dd}
+.congressSide .sourceNote{color:#a8bdcd;font-size:11px;line-height:1.5;margin-top:14px;padding-top:11px;border-top:1px solid rgba(163,211,247,.14)}
+.congressSide .empty{padding:13px;background:rgba(19,39,65,.45);color:#bad0db;border:1px dashed rgba(134,201,241,.25);border-radius:12px;font-size:12px}
+.congressSide .hint{color:#add9df}
+.congressTooltip{position:fixed;pointer-events:none;z-index:110;max-width:235px;background:#0b203a;border:1px solid rgba(142,221,226,.4);border-radius:12px;padding:10px 12px;color:#e6f5ff;font-size:12px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.congressTooltip[hidden]{display:none}
+@media(max-width:900px){body[data-view="congress"]{overflow:auto}.congressTop{margin:8px 9px 10px;flex-wrap:wrap;border-radius:16px}.congressLayout{grid-template-columns:1fr;height:auto;min-height:0;padding:0 9px 12px}.congressStage{height:min(74vh,640px);min-height:400px}.congressSide{max-height:65vh;min-height:230px}}
+@media(max-width:480px){.congressIdentity{gap:7px}.congressTitle{font-size:12px}.atlasViews{gap:5px;font-size:11px}.atlasViews a,.atlasViewCurrent{padding:7px 8px}.congressStage{padding:8px;height:68vh;min-height:430px}.congressToolbar{gap:7px}.congressInputs{flex:1 1 120px;min-width:0}.congressInputs select{font-size:12px}.congressSide{padding:15px}}
