@@ -40,19 +40,25 @@
   '54':'#B9B68A', // West Virginia takes old Virginia
   '39':'#C2AB7B', // Ohio takes old New Jersey
 
-  // Historic Mid-Atlantic fill pixels sampled directly from the user's earlier image.
-  // These are image-observed hex values, not guessed colors or claims about former CSS hex.
-  '42':'#9772A0', // Pennsylvania — sampled from supplied old Mid-Atlantic screenshot
-  '10':'#A085A7', // Delaware — sampled from supplied old Mid-Atlantic screenshot
-  '51':'#886391', // Virginia — sampled from supplied old Mid-Atlantic screenshot
-  '34':'#8D6896', // New Jersey — sampled from supplied old Mid-Atlantic screenshot
-  '24':'#92689B', // Maryland — sampled from supplied old Mid-Atlantic screenshot
+  // Explicit latest Mid-Atlantic swatches: exact where unqualified; muted only when requested.
+  '42':'#FFB6C1', // Pennsylvania — LIGHT PINK, exact
+  '10':'#DEBAC3', // Delaware — muted PASTEL PINK #FFD1DC
+  '51':'#C46381', // Virginia — muted DARK PINK #E75480
+  '34':'#FFA6C9', // New Jersey — CARNATION, exact
+  '24':'#F6ADC6', // Maryland — NADESHIKO PINK, exact
+
+  // New muted choices: low-saturation adaptations of supplied hex values.
+  // Missouri #FEBA4F -> muted pastel orange; Kentucky #A91B0D -> muted Apple.
+  // Tennessee uses the exact supplied Berry #7A1712 option.
+  '29':'#D6A55C', // Missouri — muted PASTEL ORANGE #FEBA4F
+  '21':'#9F3B30', // Kentucky — muted APPLE #A91B0D
+  '47':'#7A1712', // Tennessee — BERRY, exact
 
   // Northern pink group: use requested Prince Charming for NH.
   '36':'#86627B', // New York
   '09':'#9F83B2', // Connecticut
-  '44':'#79556F', // Rhode Island
-  '25':'#C3A3A8', // Massachusetts
+  '44':'#784B88', // Rhode Island — muted EMINENCE #6C3082
+  '25':'#645394', // Massachusetts — ULTRA VIOLET, exact
   '50':'#AEA0B8', // Vermont
   '33':'#493F5E', // New Hampshire — PRINCE CHARMING
   '23':'#B18BA2'  // Maine
