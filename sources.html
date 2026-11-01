@@ -16,6 +16,8 @@
 <label>Search term <input name="q" value="" maxlength="70" placeholder="Optional keyword or candidate name"></label>
 <label>Jurisdiction <input name="jurisdiction" value="ca" placeholder="ca"></label>
 <label>Economic series <input name="series" value="UNRATE" placeholder="UNRATE"></label>
+<label>SEC company CIK <input name="cik" value="" inputmode="numeric" maxlength="10" placeholder="0000320193"></label>
+<label>Data year <input name="year" type="number" value="2025" min="2000" max="2025"></label>
 </div><button type="submit" id="run">Fetch source data</button></form>
 <div class="notes">County FIPS is a geography identifier, not a universal county-level data guarantee. If a provider has no data for the selected area, the site will show that rather than manufacture values.</div>
 <div class="resultBar"><strong>Source response</strong><span id="responseStatus">No request yet</span></div><pre id="output" aria-live="polite">Select a provider to examine its official data.</pre>

@@ -4,11 +4,11 @@ import {handle} from '../workers/politics-gateway.mjs';
 const vars=['AIRNOW_AQS_API_KEY','BEA_API_KEY','BLS_API_KEY','CENSUS-API-KEY','CONGRESS_API_KEY','DATA_GOV_API_KEY','EIA_API_KEY','FDA_API_KEY','FDIC_API_KEY','FEC_API_KEY','FEDERAL_RESERVE_API_KEY','GOVINFO_API_KEY','LDA_API_KEY','LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3','MAPTILER_API_KEY','NOAA_API_KEY','OPENSTATES_API_KEY','REGULATIONS_API_KEY','USGS_API_KEY'];
 const env=Object.fromEntries(vars.map(v=>[v,'test-'+v]));
 const req=(p)=>new Request('https://example.workers.dev'+p);
-test('catalog lists exactly 19 supported sources and 3 LobbyView accounts',async()=>{
+test('catalog lists exactly 27 supported sources and 3 LobbyView accounts',async()=>{
  const r=await handle(req('/api/catalog'),env);
  assert.equal(r.status,200);
  const data=await r.json();
- assert.equal(data.providers.length,19);
+ assert.equal(data.providers.length,27);
  assert.equal(data.providers.find(x=>x.id==='lobbyview').configured,3);
  assert.equal(data.providers.find(x=>x.id==='census').configured,true);
 });

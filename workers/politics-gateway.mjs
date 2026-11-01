@@ -1,4 +1,73 @@
 /* POLITICS: 19 allowlisted research API adapters; Cloudflare dashboard bindings only. */
+/* PUBLIC KEYLESS DATA: These six provider endpoints require no API keys. */
+const KEYLESS_SOURCES={
+ cfpb:['finance','CFPB published consumer complaints (not adjudicated wrongdoing)',3600],
+ cms:['health','CMS public Medicare provider enrollment',86400],
+ hmda:['housing','FFIEC / HMDA county mortgage application aggregations',86400],
+ federalregister:['policy','Federal Register official notices and rules (informational XML edition)',3600],
+ sec:['influence','SEC EDGAR public company submissions, not political donations',21600],
+ usaspending:['public-spending','USAspending geographic award obligations',21600]
+};
+function publicRoute(id,p){
+ const num=(k,def,max)=>{const val=Number(p.get(k)||def);return Number.isInteger(val)&&val>=1&&val<=max?val:def;};
+ const query=k=>{const v=p.get(k)||'';if(v.length>70||! /^[\p{L}\p{N} .,()'&\-]*$/u.test(v))throw Error('Invalid search');return v;};
+ const state=p.get('state')||'CA';if(!/^[A-Za-z]{2}$/.test(state))throw Error('State must be two letters');
+ const county=p.get('county')||'';if(county&&!/^\d{5}$/.test(county))throw Error('County FIPS must be five digits');
+ const limit=num('limit',10,25);
+ const make=(base,params)=>{const u=new URL(base);for(const [k,v] of Object.entries(params||{}))if(v!==''&&v!==undefined)u.searchParams.set(k,String(v));return u.toString();};
+ let u,options={headers:{Accept:'application/json'}};
+ switch(id){
+ case 'cfpb':{
+  const zip=p.get('zip')||'';if(zip&&!/^\d{5}$/.test(zip))throw Error('ZIP must be five digits');
+  u=make('https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/',{size:limit,sort:'created_date_desc',no_highlight:'true',state:state.toUpperCase(),...(zip?{zip_code:zip}:{}),...(query('q')?{search_term:query('q')}:{})});break;}
+ case 'cms':u=make('https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data',{size:limit,offset:0,'filter[STATE_CD]':state.toUpperCase()});break;
+ case 'hmda':{
+  if(!county)throw Error('County FIPS required for mortgage data');
+  const year=Number(p.get('year')||2025);if(!Number.isInteger(year)||year<2018||year>2025)throw Error('HMDA year must be 2018–2025');
+  u=make('https://ffiec.cfpb.gov/v2/data-browser-api/view/aggregations',{years:year,counties:county,actions_taken:'1,2,3'});break;}
+ case 'federalregister':u=make('https://www.federalregister.gov/api/v1/documents.json',{per_page:limit,order:'newest',...(query('q')?{'conditions[term]':query('q')}:{})});break;
+ case 'sec':{
+  const cik=p.get('cik')||'';if(!/^\d{1,10}$/.test(cik))throw Error('SEC requires a numeric CIK (1–10 digits)');
+  u='https://data.sec.gov/submissions/CIK'+cik.padStart(10,'0')+'.json';
+  options.headers['User-Agent']='POLITICS research website contact alex.ayvazian@outlook.com';
+  break;}
+ case 'usaspending':{
+  if(!county)throw Error('Five-digit county FIPS required for spending geography');
+  u='https://api.usaspending.gov/api/v2/search/spending_by_geography/';
+  const to=new Date().toISOString().slice(0,10),from=String(Number(to.slice(0,4))-2)+to.slice(4);
+  options={method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},
+    body:JSON.stringify({filter:{time_period:[{start_date:from,end_date:to}]},geo_layer:'county',geo_layer_filters:[county],scope:'place_of_performance',spending_type:'obligation'})};
+  break;}
+ default:throw Error('Unknown keyless provider');
+ }
+ return {u,options};
+}
+
+/* Two documented provider APIs require credentials and cannot run keyless. */
+const ACCESS_REQUIRED={
+ epa_aqs:['environment','EPA validated county air-monitor summaries (historical)','EPA_AQS_KEY','EPA_AQS_EMAIL',86400],
+ fcc_broadband:['infrastructure','FCC broadband availability-release metadata','FCC_BDC_TOKEN','FCC_BDC_USERNAME',86400]
+};
+function authenticatedPublicRoute(id,p,env){
+ const b=ACCESS_REQUIRED[id],apiKey=key(env,b[2]),account=key(env,b[3]);
+ if(!apiKey||!account)throw Error('Missing '+b[2]+' and/or '+b[3]);
+ let u,options={headers:{Accept:'application/json'}};
+ if(id==='epa_aqs'){
+  const county=p.get('county')||'';
+  if(!/^\d{5}$/.test(county))throw Error('EPA AQS needs a five-digit county FIPS');
+  const year=Number(p.get('year')||2025);
+  if(!Number.isInteger(year)||year<2000||year>2025)throw Error('Historical AQS year must be 2000–2025');
+  const d=String(year);
+  u=new URL('https://aqs.epa.gov/data/api/dailyData/byCounty');
+  for(const [k,v] of Object.entries({email:account,key:apiKey,param:'88101',bdate:d+'0101',edate:d+'0107',state:county.slice(0,2),county:county.slice(2)}))u.searchParams.set(k,v);
+  u=u.toString();
+ }else{
+  u='https://bdc.fcc.gov/api/public/map/listAsOfDates';
+  options.headers.username=account;options.headers.hash_value=apiKey;
+ }
+ return {u,options};
+}
+
 const CATALOG={
  airnow:['AIRNOW_AQS_API_KEY','environment','Preliminary reporting-area air quality'],
  bea:['BEA_API_KEY','economy','County personal income'],
@@ -82,12 +151,12 @@ export async function handle(request,env,ctx={},fetcher=fetch){
  const u=new URL(request.url),path=u.pathname.replace(/\/+$/,'');
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
  if(request.method!=='GET')return json({error:'GET only'},405);
- if(path==='/'||path==='/health')return json({service:'POLITICS Research API',status:'operational',providers:Object.keys(CATALOG).length,catalog:'/api/catalog'},200,300);
- if(path==='/api/catalog')return json({providers:Object.entries(CATALOG).map(([id,[binding,category,description]])=>({id,category,description,configured:id==='lobbyview'?['LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3'].filter(x=>!!key(env,x)).length:!!key(env,binding)}))},200,600);
+ if(path==='/'||path==='/health')return json({service:'POLITICS Research API',status:'operational',providers:Object.keys(CATALOG).length+Object.keys(KEYLESS_SOURCES).length+Object.keys(ACCESS_REQUIRED).length,catalog:'/api/catalog'},200,300);
+ if(path==='/api/catalog')return json({providers:[...Object.entries(CATALOG).map(([id,[binding,category,description]])=>({id,category,description,configured:id==='lobbyview'?['LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3'].filter(x=>!!key(env,x)).length:!!key(env,binding),access:'cloudflare-variable'})),...Object.entries(KEYLESS_SOURCES).map(([id,[category,description]])=>({id,category,description,configured:true,access:'keyless-public'})),...Object.entries(ACCESS_REQUIRED).map(([id,[category,description,keyName,userName]])=>({id,category,description,configured:!!key(env,keyName)&&!!key(env,userName),access:'requires-provider-credentials'}))]},200,600);
  const id=path.startsWith('/api/')?path.slice(5):'';
- if(!Object.hasOwn(CATALOG,id))return json({error:'Unknown endpoint'},404);
+ if(!Object.hasOwn(CATALOG,id)&&!Object.hasOwn(KEYLESS_SOURCES,id)&&!Object.hasOwn(ACCESS_REQUIRED,id))return json({error:'Unknown endpoint'},404);
  let route;
- try{route=target(id,u.searchParams,env);}catch(e){return json({provider:id,error:e.message},/Missing|No LobbyView/.test(e.message)?503:400);}
+ try{route=Object.hasOwn(KEYLESS_SOURCES,id)?publicRoute(id,u.searchParams):Object.hasOwn(ACCESS_REQUIRED,id)?authenticatedPublicRoute(id,u.searchParams,env):target(id,u.searchParams,env);}catch(e){return json({provider:id,error:e.message},/Missing|No LobbyView/.test(e.message)?503:400);}
  const cache=globalThis.caches?.default;
  if(cache){try{const hit=await cache.match(request);if(hit)return hit;}catch{}}
  let upstream;
@@ -95,7 +164,7 @@ export async function handle(request,env,ctx={},fetcher=fetch){
  if(!upstream.ok)return json({provider:id,error:'Upstream HTTP '+upstream.status},upstream.status===429?429:502);
  let body;
  try{const raw=await upstream.text();if(raw.length>1400000)throw Error('too large');body=JSON.parse(raw);}catch(_){return json({provider:id,error:'Invalid or oversized provider response'},502);}
- const response=json({provider:id,source:CATALOG[id][2],retrievedAt:new Date().toISOString(),data:clean(body)},200,TTL[id]);
+ const response=json({provider:id,source:(KEYLESS_SOURCES[id]?.[1]||ACCESS_REQUIRED[id]?.[1]||CATALOG[id][2]),retrievedAt:new Date().toISOString(),data:clean(body)},200,(KEYLESS_SOURCES[id]?.[2]||ACCESS_REQUIRED[id]?.[4]||TTL[id]));
  if(cache){try{const p=cache.put(request,response.clone());if(ctx.waitUntil)ctx.waitUntil(p);else await p;}catch{}}
  return response;
 }

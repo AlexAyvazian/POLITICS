@@ -12,13 +12,13 @@ function render(){
  $('filters').replaceChildren();for(const g of groups)button($('filters'),g==='all'?'All':g[0].toUpperCase()+g.slice(1),()=>{filter=g;render();},filter===g);
  $('sources').replaceChildren();
  for(const item of catalog.filter(x=>filter==='all'||x.category===filter)){
-  button($('sources'),item.id.toUpperCase(),()=>{current=item;render();$('providerTitle').textContent=item.id.toUpperCase();$('description').textContent=item.description;},current?.id===item.id,item.category+' · '+(item.configured?'binding found':'not configured'));
+  button($('sources'),item.id.toUpperCase(),()=>{current=item;render();$('providerTitle').textContent=item.id.toUpperCase();$('description').textContent=item.description;},current?.id===item.id,item.category+' · '+(item.access==='keyless-public'?'keyless public API':item.configured?'configured':'requires provider credentials'));
  }
 }
 async function boot(){
  try{const response=await fetch(gateway+'/api/catalog',{signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error('HTTP '+response.status);
   const data=await response.json();if(!Array.isArray(data.providers))throw Error('Catalog missing');
-  catalog=data.providers;$('status').textContent=catalog.length+' source connections available · retrieved from Cloudflare';
+  catalog=data.providers;$('status').textContent=catalog.length+' API adapters · '+catalog.filter(x=>x.access==='keyless-public').length+' keyless · live status requires endpoint testing';
   render();
  }catch(e){$('status').textContent='Gateway not reachable: '+e.message+' · the GitHub source does not itself deploy Cloudflare code';$('output').textContent='Connection pending. Worker deployment or origin configuration may still be needed.';}
 }
