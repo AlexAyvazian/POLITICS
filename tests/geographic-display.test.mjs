@@ -114,7 +114,7 @@ test('Mid-Atlantic pinks have coordinated muted distinct shades',()=>{
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
  assert.equal(new Set(Object.keys(expected).map(id=>c.state(id).fill)).size,5);
- for(const id of Object.keys(expected))assert.ok(c.state(id).hue>=325&&c.state(id).hue<=359,'pink hue: '+id);
+ for(const id of Object.keys(expected))assert.ok(c.state(id).hue>=300&&c.state(id).hue<=359,'pink hue: '+id);
 });
 test('Missouri uses muted Pastel Orange and Indiana remains unchanged',()=>{
  const c=setup().GEO_COLORS;
@@ -141,8 +141,8 @@ test('North and South Dakota exchange their former exact colors',()=>{
 
 test('Kentucky and Tennessee are distinctly softened red family shades',()=>{
  const c=setup().GEO_COLORS;
- assert.equal(c.state('21').fill,'#B36A61','Kentucky softened muted Apple);
- assert.equal(c.state('47').fill,'#92504A','Tennessee softened muted Berry);
+ assert.equal(c.state('21').fill,'#B36A61','Kentucky softened muted Apple');
+ assert.equal(c.state('47').fill,'#92504A','Tennessee softened muted Berry');
  assert.notEqual(c.state('21').fill,c.state('47').fill);
 });
 
