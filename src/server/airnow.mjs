@@ -26,12 +26,12 @@ export function normalizeAirNowRows(payload){
 export async function handleAirNowObservations(request,env,{fetchImpl=fetch,clock=()=>new Date()}={}){
  const zip=new URL(request.url).searchParams.get('zip')||'';
  if(!/^\d{5}$/.test(zip))return reply({error:'Enter a valid five-digit ZIP code.'},400);
- if(!env?.AIRNOW_API_KEY||typeof env.AIRNOW_API_KEY!=='string')return reply({error:'AirNow is not configured yet.'},503);
+ if(!env?.AIRNOW_AQS_API_KEY||typeof env.AIRNOW_AQS_API_KEY!=='string')return reply({error:'AirNow is not configured yet.'},503);
  const url=new URL(AIRNOW_OBSERVATION_URL);
  url.searchParams.set('format','application/json');
  url.searchParams.set('zipcode',zip);
  url.searchParams.set('distance','25');
- url.searchParams.set('API_KEY',env.AIRNOW_API_KEY);
+ url.searchParams.set('API_KEY',env.AIRNOW_AQS_API_KEY);
  let response;
  try{response=await fetchImpl(url.toString(),{headers:{Accept:'application/json'}});}
  catch(_){return reply({error:'AirNow is currently unreachable.'},502);}

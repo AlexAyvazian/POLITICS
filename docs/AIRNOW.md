@@ -1,15 +1,28 @@
-# AirNow integration — contextual air-quality evidence
+# AirNow — POLITICS API integration
 
-Status: code staged; **not live** until the issued AirNow API key is added as a Cloudflare Pages secret and an actual deployment is tested.
+**Status:** GitHub-side code; the existing Cloudflare Worker needs the new source deployed to handle requests. This repository change does not modify Cloudflare.
 
-HTTP route: GET /api/airnow/observations?zip=93720
+## Correct Cloudflare variable
 
-Uses the June 2026 replacement endpoint: https://www.airnowapi.org/aq/observation/current/ziplatlong/ . The older zipCode/current endpoint was retired September 30, 2026.
+The Worker `crimson-mud-d254` has a normal runtime variable named exactly **`AIRNOW_AQS_API_KEY`**. Both the Worker and the optional Pages Function read `env.AIRNOW_AQS_API_KEY`. No requirement to change its type to Secret; no actual key value belongs in the repository.
 
-Setup: (1) Activate the AirNow account using the confirmation code on its confirmation page. (2) Log in and retrieve the distinct API key from the upper-right corner of https://docs.airnowapi.org/webservices . (3) Add AIRNOW_API_KEY under Cloudflare Pages project Settings > Variables and Secrets, as a secret. (4) Deploy using Cloudflare Pages (a Render Static Site or GitHub Pages cannot execute Pages Functions). (5) Test the HTTP route with a valid ZIP.
+## Standalone Cloudflare Worker
 
-The endpoint returns normalized pollutant, AQI, reporting area, observations timestamps, and an original source attribution. It does not publish or reveal the API key and does not store bulk dataset copies. Observations are typically refreshed hourly and are cached using CDN headers.
+- Source entrypoint: `workers/airnow-worker.mjs`.
+- Deployment configuration: `wrangler.jsonc` with `name: crimson-mud-d254` and **`keep_vars: true`**, preserving your Cloudflare-dashboard variables if deployed with Wrangler.
+- Run `npx wrangler deploy` only when you choose to update this Worker, authenticated to the correct Cloudflare account.
+- Once deployed, use `https://<your-workers-hostname>/api/airnow/observations?zip=93720`. The browser can call this read-only endpoint across origins.
+- The existing Worker currently starts from Cloudflare Hello World. GitHub commits do not change that deployment by themselves.
 
-**Crucial methodology:** AirNow's readings are preliminary AQI observations for reporting areas, not county-wide exposure, wildfire attribution, property damage, or economic loss figures. It should be used only as a contextual air-quality signal alongside separately sourced disaster and economic data, not as a standalone cost estimate.
+## Optional Pages Function
 
-Sources: https://docs.airnowapi.org/webservices , https://docs.airnowapi.org/faq , https://www.airnow.gov/about-the-data/
+`functions/api/airnow/observations.js` also reads `AIRNOW_AQS_API_KEY` but a Pages project has independent bindings; the Worker variable is not shared automatically.
+
+## Data and limitations
+
+Uses official AirNow current observations API `https://www.airnowapi.org/aq/observation/current/ziplatlong/` via `zipcode`, `distance`, `format`, and `API_KEY` parameters. Returns pollutant, AQI, reporting area, and observation time. Values are preliminary air-quality readings, **not** county-level economic losses, proof of wildfires, or dollar cost estimates. Retrieval of live upstream data remains unverified until deployment and testing.
+
+Run `npm test` for local test coverage.
+
+Official documentation: https://docs.airnowapi.org/webservices
+Cloudflare keep_vars: https://developers.cloudflare.com/workers/wrangler/configuration/
