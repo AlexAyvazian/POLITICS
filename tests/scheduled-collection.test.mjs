@@ -106,9 +106,16 @@ test('keyless congressional delegation is grouped by state, terms and correct ch
   {name:{first:'Sample',last:'Representative'},id:{bioguide:'B000001'},terms:[{type:'rep',state:'CA',district:19,party:'Republican',start:'2025-01-03',end:'2027-01-03'}]},
   {name:{first:'Former',last:'Member'},id:{bioguide:'Z000001'},terms:[{type:'rep',state:'CA',district:4,party:'Republican',start:'2022-01-03',end:'2024-01-03'}]}
  ];
+ const otherStates='AL AK AZ AR CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' ');
+ for(let i=0;i<500;i++)mock.push({
+  name:{first:'Mock',last:'Member'+i},
+  id:{bioguide:'C'+String(i).padStart(6,'0')},
+  terms:[{type:'rep',state:otherStates[i%otherStates.length],district:1+Math.floor(i/otherStates.length),
+   party:i%2?'Democrat':'Republican',start:'2025-01-03',end:'2027-01-03'}]
+ });
  const fetcher=async url=>{assert.equal(new URL(url).hostname,'unitedstates.github.io');return new Response(JSON.stringify(mock),{status:200});};
  const output=await refreshCongressMembers({COUNTY_DB:store},fetcher,now);
- assert.equal(output.states,1);
+ assert.equal(output.states,50);
  assert.equal(store.writes[0][0],'congress_members_current');
  const data=JSON.parse(store.writes[0][1]);
  assert.equal(data.states.CA.senators.length,1);
