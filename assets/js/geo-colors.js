@@ -59,6 +59,13 @@
   '28':'#E28B42', // Mississippi — distinct pumpkin orange
   '01':'#F0BA91', // Alabama — light peach-orange
 
+  // True red southeastern grouping — deliberately red, not rose/mauve.
+  // All four retain separate depths; surrounding pink/red/orange states remain unchanged.
+  '37':'#BF3B32', // North Carolina — crimson red
+  '45':'#7E211B', // South Carolina — deep red
+  '13':'#A22A20', // Georgia — brick red
+  '12':'#D25242', // Florida — vermilion red
+
   // Muted Northeast purples: the same family, with softer value contrasts.
 
   '36':'#86627B', // New York
