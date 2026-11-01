@@ -44,12 +44,12 @@
   // Vary lightness to keep adjacent small states visually distinct.
   '42':'#B996B6', // Pennsylvania — lighter dusty lavender-pink
   '10':'#CDA7BD', // Delaware — light pink
-  '51':'#AA7E97', // Virginia — dusty rose-pink
-  '34':'#805474', // New Jersey — deeper plum-pink
-  '24':'#9B749B', // Maryland — muted lilac-pink
+  '51':'#C18B9B', // Virginia — dusty rose-pink
+  '34':'#B67393', // New Jersey — deeper plum-pink
+  '24':'#785579', // Maryland — muted lilac-pink
 
   // Break up visually similar Midwest earth tones.
-  '29':'#86684F', // Missouri — medium wood brown
+  '29':'#735344', // Missouri — medium wood brown
   '18':'#789486', // Indiana — eucalyptus sage
 
   // Northern pink group: use requested Prince Charming for NH.
