@@ -66,41 +66,54 @@ test('four transfers preserve original Great Lakes colors exactly',()=>{
   };
   for (const [fips,fill] of Object.entries(expected))assert.equal(c.state(fips).fill,fill,fips);
 });
-test('North Dakota is Persian Green and former donors use the brown palette',()=>{
-  const c=setup().GEO_COLORS;
-  const expected={
-    '38':'#00A693', // North Dakota — Persian Green
-    '27':'#9F8170', // Minnesota — Beaver
-    '26':'#A67B5B', // Michigan — Cafe au Lait
-    '19':'#C19A6B', // Iowa — Wood Brown
-    '55':'#9B7653'  // Wisconsin — Dirt
-  };
-  for(const [fips,hex] of Object.entries(expected))assert.equal(c.state(fips).fill,hex,fips);
+test('rebalanced Great Lakes browns alternate light and dark tones', () => {
+ const c=setup().GEO_COLORS;
+ const expected={
+  '27':'#725648', // Minnesota dark tobacco
+  '26':'#8C624B', // Michigan medium warm brown
+  '19':'#C2A276', // Iowa lighter sand brown
+  '55':'#B28F83'  // Wisconsin lighter rosewood brown
+ };
+ for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
 });
-test('the Northeast receives seven distinct shades of the former pink family',()=>{
-  const c=setup().GEO_COLORS;
-  const states=['36','09','44','25','50','33','23'];
-  assert.equal(new Set(states.map(fips=>c.state(fips).fill)).size,7);
-  for(const fips of states)assert.equal(c.state(fips).hue,294,fips);
-  assert.equal(c.state('36').fill,'hsl(294 21% 48%)'); // old Virginia pink
-  assert.equal(c.state('09').fill,'hsl(294 19% 56%)'); // old West Virginia pink
+test('North Dakota, Colorado, Alaska and Hawaii use coordinated subdued colors',()=>{
+ const c=setup().GEO_COLORS;
+ const expected={'38':'#718F88','08':'#587966','02':'#697D9B','15':'#699FA6'};
+ for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
+ // Keep both Alaska and Hawaii blue but different from the California, Oregon and Washington.
+ const pacific=['02','15','06','41','53'].map(id=>c.state(id).fill);
+ assert.equal(new Set(pacific).size,5);
 });
-test('yellow state assignments use the six requested hex codes without alterations',()=>{
-  const c=setup().GEO_COLORS;
-  const expected={
-   '54':'#F8DE7E', // West Virginia — Mellow Yellow
-   '51':'#FFFF66', // Virginia — Unmellow Yellow
-   '24':'#FFFD74', // Maryland — Butter
-   '10':'#FFFE71', // Delaware — Pastel Yellow
-   '34':'#EEE8AA', // New Jersey — Pale Goldenrod
-   '42':'#F0E68C'  // Pennsylvania — Light Khaki
-  };
-  for(const [fips,hex] of Object.entries(expected))assert.equal(c.state(fips).fill,hex,fips);
+test('the Northeast has visually distinct, coordinated mauve and rose shades',()=>{
+ const c=setup().GEO_COLORS;
+ const expected={
+  '36':'#86627B', // New York
+  '09':'#9F83B2', // Connecticut
+  '44':'#79556F', // Rhode Island
+  '25':'#C3A3A8', // Massachusetts
+  '50':'#93799E', // Vermont
+  '33':'#765A7B', // New Hampshire
+  '23':'#B18BA2'  // Maine
+ };
+ for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
 });
+test('formerly bright yellows are replaced by six varied muted earth yellows',()=>{
+ const c=setup().GEO_COLORS;
+ const expected={
+  '54':'#A98D55', // West Virginia: ochre
+  '51':'#B9B68A', // Virginia: olive wheat
+  '24':'#D2BA79', // Maryland: antique wheat
+  '10':'#96805A', // Delaware: bronze
+  '34':'#C2AB7B', // New Jersey: golden tan
+  '42':'#857B5B'  // Pennsylvania: dark brass
+ };
+ for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
+});
+
 test('unmentioned states preserve their existing map colors',()=>{
   const c=setup().GEO_COLORS;
   assert.equal(c.state('11').fill,'hsl(294 24% 45%)'); // DC
-  assert.equal(c.state('08').fill,'hsl(137 28% 34%)'); // Colorado
+  assert.equal(c.state('08').fill,'#587966'); // coordinated muted Colorado
   assert.equal(c.state('06').hue,207); // California
   assert.equal(c.state('12').hue,355); // Florida
   assert.equal(c.state('48').hue,91); // Texas
