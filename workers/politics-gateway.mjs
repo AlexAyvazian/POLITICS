@@ -412,6 +412,47 @@ async function refreshCongressMembers(env,fetchImpl=fetch,now=new Date()){
  return {states:Object.keys(states).length,members:count};
 }
 
+/* Bill Commons public reads require no API key. Pull one jurisdiction per
+ * available scheduled slot and cache in D1 for the same state/county panel.
+ * Treat coverage and freshness as unverified until proven by official source. */
+const BILL_COMMONS_STATES='AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' ');
+function safeBillText(v,max=250){return typeof v==='string'?v.trim().slice(0,max):'';}
+async function refreshBillCommonsState(env,state,fetchImpl=fetch,now=new Date()){
+ if(!BILL_COMMONS_STATES.includes(state))throw Error('Invalid Bill Commons jurisdiction');
+ const db=env?.COUNTY_DB;
+ if(!db)throw Error('Core D1 binding missing');
+ const u=new URL('https://api.billcommons.org/api/v1/bills');
+ u.searchParams.set('jurisdiction',state);
+ u.searchParams.set('per_page','12');
+ u.searchParams.set('page','1');
+ const response=await fetchImpl(u.toString(),{headers:{Accept:'application/json'}});
+ if(!response.ok)throw Error('Bill Commons upstream HTTP '+response.status);
+ const raw=await response.json();
+ if(!Array.isArray(raw?.data)||!raw.data.length)throw Error('Bill Commons missing/incomplete list; stored data unchanged');
+ const items=raw.data.slice(0,12).map(b=>({
+  id:safeBillText(b?.id,80),
+  identifier:safeBillText(b?.identifier,80),
+  title:safeBillText(b?.title,320),
+  status:safeBillText(b?.status,100),
+  updatedAt:safeBillText(b?.updated_at||b?.last_action_date,45)
+ })).filter(b=>b.id&&b.identifier&&b.title);
+ if(!items.length)throw Error('Bill Commons returned no usable bill identities');
+ const total=Number(raw?.pagination?.total);
+ const payload=JSON.stringify({
+  source:'Bill Commons',state,count:items.length,
+  total:Number.isInteger(total)&&total>=0?total:null,
+  retrievedAt:now.toISOString(),
+  sourceUrl:'https://billcommons.org/docs/api',
+  note:'Sample of up to 12 indexed bills, not a comprehensive, official or necessarily fresh legislative record.',
+  meta:{source_freshness:raw?.meta?.source_freshness??null},
+  items
+ });
+ if(new TextEncoder().encode(payload).length>=1000000)throw Error('Bill Commons state snapshot too large');
+ await db.prepare('INSERT INTO county_snapshots(source,snapshot_json,refreshed_at,record_count) VALUES(?,?,?,?) ON CONFLICT(source) DO UPDATE SET snapshot_json=excluded.snapshot_json,refreshed_at=excluded.refreshed_at,record_count=excluded.record_count')
+  .bind('billcommons_'+state,payload,now.toISOString(),items.length).run();
+ return {state,count:items.length};
+}
+
 async function handleCore(request,env,ctx={},fetcher=fetch){
  const u=new URL(request.url),path=u.pathname.replace(/\/+$/,'');
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
@@ -445,10 +486,18 @@ export default {
   const when=new Date(event.scheduledTime??Date.now());
   const slot=when.getUTCHours()*2+(when.getUTCMinutes()>=30?1:0);
   const tasks=['housing','jobs','income','healthcare','education','families','infrastructure','eia','census','places','congressMembers'];
+  // The 37 remaining half-hour slots rotate through all 51 jurisdictions
+  // across successive days (never 51 simultaneous API calls).
+  if(slot>=11&&slot<48){
+   const days=Math.floor(when.getTime()/86400000);
+   const state=BILL_COMMONS_STATES[(days*37+(slot-11))%BILL_COMMONS_STATES.length];
+   ctx.waitUntil(refreshBillCommonsState(env,state));
+   return;
+  }
   const task=tasks[slot];if(!task)return;
   ctx.waitUntil(task==='eia'?refreshStateEnergy(env):task==='census'?refreshCensusSnapshot(env):task==='places'?refreshPlacesHealth(env):task==='congressMembers'?refreshCongressMembers(env):updateCountyCategory(env,task));
  }
 };
 
 // Named exports for the scheduled-collection regression suite.
-export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers };
+export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState };
