@@ -508,10 +508,12 @@ async function refreshOpenStatesState(env,state,fetchImpl=fetch,now=new Date()){
 async function refreshFederalHouseVotes(env,fetchImpl=fetch,now=new Date()){
  const db=env?.COUNTY_DB,token=key(env,'CONGRESS_API_KEY');
  if(!db||!token)throw Error('Missing core D1 or Congress.gov key');
- async function get(path,limit){
+ async function get(path,limit,offset){
   const u=new URL('https://api.congress.gov/v3/'+path);
   u.searchParams.set('api_key',token);u.searchParams.set('format','json');
-  if(limit){u.searchParams.set('limit',String(limit));u.searchParams.set('sort','updateDate+desc');}
+  if(limit)u.searchParams.set('limit',String(limit));
+  if(offset!==undefined)u.searchParams.set('offset',String(offset));
+  if(path==='house-vote/119/2')u.searchParams.set('sort','updateDate+desc');
   const res=await fetchImpl(u.toString(),{headers:{Accept:'application/json'}});
   if(!res.ok)throw Error('Congress.gov House vote HTTP '+res.status);
   return res.json();
@@ -523,10 +525,20 @@ async function refreshFederalHouseVotes(env,fetchImpl=fetch,now=new Date()){
  for(const vote of list.slice(0,6)){
   const num=Number(vote.rollCallNumber);
   if(!Number.isInteger(num)||num<1)continue;
-  const raw=await get('house-vote/119/2/'+num+'/members');
-  const container=raw?.houseRollCallVoteMemberVotes;
-  const rows=Array.isArray(container?.results)?container.results:container?.results?.item;
-  if(!Array.isArray(rows)||rows.length<100)throw Error('Congress.gov House member vote data incomplete');
+  const route='house-vote/119/2/'+num+'/members';
+  const extract=raw=>{
+   const c=raw?.houseRollCallVoteMemberVotes;
+   return Array.isArray(c?.results)?c.results:c?.results?.item;
+  };
+  const first=extract(await get(route,250,0));
+  if(!Array.isArray(first)||first.length<100)throw Error('Congress.gov House member vote page incomplete');
+  const rows=[...first];
+  if(first.length===250){
+   const second=extract(await get(route,250,250));
+   if(!Array.isArray(second)||!second.length)throw Error('Congress.gov House second vote page missing');
+   rows.push(...second);
+  }
+  if(rows.length<350)throw Error('Congress.gov House roll call is missing member pages');
   const stateVotes={};
   for(const v of rows){
    const st=String(v.voteState||v.state||'').toUpperCase();
