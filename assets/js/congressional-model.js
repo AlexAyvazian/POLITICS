@@ -10,12 +10,12 @@ const LAYERS=Object.freeze({
 });
 function censusUrl(layer,stateFips){
  if(!LAYERS[layer]||!/^[0-9]{2}$/.test(String(stateFips))||String(stateFips)==='00')return null;
- const url=new URL(CENSUS+LAYERS[layer].id+'/query');
- for(const [k,v] of Object.entries({
-  where:"STATE='"+stateFips+"'",outFields:'GEOID,BASENAME,NAME,STATE',
+ const params={
+  where:"STATE='"+stateFips+"'",outFields:'GEOID,BASENAME,STATE',
   outSR:'4326',geometryPrecision:'4',returnGeometry:'true',f:'geojson'
- }))url.searchParams.set(k,v);
- return url.toString();
+ };
+ return CENSUS+LAYERS[layer].id+'/query?'+
+  Object.entries(params).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
 }
 function districtCode(props,layer){
  const size=LAYERS[layer]?.codeLength;
