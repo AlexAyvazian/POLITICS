@@ -47,10 +47,11 @@
   '34':'#D57E98', // New Jersey — user-approved warm rose
   '24':'#C98A9D', // Maryland — user-approved warm rose
 
-  // Missouri stays as approved. Kentucky and Tennessee have softened reds.
+  // Missouri stays as approved. Kentucky now bridges Midwestern neutrals.
+  // Tennessee gets Kentucky's previous muted Apple red, without modification.
   '29':'#D6A55C', // Missouri — muted PASTEL ORANGE #FEBA4F
-  '21':'#B36A61', // Kentucky — softened APPLE red
-  '47':'#92504A', // Tennessee — softened BERRY red
+  '21':'#A39A83', // Kentucky — muted warm olive-taupe between IL, IN, OH and WV
+  '47':'#B36A61', // Tennessee — exact previous Kentucky softened Apple red
 
   // Gradual southern earth-orange shift, retaining muted shade variations and
   // complementing Missouri without recoloring unrelated Southern states.
