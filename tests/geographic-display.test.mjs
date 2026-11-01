@@ -33,15 +33,20 @@ test('county shades stay in their own state color family and remain distinct', (
     assert.equal(county.dark, colors.state('48').dark);
   }
 });
-test('geographic boundaries glow on the selected region, without rectangular highlights', () => {
-  const js = read('assets/js/map.js');
-  const css = read('assets/css/politics.css');
-  assert.match(js, /countySelectedBoundary/);
-  assert.match(js, /stateSelectedBoundary/);
-  assert.match(css, /outline:none\\s*!important/);
-  assert.match(css, /countyLightTrace/);
-  assert.match(css, /--geo-dark/);
+test('selected state keeps its boundary trace; county selection illuminates its interior only', () => {
+  const js=read('assets/js/map.js');
+  const css=read('assets/css/politics.css');
+  assert.match(js,/stateSelectedBoundary/);
+  assert.match(js,/stateLightTrace/);
+  assert.match(js,/countySelectedIllumination/);
+  assert.match(js,/countyInnerLight/);
+  assert.doesNotMatch(js,/countySelectedBoundary|countyLightTrace|countyOutlineBase/);
+  assert.doesNotMatch(css,/countySelectedBoundary|countyLightTrace|countyOutlineBase/);
+  assert.match(css,/\.county\.active\s*\{/);
+  assert.match(css,/\.countyInnerLight/);
+  assert.match(css,/stroke-width:\s*\.45/);
 });
+
 test('state and county panels expose category metrics directly, not collapsed accordion lists', () => {
   const js = read('assets/js/map.js');
   assert.doesNotMatch(js, /<details class="countyCategory"/);
