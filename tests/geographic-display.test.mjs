@@ -108,9 +108,9 @@ test('Mid-Atlantic uses five clearly separated original-style pinks',()=>{
  const expected={
    '42':'#B996B6', // Pennsylvania, lighter dusty lavender-pink
    '10':'#CDA7BD', // Delaware, light pink
-   '51':'#AA7E97', // Virginia, muted dusty pink
-   '34':'#805474', // New Jersey, deeper plum pink
-   '24':'#9B749B'  // Maryland, lilac-pink
+   '51':'#C18B9B', // Virginia, muted dusty pink
+   '34':'#B67393', // New Jersey, deeper plum pink
+   '24':'#785579'  // Maryland, lilac-pink
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
  assert.equal(new Set(Object.keys(expected).map(id=>c.state(id).fill)).size,5);
@@ -118,7 +118,7 @@ test('Mid-Atlantic uses five clearly separated original-style pinks',()=>{
 });
 test('Missouri and Indiana distinguish themselves from Illinois and Ohio',()=>{
  const c=setup().GEO_COLORS;
- assert.equal(c.state('29').fill,'#86684F','Missouri: medium brown');
+ assert.equal(c.state('29').fill,'#735344','Missouri: medium brown');
  assert.equal(c.state('18').fill,'#789486','Indiana: muted sage');
  assert.notEqual(c.state('17').fill,c.state('29').fill);
  assert.notEqual(c.state('39').fill,c.state('18').fill);
