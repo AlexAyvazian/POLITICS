@@ -9,16 +9,16 @@
  // All 51 state/DC FIPS codes are assigned exactly once.
  const FAMILIES=[
   {name:'pacific',hue:207,sat:28,states:['02','15','53','41','06']},
-  {name:'northwest',hue:185,sat:25,states:['16','30','56']},
+  {name:'northwest',hue:35,sat:28,states:['16','30','56']},
   {name:'southwest',hue:231,sat:27,states:['32','49','04','35']},
-  {name:'rockies',hue:152,sat:24,states:['08','38','46']},
+  {name:'rockies',hue:47,sat:29,states:['08','38','46']},
   {name:'plains',hue:91,sat:24,states:['31','20','40','48']},
   {name:'great-lakes',hue:169,sat:24,states:['27','19','55','26']},
   {name:'heartland',hue:42,sat:28,states:['29','17','18','39']},
   {name:'south-central',hue:19,sat:27,states:['05','22','28','01']},
   {name:'southeast',hue:355,sat:24,states:['47','21','13','12','45','37']},
   {name:'mid-atlantic',hue:294,sat:21,states:['51','54','24','10','11','42','34']},
-  {name:'northeast',hue:219,sat:24,states:['36','09','44','25','50','33','23']}
+  {name:'northeast',hue:22,sat:22,states:['36','09','44','25','50','33','23']}
  ];
  const byState=new Map();
  for(const family of FAMILIES){
@@ -35,9 +35,12 @@
   const f=byState.get(fips);
   // Neutral fall-through only for unexpected/unrecognized geometry.
   if(!f)return {hue:0,fill:'#586274',hover:'#718096',dark:'#202A3A',glow:'#9CAABE'};
-  const i=f.index,hue=f.hue;
-  const saturation=f.sat+STATE_SAT[mod(i,STATE_SAT.length)];
-  const lightness=STATE_LIGHT[mod(i,STATE_LIGHT.length)];
+  const i=f.index;
+  // Colorado: darker hunter green, independent of the North Dakota/South Dakota golden family.
+  const colorado=fips==='08';
+  const hue=colorado?137:f.hue;
+  const saturation=colorado?28:f.sat+STATE_SAT[mod(i,STATE_SAT.length)];
+  const lightness=colorado?34:STATE_LIGHT[mod(i,STATE_LIGHT.length)];
   return {
    hue,
    family:f.name,
