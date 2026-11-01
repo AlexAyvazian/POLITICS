@@ -511,7 +511,7 @@ async function refreshFederalHouseVotes(env,fetchImpl=fetch,now=new Date()){
  async function get(path,limit){
   const u=new URL('https://api.congress.gov/v3/'+path);
   u.searchParams.set('api_key',token);u.searchParams.set('format','json');
-  if(limit)u.searchParams.set('limit',String(limit));
+  if(limit){u.searchParams.set('limit',String(limit));u.searchParams.set('sort','updateDate+desc');}
   const res=await fetchImpl(u.toString(),{headers:{Accept:'application/json'}});
   if(!res.ok)throw Error('Congress.gov House vote HTTP '+res.status);
   return res.json();
@@ -529,11 +529,11 @@ async function refreshFederalHouseVotes(env,fetchImpl=fetch,now=new Date()){
   if(!Array.isArray(rows)||rows.length<100)throw Error('Congress.gov House member vote data incomplete');
   const stateVotes={};
   for(const v of rows){
-   const st=String(v.voteState||'').toUpperCase();
+   const st=String(v.voteState||v.state||'').toUpperCase();
    const cast=String(v.voteCast||'');
    if(!US_STATE_ABBRS.has(st)||!['Aye','Nay','Present','Not Voting','Yea','No'].includes(cast))continue;
    const person={
-    bioguide:safeBillText(v.bioguideId,25),name:safeBillText([v.firstName,v.lastName].filter(Boolean).join(' '),100),
+    bioguide:safeBillText(v.bioguideId||v.bioguideID,25),name:safeBillText([v.firstName,v.lastName].filter(Boolean).join(' '),100),
     party:safeBillText(v.voteParty,12),cast
    };
    (stateVotes[st] ||= []).push(person);
