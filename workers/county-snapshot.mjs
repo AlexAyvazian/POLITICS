@@ -18,6 +18,18 @@ export async function serve(request,env){
  if(request.method!=='GET')return json({error:'GET only'},405,request);
  if(path==='/health')return json({service:'POLITICS county snapshot reader',status:'operational',storage:!!env.COUNTY_DB},200,request,120);
 
+ // Separate source snapshots: no new credentials or D1 bindings, and no upstream fetch on selection.
+ if(path==='/api/places-snapshot'||path==='/api/congress-snapshot'){
+  const health=path==='/api/places-snapshot';
+  const db=health?env?.CATEGORY_DB_HEALTHCARE:env?.COUNTY_DB;
+  if(!db)return json({status:'not_configured',count:0},503,request);
+  try{
+   const source=health?'cdc_places_2025':'congress_members_current';
+   const row=await db.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?').bind(source).first();
+   return json(row?JSON.parse(row.snapshot_json):{status:'pending',count:0,source},200,request,row?1800:60);
+  }catch(_){return json({status:'storage_error',count:0},503,request);}
+ }
+
  if(path==='/api/category-snapshot'){
   const category=new URL(request.url).searchParams.get('category');
   const bindings={"housing":"CATEGORY_DB_HOUSING","jobs":"CATEGORY_DB_JOBS","income":"CATEGORY_DB_INCOME","healthcare":"CATEGORY_DB_HEALTHCARE","education":"CATEGORY_DB_EDUCATION","families":"CATEGORY_DB_FAMILIES","infrastructure":"CATEGORY_DB_INFRASTRUCTURE"};
