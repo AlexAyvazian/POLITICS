@@ -175,6 +175,55 @@ function metricGrid(values){
  return '<div class="countyFactGrid">'+values.map(([label,value,unit])=>
   '<div class="countyFact"><span>'+esc(label)+'</span><strong>'+esc(metricFormat(value,unit))+'</strong></div>').join('')+'</div>';
 }
+/* Keyless indicators are stored in the same D1-backed cache as Census.
+ * CDC PLACES rates are model estimates, never a happiness index or a county ranking. */
+function renderCdcPlaces(data,scope,selected){
+ const ds=data?.places;
+ const title='<h3 class="countyFactsTitle">Health &amp; well-being · CDC PLACES</h3>';
+ if(!ds?.fields||!ds?.counties)return '<section class="countyMetricSection">'+title+
+  '<p class="categoryNote">CDC PLACES data awaiting first scheduled collection.</p></section>';
+ const stateMode=scope==='state';
+ const row=stateMode?Object.fromEntries(Object.keys(ds.fields).map(k=>
+  [k,window.POLITICS_GEO_STATS.countyAverage(ds,selected,k)])):(ds.counties[selected]||{});
+ const metrics=Object.entries(ds.fields).map(([key,meta])=>[
+  (stateMode?'Average county ':'')+String(meta.label||key),row[key],meta.unit||'percent'
+ ]);
+ const note=stateMode?'Equal-weight averages of available county model estimates; not official statewide rates.':
+  'Modeled county estimates, not direct survey results for this county.';
+ return '<section class="countyMetricSection" aria-label="CDC PLACES health and well-being">'+title+
+  metricGrid(metrics)+'<p class="countyFactSource">'+esc(note)+
+  ' CDC PLACES 2025 release (mostly 2023 BRFSS data). Not a happiness index or measure of policy effects. '+
+  '<a href="https://data.cdc.gov/d/i46a-9kgh" target="_blank" rel="noopener noreferrer">CDC source</a>.</p></section>';
+}
+function renderCongressionalDelegation(data,state,stateMode){
+ const ds=data?.congress,entry=ds?.states?.[state.abbr];
+ const title='<h3 class="countyFactsTitle">Congressional delegation · political representation</h3>';
+ if(!entry)return '<section class="countyMetricSection" aria-label="Political representation">'+title+
+  '<p class="categoryNote">Congressional incumbent information awaiting first scheduled collection.</p></section>';
+ const name=member=>'<a href="https://bioguide.congress.gov/search/bio/'+
+  encodeURIComponent(member.bioguide||'')+'" target="_blank" rel="noopener noreferrer">'+esc(member.name)+'</a>';
+ const senators=(entry.senators||[]).map(m=>'<div class="countyFact"><span>U.S. senator · '+
+  esc(m.party)+'</span><strong>'+name(m)+'</strong></div>').join('')||
+  '<p class="categoryNote">No currently serving U.S. senator found in this source.</p>';
+ const house=entry.house||[];
+ const partyCounts={};
+ for(const m of house)partyCounts[m.party]=(partyCounts[m.party]||0)+1;
+ const breakdown=Object.entries(partyCounts).map(([p,n])=>esc(p)+': '+n).join(' · ');
+ const members=stateMode?'<div class="countyFactGrid">'+house.slice(0,8).map(m=>
+  '<div class="countyFact"><span>U.S. House · District '+esc(m.district??'at-large')+
+  ' · '+esc(m.party)+'</span><strong>'+name(m)+'</strong></div>').join('')+'</div>'+
+  (house.length>8?'<p class="categoryNote">Showing 8 of '+house.length+' House members.</p>':''):'';
+ const scopeNote=stateMode?'This delegation does not determine state-government control.':
+  'U.S. senators represent the entire state. House districts may cross county borders; no county-specific U.S. House member is inferred.';
+ return '<section class="countyMetricSection" aria-label="Political representation">'+title+
+  '<div class="countyFactGrid">'+senators+'</div>'+
+  '<p class="categoryNote">State House delegation: '+house.length+' members'+
+  (breakdown?' ('+breakdown+')':'')+'.</p>'+members+
+  '<p class="countyFactSource">'+scopeNote+' Incumbents as of '+esc(ds.asOf||'last collection')+
+  ', not election winners. <a href="https://github.com/unitedstates/congress-legislators" target="_blank" rel="noopener noreferrer">Source and methodology</a>. '+
+  'State legislators, governor, and county officials require separate verified data.</p></section>';
+}
+
 function categorySections(data,scope,selected){
  const groups=[],pending=[];
  const averages=scope==='state'?window.POLITICS_GEO_STATS.getStateAverages(data,selected):null;
@@ -207,6 +256,8 @@ function renderCard(){
  const base=data?.core||null;
  const stateMode=!county;
  const selected=stateMode?state.fips:sel.fips;
+ const publicSources=renderCongressionalDelegation(data,state,stateMode)+
+  renderCdcPlaces(data,stateMode?'state':'county',selected);
  card.hidden=false;
  card.innerHTML='<button class="cardClose" type="button" aria-label="'+(stateMode?'Return to U.S. map':'Return to state averages')+'">×</button>'+
   '<div class="countyName">'+esc(stateMode?state.name:county.properties.name+' County')+'</div>'+
@@ -215,7 +266,9 @@ function renderCard(){
  card.querySelector('.cardClose').onclick=()=>stateMode?goHome():(sel.fips=null,render());
  const target=$('countyFacts');
  if(!base?.counties){
-  target.textContent=window.POLITICS_COUNTY_CACHE?.status==='error'?'Saved county statistics could not be loaded.':'Loading stored economic statistics…';
+  target.innerHTML=publicSources+
+   '<p class="categoryNote">'+(window.POLITICS_COUNTY_CACHE?.status==='error'?
+    'Saved Census statistics could not be loaded.':'Loading stored Census statistics…')+'</p>';
   return;
  }
  if(stateMode){
@@ -232,14 +285,15 @@ function renderCard(){
     '<div class="countyFactSource">U.S. EIA · '+esc(stateOnly.period||'latest reporting month')+
     ' · cents per kWh. This figure is statewide, not an average of counties.</div>':
     '<div class="countyFactsTitle stateOnlyTitle">State-only data</div><p class="categoryNote">Scheduled state-only source measurements will appear here when collected.</p>';
-  target.innerHTML='<p class="categoryNote">Equal-weight arithmetic averages of the county figures—not population-weighted or statewide estimates.</p>'+
+  target.innerHTML=publicSources+
+   '<p class="categoryNote">Equal-weight arithmetic averages of the county figures—not population-weighted or statewide estimates.</p>'+
    '<div class="countyFactsTitle">Statewide view · County averages</div>'+metricGrid(vals)+
    stateOnlyPanel+categorySections(data,'state',state.fips)+
    '<p class="countyFactSource">Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). Averages include counties with available values for each indicator. No provider APIs are called on a selection.</p>';
  }else{
   const r=base.counties[sel.fips];
-  if(!r){target.textContent='This county is not in the current stored Census snapshot.';return;}
-  target.innerHTML='<div class="countyFactsTitle">County conditions</div>'+
+  if(!r){target.innerHTML=publicSources+'<p class="categoryNote">This county is not in the current stored Census snapshot.</p>';return;}
+  target.innerHTML=publicSources+'<div class="countyFactsTitle">County conditions</div>'+
    metricGrid(CORE_FIELDS.map(([key,label,unit])=>[label,r[key],unit]))+
    categorySections(data,'county',sel.fips)+
    '<p class="countyFactSource">Source: U.S. Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). '+ 
