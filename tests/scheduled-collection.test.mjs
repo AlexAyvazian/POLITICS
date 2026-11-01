@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy} from '../workers/politics-gateway.mjs';
+import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers} from '../workers/politics-gateway.mjs';
 
 const specs=COUNTY_CATEGORY_CONFIG.specs;
 const expectedCategories=['housing','jobs','income','healthcare','education','families','infrastructure'];
@@ -64,4 +64,64 @@ test('state-only EIA electricity prices are stored separately and are not inferr
  assert.equal(payload.states.CA.residentialElectricityCentsKwh,29.75);
  assert.equal(payload.states.CA.period,'2026-08');
  assert.equal(payload.counties,undefined);
+});
+
+test('keyless CDC PLACES national ingestion stores measured health and well-being without tokens',async()=>{
+ const store=db(),env={CATEGORY_DB_HEALTHCARE:store};
+ const seen=[];
+ const fetcher=async url=>{
+  seen.push(new URL(url));
+  const rows=Array.from({length:3001},(_,i)=>({
+   countyfips:String(1001+i).padStart(5,'0'),
+   mhlth_crudeprev:'18.3',
+   phlth_crudeprev:'13.1',
+   depression_crudeprev:'20.2',
+   loneliness_crudeprev:'31.4',
+   foodinsecu_crudeprev:'11.8',
+   housinsecu_crudeprev:'17.5',
+   checkup_crudeprev:'75.0',
+   access2_crudeprev:'8.1'
+  }));
+  rows[0].mhlth_crudeprev='-1';
+  return new Response(JSON.stringify(rows),{status:200});
+ };
+ const output=await refreshPlacesHealth(env,fetcher,now);
+ assert.equal(output.count,3001);
+ assert.equal(seen.length,1);
+ assert.equal(seen[0].hostname,'data.cdc.gov');
+ assert.equal(seen[0].pathname,'/resource/i46a-9kgh.json');
+ assert.equal(seen[0].searchParams.get('$limit'),'5000');
+ assert.equal(store.writes[0][0],'cdc_places_2025');
+ const snapshot=JSON.parse(store.writes[0][1]);
+ assert.equal(snapshot.counties['01002'].frequentMentalDistressPct,18.3);
+ assert.equal(snapshot.counties['01001'].frequentMentalDistressPct,null);
+ assert.equal(snapshot.fields.lonelinessPct.unit,'percent');
+ assert.equal(snapshot.year,2025);
+ assert.equal(snapshot.source,'CDC PLACES');
+});
+test('keyless congressional delegation is grouped by state, terms and correct chambers',async()=>{
+ const store=db();
+ const mock=[
+  {name:{official_full:'Sample Senator'},id:{bioguide:'A000001'},terms:[{type:'sen',state:'CA',party:'Democrat',start:'2025-01-03',end:'2031-01-03'}]},
+  {name:{first:'Sample',last:'Representative'},id:{bioguide:'B000001'},terms:[{type:'rep',state:'CA',district:19,party:'Republican',start:'2025-01-03',end:'2027-01-03'}]},
+  {name:{first:'Former',last:'Member'},id:{bioguide:'Z000001'},terms:[{type:'rep',state:'CA',district:4,party:'Republican',start:'2022-01-03',end:'2024-01-03'}]}
+ ];
+ const fetcher=async url=>{assert.equal(new URL(url).hostname,'unitedstates.github.io');return new Response(JSON.stringify(mock),{status:200});};
+ const output=await refreshCongressMembers({COUNTY_DB:store},fetcher,now);
+ assert.equal(output.states,1);
+ assert.equal(store.writes[0][0],'congress_members_current');
+ const data=JSON.parse(store.writes[0][1]);
+ assert.equal(data.states.CA.senators.length,1);
+ assert.equal(data.states.CA.house.length,1);
+ assert.equal(data.states.CA.house[0].district,19);
+ assert.equal(data.states.CA.house[0].party,'Republican');
+ assert.equal(data.states.CA.senators[0].name,'Sample Senator');
+ assert.equal(data.states.CA.house[0].bioguide,'B000001');
+ assert.equal(data.states.CA.house.find(x=>x.name==='Former Member'),undefined);
+});
+test('incomplete CDC responses do not overwrite existing stored health data',async()=>{
+ const store=db();
+ await assert.rejects(refreshPlacesHealth({CATEGORY_DB_HEALTHCARE:store},
+  async()=>new Response(JSON.stringify([{countyfips:'06019',mhlth_crudeprev:'10'}])),now));
+ assert.equal(store.writes.length,0);
 });
