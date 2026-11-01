@@ -41,11 +41,11 @@
   '39':'#C2AB7B', // Ohio takes old New Jersey
 
   // Requested Mid-Atlantic softening: varied pink values without dramatic saturation.
-  '42':'#D9A6AE', // Pennsylvania — toned-down Light Pink / warm dusty rose
-  '10':'#E2C0CB', // Delaware — softened light PASTEL PINK
+  '42':'#E4A6B5', // Pennsylvania — user-approved warm pink
+  '10':'#F0C3CC', // Delaware — user-approved blush pink
   '51':'#BC7791', // Virginia — softened DARK PINK
-  '34':'#B978A4', // New Jersey — softened CARNATION / darker mauve pink
-  '24':'#A9829D', // Maryland — softened NADESHIKO PINK / dusty lilac
+  '34':'#D57E98', // New Jersey — user-approved warm rose
+  '24':'#C98A9D', // Maryland — user-approved warm rose
 
   // Missouri stays as approved. Kentucky and Tennessee have softened reds.
   '29':'#D6A55C', // Missouri — muted PASTEL ORANGE #FEBA4F
