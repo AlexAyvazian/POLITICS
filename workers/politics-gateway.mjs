@@ -343,7 +343,7 @@ async function refreshPlacesHealth(env,fetchImpl=fetch,now=new Date()){
  const counties={};
  for(const item of rows){
   const fips=String(item?.countyfips||'');
-  if(!/^\\d{5}$/.test(fips)||counties[fips])continue;
+  if(!/^\d{5}$/.test(fips)||counties[fips])continue;
   const measurements={};
   for(const [name,[col]] of Object.entries(PLACES_FIELDS))measurements[name]=countyEstimate(item[col],'percent');
   counties[fips]=measurements;
