@@ -19,8 +19,8 @@ test('live Census MapServer supplies pre-rendered federal and separate state leg
  assert.match(js,/L\.esri\.dynamicMapLayer\(/);
  assert.match(js,/L\.tileLayer\(/);
  assert.match(js,/house:.*8/);
- assert.match(js,/stateSenate:.*1/);
- assert.match(js,/stateHouse:.*2/);
+ assert.match(js,/stateSenate:.*9/);
+ assert.match(js,/stateHouse:.*10/);
  assert.match(js,/layerDefs/);
  assert.match(js,/STATE=/);
 });
@@ -34,7 +34,7 @@ test('new atlas uses provider-rendered districts and not home-built SVG polygon 
 });
 test('political representation has federal and state office views with dated attribution',()=>{
  const js=read('assets/js/congressional-existing-map.js');
- for(const indicator of ['GOVERNORS_2026','POLITICS_NCSL','119th Congress','2026 state legislative districts','Open States','U.S. senators'])
+ for(const indicator of ['GOVERNORS_2026','POLITICS_NCSL','119th Congress','2024 state legislative district boundaries','Open States','U.S. senators'])
   assert.ok(js.includes(indicator),indicator+' should be present');
  assert.match(js,/statePeople/);
  assert.match(js,/federalPeople/);
