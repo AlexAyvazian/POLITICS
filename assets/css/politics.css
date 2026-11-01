@@ -62,14 +62,14 @@
   fill:var(--geo-hover);
   stroke:var(--geo-dark);
   stroke-width:1.6;
-  filter:drop-shadow(0 0 6px var(--geo-glow));
+  filter:drop-shadow(0 0 3px color-mix(in srgb,var(--geo-glow) 50%,transparent));
 }
 #view-map #mapSvg .state:focus-visible,
 #view-map #mapSvg .county:focus-visible{
   outline:none!important;
   stroke:var(--geo-dark);
   stroke-width:2.5;
-  filter:drop-shadow(0 0 8px var(--geo-glow));
+  filter:drop-shadow(0 0 4px color-mix(in srgb,var(--geo-glow) 55%,transparent));
 }
 #view-map #mapSvg .stateSelectedBoundary .stateOutlineBase,
 #view-map #mapSvg .countySelectedBoundary .countyOutlineBase{
@@ -81,9 +81,10 @@
   fill:none;stroke:var(--geo-dark);stroke-width:3;stroke-linecap:round;
   stroke-dasharray:100 900;stroke-dashoffset:0;
   vector-effect:non-scaling-stroke;pointer-events:none;
-  filter:drop-shadow(0 0 3px var(--geo-glow)) drop-shadow(0 0 10px var(--geo-glow));
+  filter:drop-shadow(0 0 3px var(--geo-glow)) drop-shadow(0 0 7px color-mix(in srgb,var(--geo-glow) 38%,transparent));
   animation:statePerimeterOrbit 7s linear infinite;
 }
+#view-map .legend[hidden]{display:none!important}
 #view-map .legend .stateData{background:linear-gradient(135deg,#e0a445,#48b88c,#b282d9,#df7b78)}
 #view-map .legend .noData{background:linear-gradient(135deg,#354e74,#7893bf)}
 #view-map .legend .sel{background:#3b2b4c;box-shadow:0 0 5px #b282d9}
