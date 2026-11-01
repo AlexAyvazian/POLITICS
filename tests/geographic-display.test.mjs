@@ -78,7 +78,7 @@ test('rebalanced Great Lakes browns alternate light and dark tones', () => {
 });
 test('North Dakota, Colorado, Alaska and Hawaii use coordinated subdued colors',()=>{
  const c=setup().GEO_COLORS;
- const expected={'38':'#718F88','08':'#587966','02':'#697D9B','15':'#699FA6'};
+ const expected={'38':'#8A9A75','08':'#587966','02':'#697D9B','15':'#699FA6'};
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
  // Keep both Alaska and Hawaii blue but different from the California, Oregon and Washington.
  const pacific=['02','15','06','41','53'].map(id=>c.state(id).fill);
