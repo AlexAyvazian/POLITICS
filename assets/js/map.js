@@ -4,6 +4,7 @@
 const $=id=>document.getElementById(id);
 const states=window.GEO_STATES, topo=window.US_ATLAS, model=window.GEO_UTIL;
 const svg=d3.select('#mapSvg'),tooltip=d3.select('#tooltip');
+const colors=window.GEO_COLORS;
 const sfips=Object.fromEntries(states.map(s=>[s.fips,s]));
 const sabbr=Object.fromEntries(states.map(s=>[s.abbr,s]));
 const sel={abbr:null,fips:null};
@@ -56,12 +57,17 @@ function render(opts={}){
 }
 function renderUS(opts){
   $('mapLabel').textContent='U.S. map · select a state to explore its counties';
-  $('legend').innerHTML='<div><i class="stateData"></i>Select a state</div>';
+  $('legend').innerHTML='<div><i class="stateData"></i>State colors identify geography, not political parties</div>';
   const L=usLayout(),path=d3.geoPath();
   const g=svg.append('g').attr('class','usLayer'+(opts.fade?' fadeIn':''))
     .attr('transform','translate('+L.tx+','+L.ty+') scale('+L.k+')');
   g.selectAll('path').data(stateFeatures).join('path')
-    .attr('class','state hasData').attr('d',path).attr('role','button').attr('tabindex',0)
+    .attr('class','state hasData').attr('d',path)
+    .style('--geo-fill',d=>colors.state(String(d.id).padStart(2,'0')).fill)
+    .style('--geo-hover',d=>colors.state(String(d.id).padStart(2,'0')).hover)
+    .style('--geo-dark',d=>colors.state(String(d.id).padStart(2,'0')).dark)
+    .style('--geo-glow',d=>colors.state(String(d.id).padStart(2,'0')).glow)
+    .attr('role','button').attr('tabindex',0)
     .attr('aria-label',d=>d.properties.name+' state map')
     .on('mousemove',(e,d)=>{
       const fips=String(d.id).padStart(2,'0');
@@ -99,26 +105,38 @@ function renderState(opts){
   if(!state){sel.abbr=null;render(opts);return;}
   const features=byState.get(state.fips)||[],outline=stateShapes.get(state.abbr);
   $('mapLabel').textContent=state.name+' · state averages; select any county for local figures';
-  $('legend').innerHTML='<div><i class="noData"></i>County boundary</div><div><i class="sel"></i>Selected county</div>';
+  $('legend').innerHTML='<div><i class="noData"></i>Different shades: counties in '+esc(state.name)+'</div><div><i class="sel"></i>Dark glowing border: selection</div>';
   const pad=24,shape={type:'FeatureCollection',features:outline?[outline]:features};
   const proj=d3.geoIdentity().reflectY(false).fitSize([Math.max(1,width-pad*2),Math.max(1,height-pad*2)],shape);
   const path=d3.geoPath(proj);
+  const parentColor=colors.state(state.fips);
   const g=svg.append('g').attr('class','countyLayer'+(opts.fade?' fadeIn':''))
     .attr('transform','translate('+pad+','+pad+')');
   g.selectAll('path').data(features).join('path').attr('d',path)
     .attr('class',d=>'county'+(String(d.id).padStart(5,'0')===sel.fips?' active':''))
+    .style('--geo-fill',d=>colors.county(state.fips,String(d.id).padStart(5,'0')).fill)
+    .style('--geo-hover',d=>colors.county(state.fips,String(d.id).padStart(5,'0')).hover)
+    .style('--geo-dark',parentColor.dark).style('--geo-glow',parentColor.glow)
     .attr('role','button').attr('tabindex',0).attr('aria-label',d=>d.properties.name+' County')
     .on('mousemove',(e,d)=>showTip(e,'<b>'+esc(d.properties.name)+' County</b><br>'+esc(state.name)+' · FIPS '+String(d.id).padStart(5,'0')))
     .on('mouseleave',hideTip)
     .on('click',(e,d)=>selectCounty(String(d.id).padStart(5,'0')))
     .on('keydown',(e,d)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectCounty(String(d.id).padStart(5,'0'));}});
-  // The PI BorderGlow perimeter sweep, adapted to the *real* irregular SVG state path.
-  // It is intentionally an outline, never a rectangular light box or platform glow.
+  // Only real geography paths receive selection effects; there is no rectangular overlay.
   if(outline){
-    const border=g.append('g').attr('class','stateSelectedBoundary').attr('aria-hidden','true').style('pointer-events','none');
+    const border=g.append('g').attr('class','stateSelectedBoundary').attr('aria-hidden','true')
+      .style('pointer-events','none').style('--geo-dark',parentColor.dark).style('--geo-glow',parentColor.glow);
     border.append('path').datum(outline).attr('d',path).attr('class','stateOutlineBase');
-    border.append('path').datum(outline).attr('d',path).attr('class','stateLightTrace')
-      .attr('pathLength',1000);
+    if(!sel.fips)border.append('path').datum(outline).attr('d',path).attr('class','stateLightTrace').attr('pathLength',1000);
+  }
+  if(sel.fips){
+    const selectedFeature=counties.get(sel.fips),accent=colors.county(state.fips,sel.fips);
+    if(selectedFeature){
+      const boundary=g.append('g').attr('class','countySelectedBoundary').attr('aria-hidden','true')
+        .style('pointer-events','none').style('--geo-dark',accent.dark).style('--geo-glow',accent.glow);
+      boundary.append('path').datum(selectedFeature).attr('d',path).attr('class','countyOutlineBase');
+      boundary.append('path').datum(selectedFeature).attr('d',path).attr('class','countyLightTrace').attr('pathLength',1000);
+    }
   }
 }
 
@@ -152,21 +170,29 @@ function metricGrid(values){
   '<div class="countyFact"><span>'+esc(label)+'</span><strong>'+esc(metricFormat(value,unit))+'</strong></div>').join('')+'</div>';
 }
 function categorySections(data,scope,selected){
- return CATEGORIES.map(category=>{
+ const groups=[],pending=[];
+ const averages=scope==='state'?window.POLITICS_GEO_STATS.getStateAverages(data,selected):null;
+ for(const category of CATEGORIES){
   const ds=data?.categories?.[category];
   if(!ds?.counties||!ds?.fields){
-   return '<details class="countyCategory"><summary>'+esc(CATEGORY_TITLES[category])+
-     '<span class="dataStatus">Awaiting saved data</span></summary><p class="categoryNote">This category has not completed its nationwide scheduled collection.</p></details>';
+   pending.push(CATEGORY_TITLES[category]);
+   continue;
   }
-  const row=scope==='state'?window.POLITICS_GEO_STATS.getStateAverages(data,selected)?.[category]:ds.counties[selected];
-  const metrics=Object.entries(ds.fields).map(([key,meta])=>
-   [scope==='state'?'Average county '+meta.label.charAt(0).toLowerCase()+meta.label.slice(1):meta.label,row?.[key],meta.unit]);
-  return '<details class="countyCategory"><summary>'+esc(CATEGORY_TITLES[category])+
-   '<span class="dataStatus">'+metrics.length+' indicators</span></summary>'+
-   metricGrid(metrics)+
-   '<p class="categoryNote">'+(scope==='state'?'Simple unweighted averages of available county estimates. ':'')+
-   'U.S. Census ACS '+esc(String(ds.year||2024))+' five-year estimates. <a href="https://api.census.gov/data/2024/acs/acs5/profile.html" rel="noopener noreferrer" target="_blank">Source</a></p></details>';
- }).join('');
+  const row=scope==='state'?averages?.[category]:ds.counties[selected];
+  const metrics=Object.entries(ds.fields).map(([key,meta])=>{
+   const label=meta?.label||key,unit=meta?.unit||'decimal';
+   return [scope==='state'?'Average county '+label.charAt(0).toLowerCase()+label.slice(1):label,row?.[key],unit];
+  });
+  if(!metrics.some(([,value])=>typeof value==='number'&&Number.isFinite(value)&&value>=0)){
+   pending.push(CATEGORY_TITLES[category]);
+   continue;
+  }
+  groups.push('<section class="countyMetricSection" aria-label="'+esc(CATEGORY_TITLES[category])+'">'+
+   '<h3 class="countyFactsTitle">'+esc(CATEGORY_TITLES[category])+'</h3>'+
+   metricGrid(metrics)+'</section>');
+ }
+ return groups.join('')+(pending.length?
+  '<p class="categoryNote">No stored figures yet for: '+pending.map(esc).join(', ')+'.</p>':'');
 }
 function renderCard(){
  const card=$('selectedCard'),county=counties.get(sel.fips),state=sabbr[sel.abbr];
