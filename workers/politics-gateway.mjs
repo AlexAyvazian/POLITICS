@@ -231,6 +231,90 @@ async function getSnapshot(env){
  }catch(_){return new Response(JSON.stringify({status:'storage_unavailable',count:0}),{status:503,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});}
 }
 
+
+/* County categories are collected nationwide in scheduled bulk queries only.
+ * Seven independent D1 databases prevent giant rows and isolate failed refreshes.
+ * The source year (ACS 2024) is different from each scheduled fetch timestamp. */
+const COUNTY_CATEGORY_CONFIG={"specs":{"housing":[["medianHomeValue","DP04","DP04_0089E","Median owner-occupied home value","currency"],["ownerOccupiedPct","DP04","DP04_0046PE","Owner-occupied housing","percent"],["renterOccupiedPct","DP04","DP04_0047PE","Renter-occupied housing","percent"],["vacantHousingPct","DP04","DP04_0003PE","Vacant housing units","percent"],["rentalVacancyRate","DP04","DP04_0005E","Rental vacancy rate","percent"],["mortgagedOwnersPct","DP04","DP04_0091PE","Owners with a mortgage","percent"],["medianMonthlyMortgageCost","DP04","DP04_0101E","Median monthly costs with mortgage","currency"],["mortgageCost35PlusPct","DP04","DP04_0115PE","Mortgage owners spending 35%+ of income","percent"],["medianGrossRent","DP04","DP04_0134E","Median gross monthly rent","currency"],["rentCost30to34Pct","DP04","DP04_0141PE","Renters spending 30–34.9% of income","percent"],["rentCost35PlusPct","DP04","DP04_0142PE","Renters spending 35%+ of income","percent"],["rent2000to2499Pct","DP04","DP04_0131PE","Rents $2,000–$2,499","percent"],["rent3000PlusPct","DP04","DP04_0133PE","Rents $3,000+","percent"]],"jobs":[["laborForceParticipationPct","DP03","DP03_0002PE","Population in labor force","percent"],["unemploymentRatePct","DP03","DP03_0009E","Civilian unemployment rate","percent"],["femaleLaborForceParticipationPct","DP03","DP03_0011PE","Women in labor force","percent"],["meanCommuteMinutes","DP03","DP03_0025E","Average travel time to work","decimal"],["workFromHomePct","DP03","DP03_0024PE","Workers working from home","percent"],["driveAlonePct","DP03","DP03_0019PE","Workers driving alone","percent"],["publicTransitPct","DP03","DP03_0021PE","Workers using public transit","percent"],["managementJobsPct","DP03","DP03_0027PE","Management/business/science/arts occupations","percent"],["serviceJobsPct","DP03","DP03_0028PE","Service occupations","percent"],["constructionJobsPct","DP03","DP03_0030PE","Natural resources/construction/maintenance occupations","percent"],["manufacturingIndustryPct","DP03","DP03_0035PE","Manufacturing industry workers","percent"],["retailIndustryPct","DP03","DP03_0037PE","Retail industry workers","percent"],["healthcareEducationIndustryPct","DP03","DP03_0042PE","Education and healthcare industry workers","percent"],["governmentWorkersPct","DP03","DP03_0048PE","Government workers","percent"],["medianWorkerEarnings","DP03","DP03_0092E","Median annual worker earnings","currency"],["medianMenFullTimeEarnings","DP03","DP03_0093E","Median earnings, male full-time workers","currency"],["medianWomenFullTimeEarnings","DP03","DP03_0094E","Median earnings, female full-time workers","currency"]],"income":[["medianHouseholdIncome","DP03","DP03_0062E","Median household income","currency"],["perCapitaIncome","DP03","DP03_0088E","Income per person","currency"],["medianFamilyIncome","DP03","DP03_0086E","Median family income","currency"],["householdsUnder10kPct","DP03","DP03_0052PE","Households earning under $10,000","percent"],["households50to74kPct","DP03","DP03_0057PE","Households earning $50–74,999","percent"],["households100to149kPct","DP03","DP03_0059PE","Households earning $100–149,999","percent"],["households200kPlusPct","DP03","DP03_0061PE","Households earning $200,000+","percent"],["householdsOnSocialSecurityPct","DP03","DP03_0066PE","Households receiving Social Security","percent"],["householdsOnSSIPct","DP03","DP03_0070PE","Households receiving Supplemental Security Income","percent"],["householdsOnCashAssistancePct","DP03","DP03_0072PE","Households receiving cash assistance","percent"],["householdsReceivingSNAPPct","DP03","DP03_0074PE","Households receiving SNAP benefits","percent"],["familiesBelowPovertyPct","DP03","DP03_0119E","Families below poverty level","percent"],["childrenBelowPovertyPct","DP03","DP03_0129E","Children under 18 below poverty level","percent"],["giniIndex","detail","B19083_001E","Gini index of income inequality","ratio"]],"healthcare":[["insuredPct","DP03","DP03_0096PE","Population with health insurance","percent"],["privateInsurancePct","DP03","DP03_0097PE","Population with private health insurance","percent"],["publicInsurancePct","DP03","DP03_0098PE","Population with public health coverage","percent"],["uninsuredPct","DP03","DP03_0099PE","Population without health insurance","percent"],["uninsuredChildrenPct","DP03","DP03_0101PE","Children without health insurance","percent"],["disabilityPct","DP02","DP02_0072PE","Population with a disability","percent"],["childDisabilityPct","DP02","DP02_0074PE","Children with a disability","percent"],["workingAgeDisabilityPct","DP02","DP02_0076PE","Adults 18–64 with a disability","percent"],["seniorDisabilityPct","DP02","DP02_0078PE","Adults 65+ with a disability","percent"]],"education":[["populationEnrolledSchool","DP02","DP02_0053E","Population enrolled in school","count"],["preschoolEnrollmentPct","DP02","DP02_0054PE","Enrolled students in preschool","percent"],["highSchoolEnrollmentPct","DP02","DP02_0057PE","Enrolled students in high school","percent"],["collegeEnrollmentPct","DP02","DP02_0058PE","Enrolled students in college/graduate school","percent"],["highSchoolGradOrHigherPct","DP02","DP02_0067PE","Adults with high-school diploma or higher","percent"],["bachelorsOrHigherPct","DP02","DP02_0068PE","Adults with bachelor's degree or higher","percent"],["graduateDegreePct","DP02","DP02_0066PE","Adults with graduate/professional degree","percent"],["associateDegreePct","DP02","DP02_0064PE","Adults with associate degree","percent"],["someCollegeNoDegreePct","DP02","DP02_0063PE","Adults with some college, no degree","percent"]],"families":[["medianAge","DP05","DP05_0018E","Median age","decimal"],["under18Pct","DP05","DP05_0019PE","Residents under 18","percent"],["seniors65PlusPct","DP05","DP05_0024PE","Residents aged 65+","percent"],["age25to34Pct","DP05","DP05_0010PE","Residents aged 25–34","percent"],["femalePopulationPct","DP05","DP05_0003PE","Female population","percent"],["citizenVotingAgePopulation","DP05","DP05_0106E","Citizen voting-age population","count"],["marriedCoupleHouseholdsPct","DP02","DP02_0002PE","Married-couple households","percent"],["femaleHouseholderWithChildrenPct","DP02","DP02_0011PE","Female householders with children, no spouse/partner","percent"],["householdsWithChildrenPct","DP02","DP02_0014PE","Households with children under 18","percent"],["householdsWithSeniorsPct","DP02","DP02_0015PE","Households with people aged 65+","percent"],["veteransPct","DP02","DP02_0070PE","Civilian veterans aged 18+","percent"]],"infrastructure":[["broadbandHouseholdsPct","DP02","DP02_0154PE","Households with broadband subscription","percent"],["computerHouseholdsPct","DP02","DP02_0153PE","Households with a computer","percent"],["noVehicleHouseholdsPct","DP04","DP04_0058PE","Households without a vehicle","percent"],["oneVehicleHouseholdsPct","DP04","DP04_0059PE","Households with one vehicle","percent"],["twoVehicleHouseholdsPct","DP04","DP04_0060PE","Households with two vehicles","percent"],["threePlusVehicleHouseholdsPct","DP04","DP04_0061PE","Households with three or more vehicles","percent"]]},"cron":{"16 7 * * *":["housing","infrastructure"],"17 7 * * *":["jobs","income"],"18 7 * * *":["healthcare","education"],"19 7 * * *":["families"]},"envNames":{"housing":"CATEGORY_DB_HOUSING","jobs":"CATEGORY_DB_JOBS","income":"CATEGORY_DB_INCOME","healthcare":"CATEGORY_DB_HEALTHCARE","education":"CATEGORY_DB_EDUCATION","families":"CATEGORY_DB_FAMILIES","infrastructure":"CATEGORY_DB_INFRASTRUCTURE"},"keyNames":["CENSUS-API-KEY","CENSUS_API_KEY_2","CENSUS_API_KEY_3","CENSUS_API_KEY_4","CENSUS_API_KEY_5","CENSUS_API_KEY_6"]};
+function countyEstimate(value,unit){
+ if(value===null||value===undefined||value===''||value==='N'||value==='-')return null;
+ const n=Number(value);
+ if(!Number.isFinite(n)||n<0)return null;
+ if(unit==='percent'&&n>100)return null;
+ if(unit==='ratio'&&n>1)return null;
+ return n;
+}
+async function updateCountyCategory(env,category,fetchImpl=fetch,now=new Date()){
+ const conf=COUNTY_CATEGORY_CONFIG;
+ const fields=conf.specs[category],db=env?.[conf.envNames[category]];
+ if(!fields||!db)throw Error('Missing category config or D1: '+category);
+ const idx=Object.keys(conf.specs).indexOf(category);
+ const apiKey=conf.keyNames.slice(idx%6).concat(conf.keyNames.slice(0,idx%6)).map(n=>key(env,n)).find(Boolean);
+ if(!apiKey)throw Error('No Census key configured');
+ const groups={};
+ for(const item of fields){(groups[item[1]] ||= []).push(item);}
+ const counties={};
+ for(const [dataset,entries] of Object.entries(groups)){
+  const variableCodes=[...new Set(entries.map(x=>x[2]))];
+  if(variableCodes.length>49)throw Error('Census profile request over 49 variables');
+  const u=new URL('https://api.census.gov/data/2024/acs/acs5'+(dataset==='detail'?'':'/profile'));
+  for(const [k,v] of [['get', ['NAME',...variableCodes].join(',')],['for','county:*'],['in','state:*'],['key',apiKey]])u.searchParams.set(k,v);
+  const response=await fetchImpl(u.toString(),{headers:{Accept:'application/json'}});
+  if(!response.ok)throw Error(category+' '+dataset+' upstream HTTP '+response.status);
+  const rows=await response.json();
+  if(!Array.isArray(rows)||!Array.isArray(rows[0]))throw Error('Invalid ACS '+dataset+' payload');
+  const col=Object.fromEntries(rows[0].map((k,i)=>[k,i]));
+  if(['state','county',...variableCodes].some(k=>!Object.hasOwn(col,k)))throw Error('Missing ACS '+dataset+' column');
+  const seen=new Set();
+  for(const row of rows.slice(1)){
+   const state=String(row[col.state]||''),county=String(row[col.county]||'');
+   if(!/^\d{2}$/.test(state)||!/^\d{3}$/.test(county))continue;
+   const fips=state+county;seen.add(fips);
+   const target=(counties[fips] ||= {});
+   for(const [name,_dataset,code,_label,unit] of entries)target[name]=countyEstimate(row[col[code]],unit);
+  }
+  if(seen.size<2900)throw Error('Incomplete nationwide '+dataset+' dataset; saved data unchanged');
+ }
+ const count=Object.keys(counties).length;
+ const metadata=Object.fromEntries(fields.map(([k,dataset,code,label,unit])=>[k,{label,unit,dataset,code}]));
+ const snapshot=JSON.stringify({category,source:'U.S. Census Bureau ACS 2024 5-Year',year:2024,period:'2020–2024',
+  sourceUrl:'https://api.census.gov/data/2024/acs/acs5/profile',retrievedAt:now.toISOString(),refreshedAt:now.toISOString(),count,fields:metadata,counties});
+ if(new TextEncoder().encode(snapshot).length>=1900000)throw Error('County category '+category+' exceeds D1 2MB row limit');
+ await db.prepare('INSERT INTO county_snapshots(source,snapshot_json,refreshed_at,record_count) VALUES(?,?,?,?) ON CONFLICT(source) DO UPDATE SET snapshot_json=excluded.snapshot_json,refreshed_at=excluded.refreshed_at,record_count=excluded.record_count')
+  .bind('census_'+category,snapshot,now.toISOString(),count).run();
+ return {category,count,fieldCount:fields.length,refreshedAt:now.toISOString()};
+}
+
+
+/* EIA state-only pricing: one nationwide scheduled query, retained separately from
+   arithmetic averages of county measurements. No provider calls during clicks. */
+async function refreshStateEnergy(env,fetchImpl=fetch,now=new Date()){
+ const db=env?.CATEGORY_DB_INFRASTRUCTURE;
+ const apiKey=key(env,'EIA_API_KEY');
+ if(!db||!apiKey)throw Error('Missing infrastructure D1 or EIA credential');
+ const url=new URL('https://api.eia.gov/v2/electricity/retail-sales/data/');
+ for(const [key,value] of [['api_key',apiKey],['frequency','monthly'],['data[0]','price'],['facets[sectorid][]','RES'],
+   ['sort[0][column]','period'],['sort[0][direction]','desc'],['length','500']])url.searchParams.set(key,value);
+ const response=await fetchImpl(url.toString(),{headers:{Accept:'application/json'}});
+ if(!response.ok)throw Error('EIA HTTP '+response.status);
+ const raw=await response.json();
+ const items=raw?.response?.data;
+ if(!Array.isArray(items))throw Error('EIA response has no data');
+ const states={};
+ for(const item of items){
+  const abbr=String(item.stateid||'');
+  const value=Number(item.price);
+  if(!/^[A-Z]{2}$/.test(abbr)||!Number.isFinite(value)||value<0||!item.period||states[abbr])continue;
+  states[abbr]={residentialElectricityCentsKwh:value,period:String(item.period)};
+ }
+ if(Object.keys(states).length<40)throw Error('Incomplete nationwide EIA state data, previous snapshot retained');
+ const payload=JSON.stringify({source:'U.S. Energy Information Administration',sourceUrl:'https://www.eia.gov/electricity/data.php',
+  dataset:'Monthly residential retail electricity price',unit:'cents per kWh',retrievedAt:now.toISOString(),count:Object.keys(states).length,states});
+ await db.prepare('INSERT INTO county_snapshots (source,snapshot_json,refreshed_at,record_count) VALUES(?,?,?,?) ON CONFLICT(source) DO UPDATE SET snapshot_json=excluded.snapshot_json,refreshed_at=excluded.refreshed_at,record_count=excluded.record_count')
+  .bind('eia_state_electricity',payload,now.toISOString(),Object.keys(states).length).run();
+ return {states:Object.keys(states).length};
+}
+
 async function handleCore(request,env,ctx={},fetcher=fetch){
  const u=new URL(request.url),path=u.pathname.replace(/\/+$/,'');
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
@@ -258,5 +342,16 @@ export async function handle(request,env,ctx={},fetcher=fetch){
 }
 export default {
  fetch:handle,
- scheduled(event,env,ctx){ctx.waitUntil(refreshCensusSnapshot(env));}
+ scheduled(event,env,ctx){
+  // One cron trigger, fixed slots: 7 categories, statewide EIA, and the baseline Census.
+  // Every slot is a single source group; reserve remaining slots for 27-provider future jobs.
+  const when=new Date(event.scheduledTime??Date.now());
+  const slot=when.getUTCHours()*2+(when.getUTCMinutes()>=30?1:0);
+  const tasks=['housing','jobs','income','healthcare','education','families','infrastructure','eia','census'];
+  const task=tasks[slot];if(!task)return;
+  ctx.waitUntil(task==='eia'?refreshStateEnergy(env):task==='census'?refreshCensusSnapshot(env):updateCountyCategory(env,task));
+ }
 };
+
+// Named exports for the scheduled-collection regression suite.
+export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy };

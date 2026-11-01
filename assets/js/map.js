@@ -43,7 +43,7 @@ function chrome(){
   $('crumb').hidden=!state;
   if(state)$('crumbText').textContent=state.name+(county?' › '+county.properties.name+' County':'');
   $('backBtn').hidden=!state;
-  $('modeBadge').textContent=state?state.name+' · Counties':'U.S. map';
+  $('modeBadge').textContent=state?state.name+(county?' · County':' · State averages'):'U.S. map';
   $('navStats').textContent=stateFeatures.length+' regions · '+countyFeatures.length.toLocaleString()+' county boundaries';
   try{history.replaceState(null,'',model.makeHash(sel));}catch(e){}
 }
@@ -98,7 +98,7 @@ function renderState(opts){
   const state=sabbr[sel.abbr];
   if(!state){sel.abbr=null;render(opts);return;}
   const features=byState.get(state.fips)||[],outline=stateShapes.get(state.abbr);
-  $('mapLabel').textContent=state.name+' · select a county to explore';
+  $('mapLabel').textContent=state.name+' · state averages; select any county for local figures';
   $('legend').innerHTML='<div><i class="noData"></i>County boundary</div><div><i class="sel"></i>Selected county</div>';
   const pad=24,shape={type:'FeatureCollection',features:outline?[outline]:features};
   const proj=d3.geoIdentity().reflectY(false).fitSize([Math.max(1,width-pad*2),Math.max(1,height-pad*2)],shape);
@@ -112,44 +112,109 @@ function renderState(opts){
     .on('mouseleave',hideTip)
     .on('click',(e,d)=>selectCounty(String(d.id).padStart(5,'0')))
     .on('keydown',(e,d)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectCounty(String(d.id).padStart(5,'0'));}});
+  // The PI BorderGlow perimeter sweep, adapted to the *real* irregular SVG state path.
+  // It is intentionally an outline, never a rectangular light box or platform glow.
+  if(outline){
+    const border=g.append('g').attr('class','stateSelectedBoundary').attr('aria-hidden','true').style('pointer-events','none');
+    border.append('path').datum(outline).attr('d',path).attr('class','stateOutlineBase');
+    border.append('path').datum(outline).attr('d',path).attr('class','stateLightTrace')
+      .attr('pathLength',1000);
+  }
 }
 
-function showCountyFacts(fips){
- const target=$('countyFacts');if(!target||!fips)return;
- const store=window.POLITICS_COUNTY_CACHE;
- const snap=store?.get();
- if(!snap?.counties){
-  target.textContent=store?.status==='error'?'Saved statistics could not be loaded.':store?.status==='pending'?'National snapshot collection scheduled. Statistics will appear after the first successful refresh.':'Loading cached national statistics…';
+
+const CATEGORY_TITLES={
+ housing:'Housing & affordability',
+ jobs:'Jobs & wages',
+ income:'Income & inequality',
+ healthcare:'Healthcare access',
+ education:'Education',
+ families:'Families & demographics',
+ infrastructure:'Infrastructure'
+};
+const CATEGORIES=Object.keys(CATEGORY_TITLES);
+const CORE_FIELDS=[
+ ['population','Population','count'],
+ ['medianHouseholdIncome','Median household income','currency'],
+ ['povertyRate','Poverty rate','percent'],
+ ['medianGrossRent','Median gross monthly rent','currency']
+];
+function metricFormat(value,unit){
+ if(typeof value!=='number'||!Number.isFinite(value)||value<0)return 'Unavailable';
+ if(unit==='currency')return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
+ if(unit==='count')return new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(value);
+ if(unit==='percent')return value.toLocaleString('en-US',{maximumFractionDigits:1})+'%';
+ if(unit==='ratio')return value.toFixed(3);
+ return value.toLocaleString('en-US',{maximumFractionDigits:1});
+}
+function metricGrid(values){
+ return '<div class="countyFactGrid">'+values.map(([label,value,unit])=>
+  '<div class="countyFact"><span>'+esc(label)+'</span><strong>'+esc(metricFormat(value,unit))+'</strong></div>').join('')+'</div>';
+}
+function categorySections(data,scope,selected){
+ return CATEGORIES.map(category=>{
+  const ds=data?.categories?.[category];
+  if(!ds?.counties||!ds?.fields){
+   return '<details class="countyCategory"><summary>'+esc(CATEGORY_TITLES[category])+
+     '<span class="dataStatus">Awaiting saved data</span></summary><p class="categoryNote">This category has not completed its nationwide scheduled collection.</p></details>';
+  }
+  const row=scope==='state'?window.POLITICS_GEO_STATS.getStateAverages(data,selected)?.[category]:ds.counties[selected];
+  const metrics=Object.entries(ds.fields).map(([key,meta])=>
+   [scope==='state'?'Average county '+meta.label.charAt(0).toLowerCase()+meta.label.slice(1):meta.label,row?.[key],meta.unit]);
+  return '<details class="countyCategory"><summary>'+esc(CATEGORY_TITLES[category])+
+   '<span class="dataStatus">'+metrics.length+' indicators</span></summary>'+
+   metricGrid(metrics)+
+   '<p class="categoryNote">'+(scope==='state'?'Simple unweighted averages of available county estimates. ':'')+
+   'U.S. Census ACS '+esc(String(ds.year||2024))+' five-year estimates. <a href="https://api.census.gov/data/2024/acs/acs5/profile.html" rel="noopener noreferrer" target="_blank">Source</a></p></details>';
+ }).join('');
+}
+function renderCard(){
+ const card=$('selectedCard'),county=counties.get(sel.fips),state=sabbr[sel.abbr];
+ if(!state){card.hidden=true;return;}
+ const data=window.POLITICS_COUNTY_CACHE?.get();
+ const base=data?.core||null;
+ const stateMode=!county;
+ const selected=stateMode?state.fips:sel.fips;
+ card.hidden=false;
+ card.innerHTML='<button class="cardClose" type="button" aria-label="'+(stateMode?'Return to U.S. map':'Return to state averages')+'">×</button>'+
+  '<div class="countyName">'+esc(stateMode?state.name:county.properties.name+' County')+'</div>'+
+  '<div class="cardSub">'+(stateMode?'State-level overview · Selected state boundary':esc(state.name)+' · FIPS '+esc(sel.fips))+'</div>'+
+  '<div id="countyFacts" class="countyFacts" aria-live="polite"></div>';
+ card.querySelector('.cardClose').onclick=()=>stateMode?goHome():(sel.fips=null,render());
+ const target=$('countyFacts');
+ if(!base?.counties){
+  target.textContent=window.POLITICS_COUNTY_CACHE?.status==='error'?'Saved county statistics could not be loaded.':'Loading stored economic statistics…';
   return;
  }
- const row=snap.counties[fips];
- if(!row){target.textContent='No matching county estimate in the latest national Census snapshot.';return;}
- const currency=v=>Number.isFinite(v)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(v):'Unavailable';
- const integer=v=>Number.isFinite(v)?new Intl.NumberFormat('en-US').format(v):'Unavailable';
- const pct=v=>Number.isFinite(v)?v.toFixed(1)+'%':'Unavailable';
- const facts=[
-  ['Median household income',currency(row.medianHouseholdIncome)],
-  ['Population',integer(row.population)],
-  ['Poverty rate',pct(row.povertyRate)],
-  ['Median gross monthly rent',currency(row.medianGrossRent)]
- ];
- target.innerHTML='<div class="countyFactsTitle">County economic snapshot</div>'+
-  '<div class="countyFactGrid">'+facts.map(([name,value])=>'<div class="countyFact"><span>'+esc(name)+'</span><strong>'+esc(value)+'</strong></div>').join('')+'</div>'+
-  '<div class="countyFactSource">Source: U.S. Census ACS '+esc(String(snap.year))+' five-year estimates ('+esc(snap.period)+'). Last collected '+esc(new Date(snap.refreshedAt).toLocaleDateString())+'. <a href="'+esc(snap.sourceUrl)+'" target="_blank" rel="noopener noreferrer">Official data</a>. Figures are estimates, not daily economic measurements.</div>';
+ if(stateMode){
+  const avg=window.POLITICS_GEO_STATS.getStateAverages(data,state.fips).overview;
+  const vals=[
+   ['Average county population',avg.avgCountyPopulation,'count'],
+   ['Average county median household income',avg.avgCountyMedianHouseholdIncome,'currency'],
+   ['Average county poverty rate',avg.avgCountyPovertyRate,'percent'],
+   ['Average county median gross rent',avg.avgCountyMedianGrossRent,'currency']
+  ];
+  const stateOnly=data?.states?.states?.[state.abbr];
+  const stateOnlyPanel=stateOnly?'<div class="countyFactsTitle stateOnlyTitle">State-only data</div>'+
+    metricGrid([['Residential electricity price',stateOnly.residentialElectricityCentsKwh,'decimal']])+
+    '<div class="countyFactSource">U.S. EIA · '+esc(stateOnly.period||'latest reporting month')+
+    ' · cents per kWh. This figure is statewide, not an average of counties.</div>':
+    '<div class="countyFactsTitle stateOnlyTitle">State-only data</div><p class="categoryNote">Scheduled state-only source measurements will appear here when collected.</p>';
+  target.innerHTML='<p class="categoryNote">Equal-weight arithmetic averages of the county figures—not population-weighted or statewide estimates.</p>'+
+   '<div class="countyFactsTitle">Statewide view · County averages</div>'+metricGrid(vals)+
+   stateOnlyPanel+categorySections(data,'state',state.fips)+
+   '<p class="countyFactSource">Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). Averages include counties with available values for each indicator. No provider APIs are called on a selection.</p>';
+ }else{
+  const r=base.counties[sel.fips];
+  if(!r){target.textContent='This county is not in the current stored Census snapshot.';return;}
+  target.innerHTML='<div class="countyFactsTitle">County conditions</div>'+
+   metricGrid(CORE_FIELDS.map(([key,label,unit])=>[label,r[key],unit]))+
+   categorySections(data,'county',sel.fips)+
+   '<p class="countyFactSource">Source: U.S. Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). '+ 
+   '<a href="'+esc(base.sourceUrl||'https://api.census.gov/data/2024/acs/acs5')+'" target="_blank" rel="noopener noreferrer">Official data</a>.</p>';
+ }
 }
 
-function renderCard(){
-  const card=$('selectedCard'),county=counties.get(sel.fips),state=sabbr[sel.abbr];
-  if(!county||!state){card.hidden=true;return;}
-  card.innerHTML='<button class="cardClose" type="button" aria-label="Close county selection">×</button>'+
-    '<div class="countyName">'+esc(county.properties.name)+' County</div>'+
-    '<div class="cardSub">'+esc(state.name)+' · FIPS '+esc(sel.fips)+'</div>'+
-    '<div id="countyFacts" class="countyFacts" aria-live="polite"></div>';
-  card.hidden=false;
-  card.querySelector('.cardClose').onclick=()=>{sel.fips=null;render();};
-  showCountyFacts(sel.fips);
-
-}
 function selectState(abbr){
   if(!sabbr[abbr])return;
   busy=false;sel.abbr=abbr;sel.fips=null;hideTip();render({fade:true});
@@ -198,7 +263,7 @@ try{
   sel.abbr=initial.abbr;sel.fips=initial.fips;
   render();
   window.__politicsMap={sel,selectState,selectCounty,goHome,search:q=>model.search(q,states,countyFeatures,sfips)};
-  window.addEventListener('politics-county-snapshot-ready',()=>{if(sel.fips)showCountyFacts(sel.fips);});
+  window.addEventListener('politics-county-snapshot-ready',()=>{if(sel.abbr)renderCard();});
 
 }catch(err){
   $('loading').textContent='Unable to load map geometry';

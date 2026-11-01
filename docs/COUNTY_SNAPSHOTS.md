@@ -1,22 +1,24 @@
-# POLITICS — scheduled national collection, local county reads
+# POLITICS: one map, multiple data resolutions
 
-## Why no Neon database
-Cloudflare D1 stores the collected source results in the same Cloudflare account. No separate managed Postgres service or Render API variables are required.
+## Approved interaction
+- **Same map throughout.** Clicking a state zooms to its county outlines, outlines the real irregular state boundary with a moving PI BorderGlow-style perimeter trace, and opens state statistics.
+- **State panel:** arithmetic, equal-weight averages of available county values per indicator, never population-weighted and never mislabeled official state medians; a distinct "State-only data" section holds measurements such as EIA electricity price that do not exist at county level.
+- **County click:** replaces that card with county-specific statistics. Closing a county card returns to the state panel. No separate state/county maps.
+- The seven categories (housing, jobs, income, healthcare, education, families, infrastructure) are expandable sections of the SAME panel.
+- Empty or uncollected category snapshots are labeled as pending; no fabricated numbers.
 
-## What happens on a click
-**No upstream provider request.** The Render static site downloads one normalized nationwide snapshot from Cloudflare Worker `politics-daily-snapshot` when the map loads. Individual county selections look up five-digit FIPS codes in that in-memory object, not the source APIs.
+## Free architecture
+Render: static map. No Render environment variables required.
+Cloudflare gateway \`crimson-mud-d254\`: all original provider credentials and D1 bindings preserved; one Cron Trigger \`*/30 * * * *\`. The scheduled handler selects one batch per UTC 30-minute slot (7 Census categories, state-only EIA and the baseline Census). The remaining slots are reserved for future integration tasks; no further Cron Trigger is needed.
+Cloudflare reader \`politics-daily-snapshot\`: **only D1 bindings**, never provider API calls. Read-only routes:
+- \`/api/county-snapshot\` (original nationwide Census baseline)
+- \`/api/category-snapshot?category=housing|jobs|income|healthcare|education|families|infrastructure\`
+- \`/api/state-snapshot\` (EIA state-level electricity price)
+The browser prefetches these snapshots on page load; state and county clicks filter those in memory without provider network requests.
+D1: seven isolated databases by category plus original baseline D1. State-only EIA snapshot shares infrastructure D1 as a separate record. D1 schemas are defined in \`sql/county_snapshots.sql\`.
 
-## What happens daily
-The already-keyed gateway Worker `crimson-mud-d254` retains all 24 dashboard variables and gains D1 binding `COUNTY_DB`. A daily Cron Trigger runs Census's *nationwide county query once*, normalizes its estimated data, and stores a last-good snapshot in D1. The public snapshot reader has only D1 read access, no Census or other provider keys.
-
-**First source only:** U.S. Census ACS 2024 five-year: county population, median household income, poverty rate, and median gross monthly rent, with original survey years 2020–2024 displayed. The dataset's collection time does not mean Census refreshed these estimates on that date. Until first successful collection the map shows pending, not fabricated values. Incomplete nationwide datasets do not overwrite previous good snapshots.
-
-The other 26 source adapters remain available in the keyed gateway but are **not** bulk-normalized or invoked on county clicks. Each requires its own scheduled and quota-aware county join (or non-county presentation when no meaningful geographic relationship exists). Never issue 27 × ~3,143 county API calls.
-
-## Cloudflare
-D1: `politics-county-snapshots`. Table schema: `sql/county_snapshots.sql`.
-Writer gateway Worker: `crimson-mud-d254` with 24 existing bindings + `COUNTY_DB`. Cron `15 7 * * *` UTC (07:15 UTC daily). Gateway's `wrangler.jsonc` includes that schedule and D1 binding.
-Read-only Worker: `politics-daily-snapshot` with **only** the `COUNTY_DB` binding and no cron. `wrangler.daily.jsonc` configures it.
-Render static site: `https://politics-e5yt.onrender.com`. No Render variables.
-
-Only the map is intended as a public page. The previously generated standalone Research Sources page was not requested and is removed.
+## Data sources and accuracy
+Census: 2024 ACS five-year Data Profiles DP02, DP03, DP04, DP05 plus detailed B19083. Original Census survey period 2020–2024 is displayed separately from refresh time. Indicator field definitions are preserved with their ACS variable codes, formats, and source metadata.
+Electricity: EIA monthly state residential prices in **cents per kWh**, retrieved in one nationwide scheduled bulk request; no fake county price.
+Arithmetic averages use non-null county figures for each metric. They do not represent official statewide medians and must not be presented as such.
+Other API adapters in the existing 27-provider gateway are not automatically geographical datasets. Build each separately based on official geography and published quota, rather than issuing one request per visitor or per county.

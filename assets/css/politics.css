@@ -18,3 +18,29 @@
 #view-map .countyFact strong{font-size:17px;font-variant-numeric:tabular-nums}
 #view-map .countyFactSource{margin-top:12px;font-size:10px;line-height:1.55;color:#afc0d5}
 #view-map .countyFactSource a{color:#87e0d5}
+
+/* PI BorderGlow adaptation: orbiting light along the real state SVG boundary.
+   The state outline, including complex coastal edges, is the animation path. */
+#view-map .stateSelectedBoundary .stateOutlineBase{
+ fill:none;stroke:rgba(91,224,244,.55);stroke-width:1.45;
+ vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 3px rgba(90,219,255,.55));
+}
+#view-map .stateSelectedBoundary .stateLightTrace{
+ fill:none;stroke:#b8fff1;stroke-width:2.8;stroke-linecap:round;
+ stroke-dasharray:100 900;stroke-dashoffset:0;
+ vector-effect:non-scaling-stroke;
+ filter:drop-shadow(0 0 4px #4fe9ff) drop-shadow(0 0 10px rgba(71,217,255,.94));
+ animation:statePerimeterOrbit 7s linear infinite;
+}
+@keyframes statePerimeterOrbit{to{stroke-dashoffset:-1000}}
+#view-map .countyCategory{margin:12px 0;border:1px solid rgba(125,211,252,.16);background:rgba(10,25,50,.5);border-radius:12px;overflow:hidden}
+#view-map .countyCategory>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:13px 11px;font-size:13px;font-weight:800;color:#e5f3ff;list-style-position:inside}
+#view-map .countyCategory[open]>summary{border-bottom:1px solid rgba(125,211,252,.15);color:#a4f8e6}
+#view-map .countyCategory .dataStatus{font-size:10px;font-weight:600;color:#b6cce3;text-align:right;white-space:nowrap}
+#view-map .countyCategory>.countyFactGrid{padding:10px}
+#view-map .countyCategory .categoryNote{padding:0 10px 10px}
+#view-map .categoryNote{font-size:11px;line-height:1.5;color:#a8bed3;margin:9px 0}
+#view-map .stateOnlyTitle{margin-top:18px;border-top:1px solid rgba(125,211,252,.14);padding-top:15px}
+#view-map .countyFacts .countyFact{min-width:0}
+#view-map .countyFacts .countyFact strong{overflow-wrap:anywhere}
+@media (prefers-reduced-motion:reduce){#view-map .stateSelectedBoundary .stateLightTrace{animation:none;stroke-dasharray:none;stroke-width:2.2}}

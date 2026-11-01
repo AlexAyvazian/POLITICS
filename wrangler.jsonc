@@ -9,11 +9,46 @@
       "binding": "COUNTY_DB",
       "database_name": "politics-county-snapshots",
       "database_id": "90f53171-e5cc-48d8-8c0c-0138d358649a"
+    },
+    {
+      "binding": "CATEGORY_DB_HOUSING",
+      "database_name": "politics-county-housing",
+      "database_id": "c5c74c58-16e3-4cf4-87ff-fbfb0e7c9a70"
+    },
+    {
+      "binding": "CATEGORY_DB_JOBS",
+      "database_name": "politics-county-jobs",
+      "database_id": "5fc562a0-d601-4fd1-b833-495de56d496a"
+    },
+    {
+      "binding": "CATEGORY_DB_INCOME",
+      "database_name": "politics-county-income",
+      "database_id": "be5b00b0-baff-4f0e-8924-76ca4c56b051"
+    },
+    {
+      "binding": "CATEGORY_DB_HEALTHCARE",
+      "database_name": "politics-county-healthcare",
+      "database_id": "b79b9261-4792-4dbc-95c5-f2f420c8ff44"
+    },
+    {
+      "binding": "CATEGORY_DB_EDUCATION",
+      "database_name": "politics-county-education",
+      "database_id": "3706e0f6-90a3-4fc9-b102-1ed51d4fec11"
+    },
+    {
+      "binding": "CATEGORY_DB_FAMILIES",
+      "database_name": "politics-county-families",
+      "database_id": "aac9ec2f-272b-49af-bd72-a41d8edf7992"
+    },
+    {
+      "binding": "CATEGORY_DB_INFRASTRUCTURE",
+      "database_name": "politics-county-infrastructure",
+      "database_id": "99988c12-6b5b-4eb0-bd39-cf4102c2d5d0"
     }
   ],
   "triggers": {
     "crons": [
-      "15 7 * * *"
+      "*/30 * * * *"
     ]
   }
 }

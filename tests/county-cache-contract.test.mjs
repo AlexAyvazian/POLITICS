@@ -2,30 +2,28 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
-
-test('map uses nationwide snapshot cache without querying providers on county clicks',()=>{
+test('one map uses saved county snapshots and no provider API on state or county clicks',()=>{
+ const map=read('assets/js/map.js'),cache=read('assets/js/county-cache.js');
+ assert.match(map,/renderCard/);
+ assert.match(map,/stateLightTrace/);
+ assert.match(map,/getStateAverages/);
+ assert.ok(!/\bfetch\s*\(/.test(map));
+ assert.match(cache,/\/api\/county-snapshot/);
+ assert.match(cache,/\/api\/category-snapshot/);
+ assert.match(cache,/\/api\/state-snapshot/);
+ assert.ok(!cache.includes('/api/eia')&&!cache.includes('/api/census'));
+});
+test('same page contains state, county interaction, and seven Census categories',()=>{
  const map=read('assets/js/map.js');
- const client=read('assets/js/county-cache.js');
- assert.ok(map.includes('showCountyFacts(sel.fips)'));
- assert.ok(map.includes('POLITICS_COUNTY_CACHE.get()'));
- assert.ok(!map.includes('fetch('),'county map must not call APIs on click');
- assert.equal((client.match(/\bfetch\(/g)||[]).length,1,'load nationwide snapshot only once');
- assert.ok(client.includes('politics-daily-snapshot'));
+ for(const word of ['Housing & affordability','Jobs & wages','Income & inequality','Healthcare access','Education','Families & demographics','Infrastructure'])assert.ok(map.includes(word),word);
+ assert.match(map,/selectState/);assert.match(map,/selectCounty/);
+ assert.match(map,/stateMode\?goHome/);
+ assert.match(map,/stateSelectedBoundary/);
 });
-
-test('the website contains only the map, no standalone research page',()=>{
- const html=read('index.html');
- assert.ok(html.includes('assets/js/county-cache.js'));
- assert.doesNotMatch(html,/sources\.html|Research sources/i);
+test('research sources page is not navigable from the main UI',()=>{
+ assert.doesNotMatch(read('index.html'),/sources.html/i);
 });
-
-test('daily Cron is attached only to keyed gateway, not the public reader',()=>{
- const gate=JSON.parse(read('wrangler.jsonc'));
- const reader=JSON.parse(read('wrangler.daily.jsonc'));
- assert.equal(gate.name,'crimson-mud-d254');
- assert.equal(gate.keep_vars,true);
- assert.deepEqual(gate.triggers.crons,['15 7 * * *']);
- assert.equal(gate.d1_databases[0].binding,'COUNTY_DB');
- assert.equal(reader.name,'politics-daily-snapshot');
- assert.ok(!reader.triggers,'reader must not run scheduled provider queries');
+test('one scheduled trigger coordinates category refreshes instead of 27 crons',()=>{
+ const config=JSON.parse(read('wrangler.jsonc'));
+ assert.deepEqual(config.triggers.crons,['*/30 * * * *']);
 });
