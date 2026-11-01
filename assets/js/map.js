@@ -57,7 +57,7 @@ function render(opts={}){
 }
 function renderUS(opts){
   $('mapLabel').textContent='U.S. map · select a state to explore its counties';
-  $('legend').innerHTML='<div><i class="stateData"></i>State colors identify geography, not political parties</div>';
+  $('legend').hidden=true;
   const L=usLayout(),path=d3.geoPath();
   const g=svg.append('g').attr('class','usLayer'+(opts.fade?' fadeIn':''))
     .attr('transform','translate('+L.tx+','+L.ty+') scale('+L.k+')');
@@ -105,7 +105,7 @@ function renderState(opts){
   if(!state){sel.abbr=null;render(opts);return;}
   const features=byState.get(state.fips)||[],outline=stateShapes.get(state.abbr);
   $('mapLabel').textContent=state.name+' · state averages; select any county for local figures';
-  $('legend').innerHTML='<div><i class="noData"></i>Different shades: counties in '+esc(state.name)+'</div><div><i class="sel"></i>Dark glowing border: selection</div>';
+  $('legend').hidden=true;
   const pad=24,shape={type:'FeatureCollection',features:outline?[outline]:features};
   const proj=d3.geoIdentity().reflectY(false).fitSize([Math.max(1,width-pad*2),Math.max(1,height-pad*2)],shape);
   const path=d3.geoPath(proj);
