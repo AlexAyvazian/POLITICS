@@ -64,3 +64,13 @@ test('input validation blocks bogus company IDs, years, and counties',async()=>{
   assert.equal(r.status,400,path);
  }
 });
+
+test('EPA response request URLs never reproduce account credentials',async()=>{
+ const env={EPA_AQS_KEY:'secret-epa-value',EPA_AQS_EMAIL:'email@example.test'};
+ const input='/api/epa_aqs?county=06019&year=2025';
+ const r=await handle(request(input),env,{},async u=>new Response(JSON.stringify({Header:[{url:u}],Data:[]})));
+ assert.equal(r.status,200);
+ const body=JSON.stringify(await r.json());
+ assert.ok(!body.includes('secret-epa-value'));
+ assert.ok(!body.includes('email@example.test'));
+});

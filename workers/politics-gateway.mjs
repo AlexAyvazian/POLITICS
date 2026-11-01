@@ -144,7 +144,12 @@ function clean(obj,depth=0){
  if(depth>=6)return null;
  if(Array.isArray(obj))return obj.slice(0,35).map(x=>clean(x,depth+1));
  if(obj&&typeof obj==='object'){const o={};for(const [k,v] of Object.entries(obj).slice(0,70))if(!/apikey|api_key|token|password|credential|authorization/i.test(k))o[k]=clean(v,depth+1);return o;}
- if(typeof obj==='string')return obj.slice(0,3000);
+ if(typeof obj==='string'){
+  return obj.slice(0,3000).replace(/https?:\/\/[^\s"'<>]+/g,match=>{
+   try{const u=new URL(match);for(const name of [...u.searchParams.keys()])if(/key|token|auth|email|password|username/i.test(name))u.searchParams.delete(name);return u.toString();}
+   catch{return match;}
+  });
+ }
  return obj;
 }
 export async function handle(request,env,ctx={},fetcher=fetch){
