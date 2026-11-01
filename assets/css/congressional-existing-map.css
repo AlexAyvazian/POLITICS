@@ -1,0 +1,20 @@
+/* Separate existing-provider map: Leaflet + Esri Census MapServer.
+   NO county data, county SVG renderer or county map geometry. */
+#legislativeMap{width:100%;height:100%;min-height:0;background:#08172b;z-index:0}
+.congressMapWrap{isolation:isolate}
+.congressMapWrap .leaflet-container{background:#08172b;font-family:inherit}
+.congressMapWrap .leaflet-tile-pane{filter:grayscale(.85) brightness(.72) contrast(1.1)}
+.congressMapWrap .leaflet-control-attribution{background:rgba(5,14,29,.84);color:#d8e9f1;font-size:10px}
+.congressMapWrap .leaflet-control-attribution a{color:#8eebdb}
+.congressMapWrap .leaflet-control-zoom a{background:#11223b;border-color:#344d67;color:#d8f2ff}
+.congressMapWrap .leaflet-control-zoom a:hover{background:#26425e;color:#fff}
+.congressMapWrap .leaflet-bar{border:1px solid rgba(165,204,238,.22)}
+.congressMapWrap .leaflet-interactive:focus{outline:2px solid #87e8d5;outline-offset:2px}
+.congressMapLabel,.congressLoading{z-index:600;pointer-events:none}
+.congressMapWrap .leaflet-popup-content-wrapper,.congressMapWrap .leaflet-popup-tip{background:#0b1d38;color:#e6f4ff;border:1px solid rgba(163,210,237,.16)}
+.congressMapWrap .leaflet-popup-content a{color:#8fe8d4}
+.congressMapWrap .leaflet-container .leaflet-overlay-pane svg path{vector-effect:non-scaling-stroke}
+.congressMapWrap .leaflet-container .censusDistrictHighlight{stroke:#a5f8df;stroke-width:3;fill:rgba(129,247,222,.20)}
+.congressMapWrap .leaflet-control-scale-line{background:rgba(4,15,32,.85);border-color:#99c6d6;color:#eef5ff}
+.congressSourceBar{line-height:1.4}
+@media(max-width:900px){.congressMapWrap{min-height:260px}}
