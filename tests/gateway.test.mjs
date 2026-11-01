@@ -75,3 +75,16 @@ test('worker does not depend on dashboard-variable renaming or a private databas
  const r=await handle(req('/api/census?county=06019'),{'CENSUS_API_KEY':'not-the-actual-binding'});
  assert.equal(r.status,503);
 });
+
+test('Open States gateway can request state people with the existing key and keep the bills default',async()=>{
+ const seen=[];
+ const fetcher=async (url,options)=>{
+  seen.push({url,options});
+  return new Response(JSON.stringify({results:[{id:'ocd-person/test',name:'Example Person'}]}),{status:200});
+ };
+ const state=new Request('https://example.workers.dev/api/openstates?jurisdiction=ca&record=people&limit=4');
+ const res=await handle(state,env,{},fetcher);
+ assert.equal(res.status,200);
+ assert.match(new URL(seen[0].url).pathname,/\/people$/);
+ assert.equal(seen[0].options.headers['X-API-KEY'],'test-OPENSTATES_API_KEY');
+});
