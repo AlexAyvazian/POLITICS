@@ -146,13 +146,13 @@ test('Kentucky and Tennessee are distinctly softened red family shades',()=>{
  assert.notEqual(c.state('21').fill,c.state('47').fill);
 });
 
-test('Arkansas, Louisiana, Mississippi and Alabama have complementary muted orange tones',()=>{
+test('Arkansas Louisiana Mississippi and Alabama use unmistakably orange, distinct warm shades',()=>{
  const c=setup().GEO_COLORS;
  const expected={
-   '05':'#98634B', // Arkansas: earthy orange brown
-   '22':'#C39A7C', // Louisiana: light warm orange
-   '28':'#B48261', // Mississippi: medium apricot brown
-   '01':'#CF9D7B'  // Alabama: warm soft apricot
+   '05':'#BE6638', // Arkansas: visible burnt orange
+   '22':'#DFA57A', // Louisiana: warm apricot-orange
+   '28':'#E28B42', // Mississippi: pumpkin orange
+   '01':'#F0BA91'  // Alabama: lighter peach-orange
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
 });
