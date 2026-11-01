@@ -169,7 +169,9 @@ test('Congress.gov legislative House roll-call returns actual member choices gro
   if(u.pathname.endsWith('/house-vote/119/2'))return new Response(JSON.stringify({houseRollCallVotes:[{congress:119,sessionNumber:2,rollCallNumber:256,startDate:'2026-10-25',legislationType:'HR',legislationNumber:'152',result:'Passed'}]}));
   if(u.pathname.endsWith('/256/members'))return new Response(JSON.stringify({houseRollCallVoteMemberVotes:{results:{item:[
    {bioguideId:'A000001',firstName:'A',lastName:'Example',voteCast:'Aye',voteState:'CA',voteParty:'D'},
-   {bioguideId:'B000002',firstName:'B',lastName:'Example',voteCast:'Nay',voteState:'NY',voteParty:'R'}
+   {bioguideId:'B000002',firstName:'B',lastName:'Example',voteCast:'Nay',voteState:'NY',voteParty:'R'},
+   ...Array.from({length:120},(_,i)=>({bioguideId:'T'+i,firstName:'Other',lastName:'Member'+i,voteCast:'Aye',
+    voteState:'AL AK AZ AR CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' ')[i%47],voteParty:'D'}))
   ]}}}));
   throw Error('unexpected '+u.pathname);
  };
