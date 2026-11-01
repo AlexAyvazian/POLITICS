@@ -140,7 +140,9 @@ function target(id,p,env){
  case 'openstates':{
   const resource=p.get('record')||'bills';
   if(!['bills','people'].includes(resource))throw Error('Invalid Open States record type');
-  u=qs('https://v3.openstates.org/'+resource,{jurisdiction:limited(p.get('jurisdiction')||'ca',/^[a-z]{2,20}$/i,20),per_page:n,...(q?{q}:{})});
+  const pageRaw=Number(p.get('page')||1);
+  if(!Number.isInteger(pageRaw)||pageRaw<1||pageRaw>20)throw Error('Invalid Open States page');
+  u=qs('https://v3.openstates.org/'+resource,{jurisdiction:limited(p.get('jurisdiction')||'ca',/^[a-z]{2,20}$/i,20),per_page:n,page:pageRaw,...(q?{q}:{})});
   options.headers['X-API-KEY']=k;break;
  }
  case 'regulations':u=qs('https://api.regulations.gov/v4/documents',{'page[size]':n,sort:'-postedDate',...(q?{'filter[searchTerm]':q}:{})});options.headers['X-Api-Key']=k;break;
@@ -570,12 +572,41 @@ async function refreshFederalHouseVotes(env,fetchImpl=fetch,now=new Date()){
  return {votes:votes.length};
 }
 
+/* Source: Census TIGERweb official 2025 generalized legislative boundary polygons.
+ * Layer 5 = 119th U.S. House; 8 = 2024 state Senate; 9 = 2024 state House.
+ * This proxy serves only public polygons; does not mix in county boundaries. */
+async function fetchDistrictGeometry(u,request,ctx,fetcher){
+ const layer=u.searchParams.get('layer'),state=u.searchParams.get('state')||'';
+ const layers={house:5,stateSenate:8,stateHouse:9};
+ if(!Object.hasOwn(layers,layer)||!/^[0-9]{2}$/.test(state)||!US_STATE_ABBRS_FIPS.has(state))
+  return json({error:'Unsupported district layer or state'},400);
+ const cache=globalThis.caches?.default;
+ if(cache){
+  try{const cached=await cache.match(request);if(cached)return cached;}catch{}
+ }
+ const census=new URL('https://tigerweb.geo.census.gov/arcgis/rest/services/Generalized_ACS2025/Legislative/MapServer/'+layers[layer]+'/query');
+ for(const [k,v] of Object.entries({where:"STATE='"+state+"'",outFields:'GEOID,BASENAME,STATE',outSR:'4326',returnGeometry:'true',geometryPrecision:'4',f:'geojson'}))census.searchParams.set(k,v);
+ let response;
+ try{response=await fetcher(census.toString(),{headers:{Accept:'application/json'}});}
+ catch(_){return json({error:'Census geographic service unreachable'},502);}
+ if(!response.ok)return json({error:'Census geographic service HTTP '+response.status},502);
+ let data;
+ try{data=await response.json();}catch(_){return json({error:'Invalid Census boundary response'},502);}
+ if(data?.type!=='FeatureCollection'||!Array.isArray(data.features)||!data.features.some(x=>x.geometry?.coordinates?.length))
+  return json({error:'No usable polygons returned by Census'},502);
+ const output=json({source:'U.S. Census Bureau TIGERweb',state,layer,vintage:layer==='house'?'119th Congress (January 2025)':'2024 legislative district boundaries',data},200,604800);
+ if(cache){try{const save=cache.put(request,output.clone());if(ctx.waitUntil)ctx.waitUntil(save);else await save;}catch{}}
+ return output;
+}
+const US_STATE_ABBRS_FIPS=new Set('01 02 04 05 06 08 09 10 11 12 13 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 44 45 46 47 48 49 50 51 53 54 55 56'.split(' '));
+
 async function handleCore(request,env,ctx={},fetcher=fetch){
  const u=new URL(request.url),path=u.pathname.replace(/\/+$/,'');
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
  if(request.method!=='GET')return json({error:'GET only'},405);
  if(path==='/'||path==='/health')return json({service:'POLITICS Research API',status:'operational',providers:Object.keys(CATALOG).length+Object.keys(KEYLESS_SOURCES).length+Object.keys(ACCESS_REQUIRED).length,catalog:'/api/catalog'},200,300);
  if(path==='/api/county-snapshot')return getSnapshot(env);
+ if(path==='/api/district-geometry')return fetchDistrictGeometry(u,request,ctx,fetcher);
  if(path==='/api/catalog')return json({providers:[...Object.entries(CATALOG).map(([id,[binding,category,description]])=>({id,category,description,configured:id==='lobbyview'?['LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3'].filter(x=>!!key(env,x)).length:!!key(env,binding),access:'cloudflare-variable'})),...Object.entries(KEYLESS_SOURCES).map(([id,[category,description]])=>({id,category,description,configured:true,access:'keyless-public'})),...Object.entries(ACCESS_REQUIRED).map(([id,[category,description,keyName,userName]])=>({id,category,description,configured:!!key(env,keyName)&&!!key(env,userName),access:'requires-provider-credentials'}))]},200,600);
  const id=path.startsWith('/api/')?path.slice(5):'';
  if(!Object.hasOwn(CATALOG,id)&&!Object.hasOwn(KEYLESS_SOURCES,id)&&!Object.hasOwn(ACCESS_REQUIRED,id))return json({error:'Unknown endpoint'},404);
