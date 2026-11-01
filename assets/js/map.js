@@ -132,10 +132,16 @@ function renderState(opts){
   if(sel.fips){
     const selectedFeature=counties.get(sel.fips),accent=colors.county(state.fips,sel.fips);
     if(selectedFeature){
-      const boundary=g.append('g').attr('class','countySelectedBoundary').attr('aria-hidden','true')
-        .style('pointer-events','none').style('--geo-dark',accent.dark).style('--geo-glow',accent.glow);
-      boundary.append('path').datum(selectedFeature).attr('d',path).attr('class','countyOutlineBase');
-      boundary.append('path').datum(selectedFeature).attr('d',path).attr('class','countyLightTrace').attr('pathLength',1000);
+      // Illuminate the county's interior without tracing, widening, or glowing its boundary.
+      const light=g.append('g').attr('class','countySelectedIllumination')
+        .attr('aria-hidden','true').style('pointer-events','none');
+      const gradient=light.append('defs').append('radialGradient')
+        .attr('id','selectedCountyInnerGlow').attr('cx','47%').attr('cy','42%').attr('r','72%');
+      gradient.append('stop').attr('offset','0%').attr('stop-color',accent.glow).attr('stop-opacity',0.62);
+      gradient.append('stop').attr('offset','58%').attr('stop-color',accent.glow).attr('stop-opacity',0.24);
+      gradient.append('stop').attr('offset','100%').attr('stop-color',accent.glow).attr('stop-opacity',0);
+      light.append('path').datum(selectedFeature).attr('d',path).attr('class','countyInnerLight')
+        .attr('fill','url(#selectedCountyInnerGlow)').attr('stroke','none');
     }
   }
 }
