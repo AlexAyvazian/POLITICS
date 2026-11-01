@@ -316,6 +316,102 @@ async function refreshStateEnergy(env,fetchImpl=fetch,now=new Date()){
  return {states:Object.keys(states).length};
 }
 
+/* Credential-free, scheduled source collectors. These data are never fetched on map clicks.
+ * PLACES 2025 is a model-based release (mostly 2023 survey inputs), NOT a
+ * wellbeing index, and must not be used to rank counties or infer causation. */
+const PLACES_FIELDS=Object.freeze({
+ frequentMentalDistressPct:['mhlth_crudeprev','Frequent mental distress (adults)','percent'],
+ poorPhysicalHealthPct:['phlth_crudeprev','Frequent physical distress (adults)','percent'],
+ depressionPct:['depression_crudeprev','Diagnosed depression (adults)','percent'],
+ lonelinessPct:['loneliness_crudeprev','Loneliness (adults)','percent'],
+ foodInsecurityPct:['foodinsecu_crudeprev','Food insecurity (adults)','percent'],
+ housingInsecurityPct:['housinsecu_crudeprev','Housing insecurity (adults)','percent'],
+ routineCheckupPct:['checkup_crudeprev','Routine checkup (adults)','percent'],
+ uninsuredAdultsPct:['access2_crudeprev','No health insurance, ages 18–64','percent']
+});
+async function refreshPlacesHealth(env,fetchImpl=fetch,now=new Date()){
+ const db=env?.CATEGORY_DB_HEALTHCARE;
+ if(!db)throw Error('Healthcare D1 binding missing');
+ const url=new URL('https://data.cdc.gov/resource/i46a-9kgh.json');
+ const cols=['countyfips',...Object.values(PLACES_FIELDS).map(([c])=>c)];
+ url.searchParams.set('$select',cols.join(','));
+ url.searchParams.set('$limit','5000');
+ const r=await fetchImpl(url.toString(),{headers:{Accept:'application/json'}});
+ if(!r.ok)throw Error('CDC PLACES upstream HTTP '+r.status);
+ const rows=await r.json();
+ if(!Array.isArray(rows))throw Error('CDC PLACES invalid format');
+ const counties={};
+ for(const item of rows){
+  const fips=String(item?.countyfips||'');
+  if(!/^\\d{5}$/.test(fips)||counties[fips])continue;
+  const measurements={};
+  for(const [name,[col]] of Object.entries(PLACES_FIELDS))measurements[name]=countyEstimate(item[col],'percent');
+  counties[fips]=measurements;
+ }
+ const count=Object.keys(counties).length;
+ if(count<2900)throw Error('CDC PLACES national response incomplete; previous saved data retained');
+ const fields=Object.fromEntries(Object.entries(PLACES_FIELDS).map(([id,[code,label,unit]])=>[id,{code,label,unit}]));
+ const snapshot=JSON.stringify({
+  source:'CDC PLACES',year:2025,period:'2025 release; mostly 2023 BRFSS observations',
+  note:'Model-based estimates, not directly measured county happiness or a ranking.',
+  sourceUrl:'https://data.cdc.gov/d/i46a-9kgh',retrievedAt:now.toISOString(),count,fields,counties
+ });
+ if(new TextEncoder().encode(snapshot).length>=1900000)throw Error('CDC PLACES snapshot exceeds D1 2MB guard');
+ await db.prepare('INSERT INTO county_snapshots(source,snapshot_json,refreshed_at,record_count) VALUES(?,?,?,?) ON CONFLICT(source) DO UPDATE SET snapshot_json=excluded.snapshot_json,refreshed_at=excluded.refreshed_at,record_count=excluded.record_count')
+  .bind('cdc_places_2025',snapshot,now.toISOString(),count).run();
+ return {count,source:'cdc_places_2025'};
+}
+
+/* Congressional terms in the public open UnitedStates/congress-legislators
+ * record represent offices, NOT who governs a county or a state legislature.
+ * A county can cross several House district boundaries. */
+const US_STATE_ABBRS=new Set('AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC'.split(' '));
+async function refreshCongressMembers(env,fetchImpl=fetch,now=new Date()){
+ const db=env?.COUNTY_DB;
+ if(!db)throw Error('Core D1 binding missing');
+ const endpoint='https://unitedstates.github.io/congress-legislators/legislators-current.json';
+ const r=await fetchImpl(endpoint,{headers:{Accept:'application/json'}});
+ if(!r.ok)throw Error('Congress members source HTTP '+r.status);
+ const raw=await r.json();
+ if(!Array.isArray(raw))throw Error('Congress members invalid JSON');
+ const states={};
+ const day=now.toISOString().slice(0,10);
+ for(const member of raw){
+  const terms=member?.terms;
+  if(!Array.isArray(terms))continue;
+  const active=[...terms].reverse().find(t=>t?.start<=day&&day<t?.end);
+  if(!active||!US_STATE_ABBRS.has(active.state)||!['sen','rep'].includes(active.type))continue;
+  const name=member?.name?.official_full||[member?.name?.first,member?.name?.last].filter(Boolean).join(' ');
+  if(!name||!member?.id?.bioguide)continue;
+  const record={
+   name:String(name).slice(0,120),party:String(active.party||'Unspecified').slice(0,40),
+   bioguide:String(member.id.bioguide).slice(0,16),
+   start:String(active.start),end:String(active.end)
+  };
+  if(active.type==='rep'){
+   const d=Number(active.district);
+   record.district=Number.isInteger(d)&&d>=0?d:null;
+  }
+  const entry=states[active.state] ||= {senators:[],house:[]};
+  entry[active.type==='sen'?'senators':'house'].push(record);
+ }
+ for(const entry of Object.values(states)){
+  entry.senators.sort((a,b)=>a.name.localeCompare(b.name));
+  entry.house.sort((a,b)=>(a.district??999)-(b.district??999)||a.name.localeCompare(b.name));
+ }
+ const count=Object.values(states).reduce((sum,s)=>sum+s.senators.length+s.house.length,0);
+ if(count<400||Object.keys(states).length<45)throw Error('Incomplete national congressional source; previous saved data retained');
+ const snapshot=JSON.stringify({
+  source:'unitedstates/congress-legislators community data',sourceUrl:'https://github.com/unitedstates/congress-legislators',
+  retrievedAt:now.toISOString(),asOf:day,count,states,
+  note:'Current incumbents, not election winners. House districts may cross county borders; no county-specific House member is inferred.'
+ });
+ if(new TextEncoder().encode(snapshot).length>=1900000)throw Error('Congress delegation snapshot exceeds D1 row guard');
+ await db.prepare('INSERT INTO county_snapshots(source,snapshot_json,refreshed_at,record_count) VALUES(?,?,?,?) ON CONFLICT(source) DO UPDATE SET snapshot_json=excluded.snapshot_json,refreshed_at=excluded.refreshed_at,record_count=excluded.record_count')
+  .bind('congress_members_current',snapshot,now.toISOString(),count).run();
+ return {states:Object.keys(states).length,members:count};
+}
+
 async function handleCore(request,env,ctx={},fetcher=fetch){
  const u=new URL(request.url),path=u.pathname.replace(/\/+$/,'');
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
@@ -348,11 +444,11 @@ export default {
   // Every slot is a single source group; reserve remaining slots for 27-provider future jobs.
   const when=new Date(event.scheduledTime??Date.now());
   const slot=when.getUTCHours()*2+(when.getUTCMinutes()>=30?1:0);
-  const tasks=['housing','jobs','income','healthcare','education','families','infrastructure','eia','census'];
+  const tasks=['housing','jobs','income','healthcare','education','families','infrastructure','eia','census','places','congressMembers'];
   const task=tasks[slot];if(!task)return;
-  ctx.waitUntil(task==='eia'?refreshStateEnergy(env):task==='census'?refreshCensusSnapshot(env):updateCountyCategory(env,task));
+  ctx.waitUntil(task==='eia'?refreshStateEnergy(env):task==='census'?refreshCensusSnapshot(env):task==='places'?refreshPlacesHealth(env):task==='congressMembers'?refreshCongressMembers(env):updateCountyCategory(env,task));
  }
 };
 
 // Named exports for the scheduled-collection regression suite.
-export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy };
+export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers };
