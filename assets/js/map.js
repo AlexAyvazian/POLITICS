@@ -175,6 +175,68 @@ function metricGrid(values){
  return '<div class="countyFactGrid">'+values.map(([label,value,unit])=>
   '<div class="countyFact"><span>'+esc(label)+'</span><strong>'+esc(metricFormat(value,unit))+'</strong></div>').join('')+'</div>';
 }
+/* Open States is statewide, and contains partial samples until scheduled
+ * national ingestion succeeds; never treat entries as county incumbents. */
+function renderOpenStates(data,state,stateMode){
+ const ds=data?.openstates?.[state.abbr],status=data?.openstatesStatus?.[state.abbr];
+ const title='<h3 class="countyFactsTitle">State legislators &amp; bills · Open States</h3>';
+ const source='<a href="https://docs.openstates.org/api-v3/" target="_blank" rel="noopener noreferrer">Open States API and coverage</a>';
+ if(!ds)return '<section class="countyMetricSection" aria-label="Open States legislation">'+title+
+  '<p class="categoryNote">'+esc(status==='error'?'Stored Open States snapshot unavailable.':
+   status==='loading'?'Loading stored state legislative records…':
+   'State legislature records pending scheduled Open States collection.')+'</p>'+
+  '<p class="countyFactSource">'+source+'</p></section>';
+ const role=(p)=>[p.role,p.district?'District '+p.district:'',p.party].filter(Boolean).join(' · ');
+ const people=(ds.people||[]).slice(0,8).map(p=>
+  '<div class="countyFact"><span>'+esc(role(p)||'State legislator')+
+  '</span><strong>'+esc(p.name)+'</strong></div>').join('');
+ const bills=(ds.bills||[]).slice(0,8).map(b=>{
+  const allowed=/^https:\/\/(?:open\.pluralpolicy\.com|openstates\.org)\//.test(b.url||'');
+  const text=esc(b.identifier||'Bill')+' · '+esc(b.title||'No title');
+  const link=allowed?'<a href="'+esc(b.url)+'" target="_blank" rel="noopener noreferrer">'+text+'</a>':text;
+  return '<div class="countyFact"><span>'+esc(b.action||'Action not reported')+
+   (b.actionDate?' · '+esc(b.actionDate):'')+'</span><strong>'+link+'</strong></div>';
+ }).join('');
+ const context=stateMode?'':'State lawmakers and bills are shown for the entire state, not assigned to this county. ';
+ return '<section class="countyMetricSection" aria-label="Open States legislation">'+title+
+  '<h4 class="countyFactsTitle">State lawmakers (sample)</h4>'+
+  (people?'<div class="countyFactGrid">'+people+'</div>':'<p class="categoryNote">No state legislator records in this snapshot.</p>')+
+  '<h4 class="countyFactsTitle">Bills and recent actions (sample)</h4>'+
+  (bills?'<div class="countyFactGrid">'+bills+'</div>':'<p class="categoryNote">No bill records in this snapshot.</p>')+
+  '<p class="countyFactSource">'+esc(context)+'Showing up to 8 of each from a partial API snapshot; not a complete legislature or voting history. Downloaded '+
+  esc(ds.retrievedAt||'unknown')+'. '+source+'.</p></section>';
+}
+/* Congress.gov's 119th Congress House roll-call feed contains official
+ * individual member votes on legislation; it is not a Senate vote database. */
+function renderHouseVotes(data,state,stateMode){
+ const ds=data?.houseVotes;
+ const title='<h3 class="countyFactsTitle">House roll-call votes · Congress.gov</h3>';
+ const source='<a href="https://api.congress.gov/" target="_blank" rel="noopener noreferrer">Official Congress.gov API</a>';
+ if(!ds?.votes?.length)return '<section class="countyMetricSection" aria-label="U.S. House roll calls">'+title+
+  '<p class="categoryNote">'+esc(data?.houseVotesStatus==='error'?'Stored House voting records unavailable.':
+   'House roll-call records pending scheduled collection.')+'</p><p class="countyFactSource">'+source+'</p></section>';
+ const chunks=ds.votes.slice(0,6).map(v=>{
+  const stateVotes=Array.isArray(v.stateVotes?.[state.abbr])?v.stateVotes[state.abbr]:[];
+  const n=Number(v.voteNumber);
+  if(!Number.isInteger(n)||n<1)return '';
+  const identity=(v.legislationType&&v.legislationNumber?v.legislationType+' '+v.legislationNumber:'House roll call')+
+   ' · Vote '+n;
+  const official='https://clerk.house.gov/Votes/2026'+n;
+  const people=stateVotes.slice(0,6).map(x=>'<div class="countyFact"><span>'+
+   esc(x.name||'U.S. representative')+' · '+esc(x.party||'')+
+   '</span><strong>'+esc(x.cast||'Vote unavailable')+'</strong></div>').join('');
+  return '<div class="countyMetricSection"><div class="countyFactsTitle"><a href="'+
+   official+'" target="_blank" rel="noopener noreferrer">'+esc(identity)+'</a></div>'+
+   '<p class="categoryNote">'+esc(v.question||v.result||'Recorded vote')+' · '+esc(v.date||'Date not reported')+'</p>'+
+   (people?'<div class="countyFactGrid">'+people+'</div>':'<p class="categoryNote">No individual member votes for this state in this sample.</p>')+
+   (stateVotes.length>6?'<p class="categoryNote">Showing 6 of '+stateVotes.length+' state delegation votes for this roll call.</p>':'')+'</div>';
+ }).filter(Boolean).join('');
+ return '<section class="countyMetricSection" aria-label="U.S. House roll calls">'+title+chunks+
+  '<p class="countyFactSource">'+(stateMode?'':'These are House members from the state, not a county-specific congressional district. ')+
+  'Official recorded House legislative votes only; this does not include Senate votes or all House roll calls. Last downloaded '+
+  esc(ds.retrievedAt||'unknown')+'. '+source+'.</p></section>';
+}
+
 /* NCSL published state political control. This is as-of state-level data only,
  * not a county government claim or an election forecast. */
 function renderStatePoliticalControl(state,stateMode){
@@ -317,7 +379,10 @@ function renderCard(){
  const selected=stateMode?state.fips:sel.fips;
  // Only our own D1 reader is contacted here; no Bill Commons requests on clicks.
  window.POLITICS_COUNTY_CACHE?.loadBills?.(state.abbr);
+ window.POLITICS_COUNTY_CACHE?.loadOpenStates?.(state.abbr);
  const publicSources=renderStatePoliticalControl(state,stateMode)+
+  renderOpenStates(data,state,stateMode)+
+  renderHouseVotes(data,state,stateMode)+
   renderBillCommons(data,state,stateMode)+
   renderCongressionalDelegation(data,state,stateMode)+
   renderCdcPlaces(data,stateMode?'state':'county',selected);
