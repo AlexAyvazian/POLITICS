@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#050814">
+ <title>Congressional Atlas · POLITICS</title>
+ <link rel="stylesheet" href="assets/css/atlas.css">
+ <link rel="stylesheet" href="assets/css/congressional.css">
+</head>
+<body data-view="congress">
+ <header class="congressTop">
+  <div class="congressIdentity"><span class="congressDot"></span><span>POLITICS</span><span class="congressTitle">Congressional Atlas</span></div>
+  <nav class="atlasViews" aria-label="Atlas pages">
+   <a href="index.html#map" class="atlasViewLink">County Atlas</a>
+   <span class="atlasViewCurrent" aria-current="page">Congressional Atlas</span>
+  </nav>
+ </header>
+ <main class="congressLayout">
+  <section class="congressStage" aria-label="Interactive federal and state legislative district map">
+   <div class="congressToolbar">
+    <div class="congressInputs">
+     <label for="congressState">State</label>
+     <select id="congressState" aria-label="Choose state"><option value="">United States — choose a state</option></select>
+    </div>
+    <div class="congressInputs layerInput">
+     <label for="districtLayer">Political representation</label>
+     <select id="districtLayer" aria-label="Choose representation layer">
+      <optgroup label="Federal government">
+       <option value="house">U.S. House districts</option>
+       <option value="senate">U.S. Senate (statewide)</option>
+       <option value="president">President (nationwide)</option>
+      </optgroup>
+      <optgroup label="State government">
+       <option value="stateHouse">State House / Assembly districts</option>
+       <option value="stateSenate">State Senate districts</option>
+       <option value="governor">Governor (statewide)</option>
+      </optgroup>
+     </select>
+    </div>
+    <button id="congressBack" type="button" hidden>← U.S. map</button>
+   </div>
+   <div class="congressMapWrap">
+    <svg id="districtMap" role="img" aria-label="Interactive map of U.S. states and political districts"></svg>
+    <div class="congressMapLabel" id="districtMapLabel">Select a state to explore its representation</div>
+    <div class="congressLoading" id="congressLoading" hidden role="status" aria-live="polite">Loading district boundaries…</div>
+   </div>
+   <div class="congressSourceBar"><span id="districtVintage">119th Congress · District boundaries</span><a href="https://tigerweb.geo.census.gov/arcgis/rest/services/Generalized_ACS2025/Legislative/MapServer" target="_blank" rel="noopener noreferrer">Source: U.S. Census Bureau TIGERweb</a></div>
+  </section>
+  <aside class="congressSide" aria-label="Political representation details">
+    <div class="sideEyebrow">POLITICAL REPRESENTATION</div>
+    <div id="districtPanel" aria-live="polite"></div>
+  </aside>
+ </main>
+ <div class="congressTooltip" id="congressTooltip" role="status" hidden></div>
+ <script src="assets/vendor/d3.min.js"></script>
+ <script src="assets/vendor/topojson-client.min.js"></script>
+ <script src="assets/vendor/us-atlas-counties-albers-10m.js"></script>
+ <script src="assets/js/states.js"></script>
+ <script src="assets/js/geo-colors.js"></script>
+ <script src="assets/js/ncsl-control.js"></script>
+ <script src="assets/js/congressional-model.js"></script>
+ <script src="assets/js/congressional.js"></script>
+</body>
+</html>
