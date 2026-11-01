@@ -168,7 +168,7 @@ function layerVisible(){
   featureLayer.setStyle(layer=>({
     color:layer?.feature?.properties?.GEOID===code?'#ffe1a6':'#85dadb',
     weight:layer?.feature?.properties?.GEOID===code?3:1.45,
-    opacity:1,fillColor:'#6bdccc',fillOpacity:layer?.feature?.properties?.GEOID===code?.18:.045
+    opacity:1,fillColor:'#6bdccc',fillOpacity:layer?.feature?.properties?.GEOID===code ? 0.18 : 0.045
   }));
   renderPanel();saveHash();
  });
