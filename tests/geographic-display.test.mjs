@@ -56,13 +56,13 @@ test('unnecessary legend copy remains absent',()=>{
   assert.match(js,/\$\('legend'\)\.hidden=true/);
   assert.match(css,/\.legend\[hidden\]\{display:none!important\}/);
 });
-test('four transfers preserve original Great Lakes colors exactly',()=>{
+test('original Great Lakes colors are transferred to Wyoming, Idaho, Montana, and now North Dakota',()=>{
   const c=setup().GEO_COLORS;
   const expected={
     '56':'hsl(169 24% 48%)', // Wyoming = old Minnesota
     '16':'hsl(169 21% 59%)', // Idaho = old Michigan
     '30':'hsl(169 22% 56%)', // Montana = old Iowa
-    '46':'hsl(169 26% 51%)'  // South Dakota = old Wisconsin
+    '38':'hsl(169 26% 51%)'  // North Dakota = former South Dakota
   };
   for (const [fips,fill] of Object.entries(expected))assert.equal(c.state(fips).fill,fill,fips);
 });
@@ -78,7 +78,7 @@ test('rebalanced Great Lakes browns alternate light and dark tones', () => {
 });
 test('North Dakota, Colorado, Alaska and Hawaii use coordinated subdued colors',()=>{
  const c=setup().GEO_COLORS;
- const expected={'38':'#8A9A75','08':'#587966','02':'#9ACAF4','15':'#589BD5'};
+ const expected={'46':'#8A9A75','08':'#587966','02':'#9ACAF4','15':'#589BD5'};
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
  // Keep both Alaska and Hawaii blue but different from the California, Oregon and Washington.
  const pacific=['02','15','06','41','53'].map(id=>c.state(id).fill);
@@ -131,4 +131,12 @@ test('unmentioned states preserve their existing map colors',()=>{
   assert.equal(c.state('06').hue,207); // California
   assert.equal(c.state('12').hue,355); // Florida
   assert.equal(c.state('48').hue,91); // Texas
+});
+
+test('North and South Dakota exchange their former exact colors',()=>{
+ const c=setup().GEO_COLORS;
+ assert.equal(c.state('38').fill,'hsl(169 26% 51%)','North Dakota gets former South Dakota');
+ assert.equal(c.state('46').fill,'#8A9A75','South Dakota gets former North Dakota');
+ assert.equal(c.county('38','38001').hue,c.state('38').hue);
+ assert.equal(c.county('46','46003').hue,c.state('46').hue);
 });
