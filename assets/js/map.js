@@ -181,11 +181,7 @@ function renderOpenStates(data,state,stateMode){
  const ds=data?.openstates?.[state.abbr],status=data?.openstatesStatus?.[state.abbr];
  const title='<h3 class="countyFactsTitle">State legislators &amp; bills · Open States</h3>';
  const source='<a href="https://docs.openstates.org/api-v3/" target="_blank" rel="noopener noreferrer">Open States API and coverage</a>';
- if(!ds)return '<section class="countyMetricSection" aria-label="Open States legislation">'+title+
-  '<p class="categoryNote">'+esc(status==='error'?'Stored Open States snapshot unavailable.':
-   status==='loading'?'Loading stored state legislative records…':
-   'State legislature records pending scheduled Open States collection.')+'</p>'+
-  '<p class="countyFactSource">'+source+'</p></section>';
+ if(!ds)return '';
  const role=(p)=>[p.role,p.district?'District '+p.district:'',p.party].filter(Boolean).join(' · ');
  const people=(ds.people||[]).slice(0,8).map(p=>
   '<div class="countyFact"><span>'+esc(role(p)||'State legislator')+
@@ -212,9 +208,7 @@ function renderHouseVotes(data,state,stateMode){
  const ds=data?.houseVotes;
  const title='<h3 class="countyFactsTitle">House roll-call votes · Congress.gov</h3>';
  const source='<a href="https://api.congress.gov/" target="_blank" rel="noopener noreferrer">Official Congress.gov API</a>';
- if(!ds?.votes?.length)return '<section class="countyMetricSection" aria-label="U.S. House roll calls">'+title+
-  '<p class="categoryNote">'+esc(data?.houseVotesStatus==='error'?'Stored House voting records unavailable.':
-   'House roll-call records pending scheduled collection.')+'</p><p class="countyFactSource">'+source+'</p></section>';
+ if(!ds?.votes?.length)return '';
  const chunks=ds.votes.slice(0,6).map(v=>{
   const stateVotes=Array.isArray(v.stateVotes?.[state.abbr])?v.stateVotes[state.abbr]:[];
   const n=Number(v.voteNumber);
@@ -243,10 +237,8 @@ function renderStatePoliticalControl(state,stateMode){
  const src=window.POLITICS_NCSL;
  const row=src?.states?.[state.abbr];
  const title='<h3 class="countyFactsTitle">Who controls state government? · NCSL</h3>';
- if(!row)return '<section class="countyMetricSection" aria-label="State political control">'+title+
-  '<p class="categoryNote">'+(state.abbr==='DC'?'District of Columbia has a city council, not a state legislature or governor.':
-  'State control data unavailable.')+'</p>'+
-  '<p class="countyFactSource"><a href="https://www.ncsl.org/about-state-legislatures/state-partisan-composition" target="_blank" rel="noopener noreferrer">NCSL source</a></p></section>';
+ if(!row)return state.abbr==='DC'?
+  '<p class="categoryNote">Washington, D.C. has no state governor or bicameral state legislature.</p>':'';
  const party=code=>({D:'Democratic',R:'Republican',S:'Divided / split','N/A':'Not applicable',
   Nonpartisan:'Nonpartisan'}[code]||'Not classified');
  const seatText=c=>'Democratic '+c.dem+' · Republican '+c.rep+
@@ -274,13 +266,7 @@ function renderBillCommons(data,state,stateMode){
  const snapshot=data?.bills?.[state.abbr],status=data?.billStatus?.[state.abbr];
  const title='<h3 class="countyFactsTitle">State legislation · Bill Commons</h3>';
  const source='<a href="https://billcommons.org/docs/api" target="_blank" rel="noopener noreferrer">Bill Commons data and coverage</a>';
- if(!Array.isArray(snapshot?.items)||!snapshot.items.length){
-  const msg=status==='error'?'Saved bill data could not be loaded.':
-   status==='loading'?'Loading stored bill records…':
-   'State bill records pending scheduled collection or unavailable from source.';
-  return '<section class="countyMetricSection" aria-label="State legislative bills">'+title+
-   '<p class="categoryNote">'+esc(msg)+'</p><p class="countyFactSource">'+source+'</p></section>';
- }
+ if(!Array.isArray(snapshot?.items)||!snapshot.items.length)return '';
  const items=snapshot.items.slice(0,12).map(b=>{
   const url='https://api.billcommons.org/api/v1/bills/'+encodeURIComponent(b.id||'');
   return '<div class="countyFact"><span>'+esc(b.identifier||'Bill')+' · '+esc(b.status||'Status not reported')+
@@ -301,8 +287,7 @@ function renderBillCommons(data,state,stateMode){
 function renderCdcPlaces(data,scope,selected){
  const ds=data?.places;
  const title='<h3 class="countyFactsTitle">Health &amp; well-being · CDC PLACES</h3>';
- if(!ds?.fields||!ds?.counties)return '<section class="countyMetricSection">'+title+
-  '<p class="categoryNote">CDC PLACES data awaiting first scheduled collection.</p></section>';
+ if(!ds?.fields||!ds?.counties)return '';
  const stateMode=scope==='state';
  const row=stateMode?Object.fromEntries(Object.keys(ds.fields).map(k=>
   [k,window.POLITICS_GEO_STATS.countyAverage(ds,selected,k)])):(ds.counties[selected]||{});
@@ -319,8 +304,7 @@ function renderCdcPlaces(data,scope,selected){
 function renderCongressionalDelegation(data,state,stateMode){
  const ds=data?.congress,entry=ds?.states?.[state.abbr];
  const title='<h3 class="countyFactsTitle">Congressional delegation · political representation</h3>';
- if(!entry)return '<section class="countyMetricSection" aria-label="Political representation">'+title+
-  '<p class="categoryNote">Congressional incumbent information awaiting first scheduled collection.</p></section>';
+ if(!entry)return '';
  const name=member=>'<a href="https://bioguide.congress.gov/search/bio/'+
   encodeURIComponent(member.bioguide||'')+'" target="_blank" rel="noopener noreferrer">'+esc(member.name)+'</a>';
  const senators=(entry.senators||[]).map(m=>'<div class="countyFact"><span>U.S. senator · '+
@@ -343,6 +327,20 @@ function renderCongressionalDelegation(data,state,stateMode){
   '<p class="countyFactSource">'+scopeNote+' Incumbents as of '+esc(ds.asOf||'last collection')+
   ', not election winners. <a href="https://github.com/unitedstates/congress-legislators" target="_blank" rel="noopener noreferrer">Source and methodology</a>. '+
   'State legislators, governor, and county officials require separate verified data.</p></section>';
+}
+
+/* One concise collection notice replaces several tall, empty source sections.
+ * None of these providers should be represented as loaded before cached data exists. */
+function renderDataCollectionStatus(data,state){
+ const missing=[];
+ if(!data?.openstates?.[state.abbr])missing.push('Open States');
+ if(!data?.houseVotes?.votes?.length)missing.push('House votes');
+ if(!data?.bills?.[state.abbr]?.items?.length)missing.push('Bill Commons');
+ if(!data?.congress?.states?.[state.abbr])missing.push('Congressional delegation');
+ if(!data?.places?.counties)missing.push('CDC PLACES');
+ if(!missing.length)return '';
+ return '<p class="categoryNote dataStatusNote">Data still collecting: '+
+  esc(missing.join(', '))+'. Available information above is shown without waiting for these sources.</p>';
 }
 
 function categorySections(data,scope,selected){
@@ -370,9 +368,14 @@ function categorySections(data,scope,selected){
  return groups.join('')+(pending.length?
   '<p class="categoryNote">No stored figures yet for: '+pending.map(esc).join(', ')+'.</p>':'');
 }
+let lastCardSelection=null;
 function renderCard(){
  const card=$('selectedCard'),county=counties.get(sel.fips),state=sabbr[sel.abbr];
- if(!state){card.hidden=true;return;}
+ if(!state){lastCardSelection=null;card.hidden=true;return;}
+ const selectionKey=sel.abbr+'|'+(sel.fips||'');
+ const selectionChanged=selectionKey!==lastCardSelection;
+ const priorScroll=card.scrollTop;
+ lastCardSelection=selectionKey;
  const data=window.POLITICS_COUNTY_CACHE?.get();
  const base=data?.core||null;
  const stateMode=!county;
@@ -386,6 +389,8 @@ function renderCard(){
   renderBillCommons(data,state,stateMode)+
   renderCongressionalDelegation(data,state,stateMode)+
   renderCdcPlaces(data,stateMode?'state':'county',selected);
+ const collectionStatus=renderDataCollectionStatus(data,state);
+ const restoreCardScroll=()=>{card.scrollTop=selectionChanged?0:priorScroll;};
  card.hidden=false;
  card.innerHTML='<button class="cardClose" type="button" aria-label="'+(stateMode?'Return to U.S. map':'Return to state averages')+'">×</button>'+
   '<div class="countyName">'+esc(stateMode?state.name:county.properties.name+' County')+'</div>'+
@@ -396,7 +401,9 @@ function renderCard(){
  if(!base?.counties){
   target.innerHTML=publicSources+
    '<p class="categoryNote">'+(window.POLITICS_COUNTY_CACHE?.status==='error'?
-    'Saved Census statistics could not be loaded.':'Loading stored Census statistics…')+'</p>';
+    'Saved Census statistics could not be loaded.':'Loading stored Census statistics…')+'</p>'+
+   collectionStatus;
+  restoreCardScroll();
   return;
  }
  if(stateMode){
@@ -412,21 +419,24 @@ function renderCard(){
     metricGrid([['Residential electricity price',stateOnly.residentialElectricityCentsKwh,'decimal']])+
     '<div class="countyFactSource">U.S. EIA · '+esc(stateOnly.period||'latest reporting month')+
     ' · cents per kWh. This figure is statewide, not an average of counties.</div>':
-    '<div class="countyFactsTitle stateOnlyTitle">State-only data</div><p class="categoryNote">Scheduled state-only source measurements will appear here when collected.</p>';
+    '';
   target.innerHTML=publicSources+
    '<p class="categoryNote">Equal-weight arithmetic averages of the county figures—not population-weighted or statewide estimates.</p>'+
    '<div class="countyFactsTitle">Statewide view · County averages</div>'+metricGrid(vals)+
    stateOnlyPanel+categorySections(data,'state',state.fips)+
-   '<p class="countyFactSource">Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). Averages include counties with available values for each indicator. No provider APIs are called on a selection.</p>';
+   '<p class="countyFactSource">Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). Averages include counties with available values for each indicator. No provider APIs are called on a selection.</p>'+
+   collectionStatus;
  }else{
   const r=base.counties[sel.fips];
-  if(!r){target.innerHTML=publicSources+'<p class="categoryNote">This county is not in the current stored Census snapshot.</p>';return;}
+  if(!r){target.innerHTML=publicSources+'<p class="categoryNote">This county is not in the current stored Census snapshot.</p>'+collectionStatus;restoreCardScroll();return;}
   target.innerHTML=publicSources+'<div class="countyFactsTitle">County conditions</div>'+
    metricGrid(CORE_FIELDS.map(([key,label,unit])=>[label,r[key],unit]))+
    categorySections(data,'county',sel.fips)+
    '<p class="countyFactSource">Source: U.S. Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). '+ 
-   '<a href="'+esc(base.sourceUrl||'https://api.census.gov/data/2024/acs/acs5')+'" target="_blank" rel="noopener noreferrer">Official data</a>.</p>';
+   '<a href="'+esc(base.sourceUrl||'https://api.census.gov/data/2024/acs/acs5')+'" target="_blank" rel="noopener noreferrer">Official data</a>.</p>'+
+   collectionStatus;
  }
+ restoreCardScroll();
 }
 
 function selectState(abbr){
