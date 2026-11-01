@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers} from '../workers/politics-gateway.mjs';
+import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes} from '../workers/politics-gateway.mjs';
 
 const specs=COUNTY_CATEGORY_CONFIG.specs;
 const expectedCategories=['housing','jobs','income','healthcare','education','families','infrastructure'];
@@ -131,4 +131,55 @@ test('incomplete CDC responses do not overwrite existing stored health data',asy
  await assert.rejects(refreshPlacesHealth({CATEGORY_DB_HEALTHCARE:store},
   async()=>new Response(JSON.stringify([{countyfips:'06019',mhlth_crudeprev:'10'}])),now));
  assert.equal(store.writes.length,0);
+});
+
+test('existing Open States key creates verified state bill and legislator snapshot without exposing key',async()=>{
+ const store=db(),seen=[];
+ const mock=async (url,options)=>{
+  const u=new URL(url);seen.push({u,options});
+  if(u.pathname.endsWith('/bills'))return new Response(JSON.stringify({results:[{id:'ocd-bill/123',identifier:'AB 5',title:'Healthcare access',latest_action_date:'2026-10-28',latest_action_description:'Passed House',openstates_url:'https://open.pluralpolicy.com/ca/bills/2026/AB5'}],pagination:{total_items:500}}));
+  if(u.pathname.endsWith('/people'))return new Response(JSON.stringify({results:[{id:'ocd-person/456',name:'Test Legislator',party:'Democratic',current_role:{title:'Senator',district:'8'},openstates_url:'https://open.pluralpolicy.com/person/test'}],pagination:{total_items:120}}));
+  throw Error('unexpected: '+u.pathname);
+ };
+ const result=await refreshOpenStatesState({COUNTY_DB:store,OPENSTATES_API_KEY:'test-token'},'CA',mock,now);
+ assert.equal(result.bills,1);assert.equal(result.people,1);
+ assert.equal(seen.length,2);
+ assert.equal(seen[0].u.hostname,'v3.openstates.org');
+ assert.equal(seen[0].u.searchParams.get('jurisdiction'),'ca');
+ assert.equal(seen[0].options.headers['X-API-KEY'],'test-token');
+ assert.equal(store.writes[0][0],'openstates_CA');
+ const d=JSON.parse(store.writes[0][1]);
+ assert.equal(d.bills[0].identifier,'AB 5');
+ assert.equal(d.people[0].name,'Test Legislator');
+ assert.equal(d.people[0].district,'8');
+ assert.equal(JSON.stringify(d).includes('test-token'),false);
+});
+test('Open States errors and missing key do not overwrite previously stored data',async()=>{
+ const store=db();
+ await assert.rejects(refreshOpenStatesState({COUNTY_DB:store},'CA',async()=>new Response('{}'),now));
+ await assert.rejects(refreshOpenStatesState({COUNTY_DB:store,OPENSTATES_API_KEY:'valid'},'XY',async()=>new Response('{}'),now));
+ assert.equal(store.writes.length,0);
+});
+test('Congress.gov legislative House roll-call returns actual member choices grouped by state',async()=>{
+ const store=db(),seen=[];
+ const mock=async url=>{
+  const u=new URL(url);seen.push(u);
+  assert.equal(u.hostname,'api.congress.gov');
+  assert.equal(u.searchParams.get('api_key'),'test-token');
+  if(u.pathname.endsWith('/house-vote/119/2'))return new Response(JSON.stringify({houseRollCallVotes:[{congress:119,sessionNumber:2,rollCallNumber:256,startDate:'2026-10-25',legislationType:'HR',legislationNumber:'152',result:'Passed'}]}));
+  if(u.pathname.endsWith('/256/members'))return new Response(JSON.stringify({houseRollCallVoteMemberVotes:{results:{item:[
+   {bioguideId:'A000001',firstName:'A',lastName:'Example',voteCast:'Aye',voteState:'CA',voteParty:'D'},
+   {bioguideId:'B000002',firstName:'B',lastName:'Example',voteCast:'Nay',voteState:'NY',voteParty:'R'}
+  ]}}}));
+  throw Error('unexpected '+u.pathname);
+ };
+ const r=await refreshFederalHouseVotes({COUNTY_DB:store,CONGRESS_API_KEY:'test-token'},mock,now);
+ assert.equal(r.votes,1);assert.equal(seen.length,2);
+ assert.equal(store.writes[0][0],'congress_house_votes_recent');
+ const d=JSON.parse(store.writes[0][1]);
+ assert.equal(d.votes[0].stateVotes.CA[0].cast,'Aye');
+ assert.equal(d.votes[0].stateVotes.NY[0].party,'R');
+ assert.equal(d.votes[0].voteNumber,256);
+ assert.equal(d.chamber,'House');assert.equal(d.congress,119);assert.equal(d.session,2);
+ assert.equal(JSON.stringify(d).includes('test-token'),false);
 });
