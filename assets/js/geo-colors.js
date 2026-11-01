@@ -22,32 +22,44 @@
  ];
  // These are fixed state swatches, not approximations. Hex values are preserved verbatim.
  // Six yellow assignments follow the exact state order specified by the user.
+ // Carefully balanced geographic swatches; no neon/brilliant yellows.
  const STATE_SWATCHES=Object.freeze({
-  '38':'#00A693', // North Dakota: Persian Green
-  '27':'#9F8170', // Minnesota: Beaver
-  '26':'#A67B5B', // Michigan: Cafe au Lait
-  '19':'#C19A6B', // Iowa: Wood Brown
-  '55':'#9B7653', // Wisconsin: Dirt
-  '54':'#F8DE7E', // West Virginia: Mellow Yellow
-  '51':'#FFFF66', // Virginia: Unmellow Yellow
-  '24':'#FFFD74', // Maryland: Butter
-  '10':'#FFFE71', // Delaware: Pastel Yellow
-  '34':'#EEE8AA', // New Jersey: Pale Goldenrod
-  '42':'#F0E68C'  // Pennsylvania: Light Khaki
+  // Northern brown group: alternating warm, light and deep tones.
+  '27':'#725648', // Minnesota: dark tobacco brown
+  '26':'#8C624B', // Michigan: warm brown
+  '19':'#C2A276', // Iowa: light sand brown
+  '55':'#B28F83', // Wisconsin: light rosewood brown
+  '38':'#8A9A75', // North Dakota: muted sage olive, not bright Persian Green
+  '08':'#587966', // Colorado: softer dark green, closer to the surrounding palette
+
+  // Muted differentiated yellow/ochre group, following the requested state order.
+  '54':'#A98D55', // West Virginia: ochre
+  '51':'#B9B68A', // Virginia: olive wheat
+  '24':'#D2BA79', // Maryland: antique wheat
+  '10':'#96805A', // Delaware: bronze
+  '34':'#C2AB7B', // New Jersey: golden tan
+  '42':'#857B5B', // Pennsylvania: dark brass
+
+  // Northeast: an alternating muted rose / mauve / plum family.
+  '36':'#86627B', // New York
+  '09':'#9F83B2', // Connecticut
+  '44':'#79556F', // Rhode Island
+  '25':'#C3A3A8', // Massachusetts
+  '50':'#93799E', // Vermont
+  '33':'#765A7B', // New Hampshire
+  '23':'#B18BA2', // Maine
+
+  // Pacific: different blues from the nearby WA/OR/CA shades.
+  '02':'#697D9B', // Alaska: subdued indigo/slate blue
+  '15':'#699FA6'  // Hawaii: muted blue/sea teal
  });
  // Capture each donor's PREVIOUS color, including its hover and selection identity.
  // Do not resolve these transfers recursively after donor states change to brown/yellow.
  const ORIGINAL_COLOR_TRANSFERS=Object.freeze({
-  '56':'27', // Wyoming gets old Minnesota
-  '16':'26', // Idaho gets old Michigan
-  '30':'19', // Montana gets old Iowa
-  '46':'55', // South Dakota gets old Wisconsin
-  '36':'51', // New York gets old Virginia pink
-  '09':'54', // Connecticut gets old West Virginia pink
-  '44':'24', // Rhode Island gets old Maryland pink
-  '25':'10', // Massachusetts gets old Delaware pink
-  '50':'34', // Vermont gets old New Jersey pink
-  '33':'42'  // New Hampshire gets old Pennsylvania pink
+  '56':'27', // Wyoming gets the old Minnesota teal
+  '16':'26', // Idaho gets the old Michigan teal
+  '30':'19', // Montana gets the old Iowa teal
+  '46':'55'  // South Dakota gets the old Wisconsin teal
  });
  const byState=new Map();
  for(const family of FAMILIES){
@@ -107,18 +119,6 @@
   const fips=String(stateFips).padStart(2,'0');
   if(STATE_SWATCHES[fips])return swatch(STATE_SWATCHES[fips]);
   if(ORIGINAL_COLOR_TRANSFERS[fips])return originalState(ORIGINAL_COLOR_TRANSFERS[fips]);
-  // The Northeast has seven states; the sixth transferred pink swatch is
-  // supplemented with a seventh distinct shade for Maine.
-  if(fips==='23'){
-   const pink=originalState('11');
-   return {
-    ...pink,
-    fill:paint(294,25,62),
-    hover:paint(294,31,72),
-    dark:paint(294,37,24),
-    glow:paint(294,33,64)
-   };
-  }
   return originalState(fips);
  }
  function county(stateFips,countyFips){
