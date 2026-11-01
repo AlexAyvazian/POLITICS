@@ -49,3 +49,31 @@ test('state and county panels expose category metrics directly, not collapsed ac
   assert.match(js, /metricGrid\\(metrics\\)/);
   assert.match(read('index.html'), /assets\\/js\\/geo-colors\\.js/);
 });
+
+test('geographic families cover all 51 regions and keep both levels subdued', () => {
+ const w=setup();
+ const states=w.GEO_STATES;
+ const fills=states.map(s=>w.GEO_COLORS.state(s.fips).fill);
+ assert.equal(new Set(fills).size,51);
+ for(const s of states){
+  const color=w.GEO_COLORS.state(s.fips);
+  assert.notEqual(color.family,undefined,'Missing palette assignment: '+s.name);
+  assert.ok(Number(color.fill.match(/ ([\\d.]+)%/)[1])<=35,'State oversaturated: '+s.name);
+ }
+ const all=w.US_ATLAS.objects.counties.geometries.map(c=>String(c.id).padStart(5,'0'));
+ for(const s of states){
+  const list=all.filter(fips=>fips.startsWith(s.fips));
+  const colors=list.map(fips=>w.GEO_COLORS.county(s.fips,fips));
+  assert.equal(new Set(colors.map(c=>c.fill)).size,list.length,'Repeated county color within '+s.name);
+  assert.ok(colors.every(c=>c.family===w.GEO_COLORS.state(s.fips).family),'County changed color family');
+  assert.ok(colors.every(c=>Number(c.fill.match(/ ([\\d.]+)%/)[1])<=35),'Bright county in '+s.name);
+ }
+});
+test('unnecessary UI legend copy is removed from both map levels',()=>{
+ const map=read('assets/js/map.js');
+ const style=read('assets/css/politics.css');
+ assert.doesNotMatch(map,/State colors identify geography, not political parties/);
+ assert.doesNotMatch(map,/Different shades: counties/);
+ assert.match(map,/\\$\\('legend'\\)\\.hidden=true/);
+ assert.match(style,/\\.legend\\[hidden\\]\\{display:none!important\\}/);
+});
