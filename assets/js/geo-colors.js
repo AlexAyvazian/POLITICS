@@ -48,10 +48,6 @@
   '34':'#B67393', // New Jersey — deeper plum-pink
   '24':'#785579', // Maryland — muted lilac-pink
 
-  // Break up visually similar Midwest earth tones.
-  '29':'#735344', // Missouri — medium wood brown
-  '18':'#789486', // Indiana — eucalyptus sage
-
   // Northern pink group: use requested Prince Charming for NH.
   '36':'#86627B', // New York
   '09':'#9F83B2', // Connecticut
