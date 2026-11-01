@@ -40,13 +40,13 @@
   '54':'#B9B68A', // West Virginia takes old Virginia
   '39':'#C2AB7B', // Ohio takes old New Jersey
 
-  // Southern Mid-Atlantic: restore the former muted pink / mauve character.
-  // Vary lightness to keep adjacent small states visually distinct.
-  '42':'#B996B6', // Pennsylvania — lighter dusty lavender-pink
-  '10':'#CDA7BD', // Delaware — light pink
-  '51':'#C18B9B', // Virginia — dusty rose-pink
-  '34':'#B67393', // New Jersey — deeper plum-pink
-  '24':'#785579', // Maryland — muted lilac-pink
+  // Historic Mid-Atlantic fill pixels sampled directly from the user's earlier image.
+  // These are image-observed hex values, not guessed colors or claims about former CSS hex.
+  '42':'#9772A0', // Pennsylvania — sampled from supplied old Mid-Atlantic screenshot
+  '10':'#A085A7', // Delaware — sampled from supplied old Mid-Atlantic screenshot
+  '51':'#886391', // Virginia — sampled from supplied old Mid-Atlantic screenshot
+  '34':'#8D6896', // New Jersey — sampled from supplied old Mid-Atlantic screenshot
+  '24':'#92689B', // Maryland — sampled from supplied old Mid-Atlantic screenshot
 
   // Northern pink group: use requested Prince Charming for NH.
   '36':'#86627B', // New York
