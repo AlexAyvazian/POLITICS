@@ -5,7 +5,7 @@
 - **State panel:** arithmetic, equal-weight averages of available county values per indicator, never population-weighted and never mislabeled official state medians; a distinct "State-only data" section holds measurements such as EIA electricity price that do not exist at county level.
 - **County click:** replaces that card with county-specific statistics. Closing a county card returns to the state panel. No separate state/county maps.
 - Available indicators from the seven categories (housing, jobs, income, healthcare, education, families, infrastructure) display **directly as values**, grouped under inline section headings; no collapsed accordions or extra clicks.
-- State colors are distinct, nonpartisan geographic hues; each county uses a stable shade of its state's hue. The actual selected state or county perimeter receives a darker-colored moving trace and same-hue glow. No rectangular selection focus box.
+- State colors use coordinated, muted geographic families; each county uses its own shade within the state's family. **State selection** retains the moving border trace on the actual state outline. **County selection** brightens the county fill and applies a soft interior illumination, with the ordinary county border unchanged and no county perimeter animation. No rectangular selection focus box.
 - Empty or uncollected category snapshots are labeled as pending; no fabricated numbers.
 
 ## Free architecture
