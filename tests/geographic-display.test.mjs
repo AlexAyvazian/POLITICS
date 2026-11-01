@@ -103,25 +103,23 @@ test('three color transfers use the exact previous colors, not reassigned destin
  assert.equal(c.state('54').fill,'#B9B68A','West Virginia receives previous Virginia color');
  assert.equal(c.state('39').fill,'#C2AB7B','Ohio receives previous New Jersey color');
 });
-test('Mid-Atlantic uses five clearly separated original-style pinks',()=>{
+test('Mid-Atlantic matches exact interior pixel colors in the user supplied old screenshot',()=>{
  const c=setup().GEO_COLORS;
  const expected={
-   '42':'#B996B6', // Pennsylvania, lighter dusty lavender-pink
-   '10':'#CDA7BD', // Delaware, light pink
-   '51':'#C18B9B', // Virginia, muted dusty pink
-   '34':'#B67393', // New Jersey, deeper plum pink
-   '24':'#785579'  // Maryland, lilac-pink
+   '42':'#9772A0', // Pennsylvania — measured solid fill from the supplied screenshot
+   '10':'#A085A7', // Delaware — measured solid fill from the supplied screenshot
+   '51':'#886391', // Virginia — measured solid fill from the supplied screenshot
+   '34':'#8D6896', // New Jersey — measured solid fill from the supplied screenshot
+   '24':'#92689B'  // Maryland — measured solid fill from the supplied screenshot
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
  assert.equal(new Set(Object.keys(expected).map(id=>c.state(id).fill)).size,5);
  for(const id of Object.keys(expected))assert.ok(c.state(id).hue>=285&&c.state(id).hue<=343,'pink hue: '+id);
 });
-test('Missouri and Indiana distinguish themselves from Illinois and Ohio',()=>{
+test('Missouri and Indiana return to their original heartland colors',()=>{
  const c=setup().GEO_COLORS;
- assert.equal(c.state('29').fill,'#735344','Missouri: medium brown');
- assert.equal(c.state('18').fill,'#789486','Indiana: muted sage');
- assert.notEqual(c.state('17').fill,c.state('29').fill);
- assert.notEqual(c.state('39').fill,c.state('18').fill);
+ assert.equal(c.state('29').fill,'hsl(42 28% 48%)','Missouri original color');
+ assert.equal(c.state('18').fill,'hsl(42 30% 51%)','Indiana original color');
 });
 
 test('unmentioned states preserve their existing map colors',()=>{
