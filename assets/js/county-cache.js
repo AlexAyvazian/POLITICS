@@ -4,7 +4,8 @@
  'use strict';
  const ROOT='https://politics-daily-snapshot.alxayvazian.workers.dev';
  const cats=['housing','jobs','income','healthcare','education','families','infrastructure'];
- const data={core:null,categories:{},states:null,places:null,congress:null};
+ const data={core:null,categories:{},states:null,places:null,congress:null,bills:{},billStatus:{}};
+ const billJobs=new Map();
  let job=null;
  const notify=()=>window.dispatchEvent(new Event('politics-county-snapshot-ready'));
  async function fetchSnapshot(path){
@@ -16,6 +17,27 @@
  const api={
   status:'loading',
   get:()=>data,
+  // On state selection read OUR stored D1 snapshot, never the upstream provider.
+  // Memoized per state to avoid extra requests during state/county switching.
+  loadBills(abbr){
+   if(!/^[A-Z]{2}$/.test(abbr))return Promise.resolve();
+   if(billJobs.has(abbr))return billJobs.get(abbr);
+   data.billStatus[abbr]='loading';
+   const task=fetchSnapshot('/api/bills-snapshot?state='+encodeURIComponent(abbr))
+    .then(value=>{
+     if(Array.isArray(value?.items)&&value?.state===abbr){
+      data.bills[abbr]=value;
+      data.billStatus[abbr]='ready';
+     }else data.billStatus[abbr]='pending';
+     notify();
+    }).catch(error=>{
+     data.billStatus[abbr]='error';
+     console.warn('Stored legislative bills unavailable for '+abbr+':',error.message);
+     notify();
+    });
+   billJobs.set(abbr,task);
+   return task;
+  },
   load(){
    if(job)return job;
    const core=fetchSnapshot('/api/county-snapshot').then(value=>{
