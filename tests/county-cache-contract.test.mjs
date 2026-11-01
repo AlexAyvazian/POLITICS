@@ -37,7 +37,7 @@ test('keyless health and political data render in the same county/state card wit
  assert.match(map,/Loneliness/);
  assert.match(map,/Congressional delegation/);
  assert.match(map,/may cross county borders/);
- assert.ok(!/\\bfetch\\s*\\(/.test(map),'Map selection must use stored data only');
+ assert.ok(!/\bfetch\s*\(/.test(map),'Map selection must use stored data only');
 });
 
 test('Open States and Congress.gov official House votes populate same map card using stored snapshots',()=>{
