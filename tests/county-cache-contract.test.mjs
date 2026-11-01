@@ -27,3 +27,15 @@ test('one scheduled trigger coordinates category refreshes instead of 27 crons',
  const config=JSON.parse(read('wrangler.jsonc'));
  assert.deepEqual(config.triggers.crons,['*/30 * * * *']);
 });
+
+test('keyless health and political data render in the same county/state card without on-click API calls',()=>{
+ const map=read('assets/js/map.js'),cache=read('assets/js/county-cache.js');
+ assert.match(cache,/\/api\/places-snapshot/);
+ assert.match(cache,/\/api\/congress-snapshot/);
+ assert.match(map,/renderCdcPlaces/);
+ assert.match(map,/renderCongressionalDelegation/);
+ assert.match(map,/Loneliness/);
+ assert.match(map,/Congressional delegation/);
+ assert.match(map,/may cross county borders/);
+ assert.ok(!/\\bfetch\\s*\\(/.test(map),'Map selection must use stored data only');
+});
