@@ -113,15 +113,42 @@ function renderState(opts){
     .on('click',(e,d)=>selectCounty(String(d.id).padStart(5,'0')))
     .on('keydown',(e,d)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectCounty(String(d.id).padStart(5,'0'));}});
 }
+
+function showCountyFacts(fips){
+ const target=$('countyFacts');if(!target||!fips)return;
+ const store=window.POLITICS_COUNTY_CACHE;
+ const snap=store?.get();
+ if(!snap?.counties){
+  target.textContent=store?.status==='error'?'Saved statistics could not be loaded.':store?.status==='pending'?'National snapshot collection scheduled. Statistics will appear after the first successful refresh.':'Loading cached national statistics…';
+  return;
+ }
+ const row=snap.counties[fips];
+ if(!row){target.textContent='No matching county estimate in the latest national Census snapshot.';return;}
+ const currency=v=>Number.isFinite(v)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(v):'Unavailable';
+ const integer=v=>Number.isFinite(v)?new Intl.NumberFormat('en-US').format(v):'Unavailable';
+ const pct=v=>Number.isFinite(v)?v.toFixed(1)+'%':'Unavailable';
+ const facts=[
+  ['Median household income',currency(row.medianHouseholdIncome)],
+  ['Population',integer(row.population)],
+  ['Poverty rate',pct(row.povertyRate)],
+  ['Median gross monthly rent',currency(row.medianGrossRent)]
+ ];
+ target.innerHTML='<div class="countyFactsTitle">County economic snapshot</div>'+
+  '<div class="countyFactGrid">'+facts.map(([name,value])=>'<div class="countyFact"><span>'+esc(name)+'</span><strong>'+esc(value)+'</strong></div>').join('')+'</div>'+
+  '<div class="countyFactSource">Source: U.S. Census ACS '+esc(String(snap.year))+' five-year estimates ('+esc(snap.period)+'). Last collected '+esc(new Date(snap.refreshedAt).toLocaleDateString())+'. <a href="'+esc(snap.sourceUrl)+'" target="_blank" rel="noopener noreferrer">Official data</a>. Figures are estimates, not daily economic measurements.</div>';
+}
+
 function renderCard(){
   const card=$('selectedCard'),county=counties.get(sel.fips),state=sabbr[sel.abbr];
   if(!county||!state){card.hidden=true;return;}
   card.innerHTML='<button class="cardClose" type="button" aria-label="Close county selection">×</button>'+
     '<div class="countyName">'+esc(county.properties.name)+' County</div>'+
     '<div class="cardSub">'+esc(state.name)+' · FIPS '+esc(sel.fips)+'</div>'+
-    '<p class="mapEmpty">Selected geography. Ready for political and economic overlays; no directory contacts are connected.</p>';
+    '<div id="countyFacts" class="countyFacts" aria-live="polite"></div>';
   card.hidden=false;
   card.querySelector('.cardClose').onclick=()=>{sel.fips=null;render();};
+  showCountyFacts(sel.fips);
+
 }
 function selectState(abbr){
   if(!sabbr[abbr])return;
@@ -171,6 +198,8 @@ try{
   sel.abbr=initial.abbr;sel.fips=initial.fips;
   render();
   window.__politicsMap={sel,selectState,selectCounty,goHome,search:q=>model.search(q,states,countyFeatures,sfips)};
+  window.addEventListener('politics-county-snapshot-ready',()=>{if(sel.fips)showCountyFacts(sel.fips);});
+
 }catch(err){
   $('loading').textContent='Unable to load map geometry';
   $('mapLabel').textContent=err.message;

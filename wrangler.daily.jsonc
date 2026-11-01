@@ -1,0 +1,13 @@
+{
+  "name": "politics-daily-snapshot",
+  "main": "workers/county-snapshot.mjs",
+  "compatibility_date": "2026-10-31",
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "COUNTY_DB",
+      "database_name": "politics-county-snapshots",
+      "database_id": "90f53171-e5cc-48d8-8c0c-0138d358649a"
+    }
+  ]
+}

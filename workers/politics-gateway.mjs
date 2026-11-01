@@ -170,11 +170,73 @@ function clean(obj,depth=0){
  }
  return obj;
 }
+
+/* Scheduled nationwide ingest — NEVER fetch external providers during a county click.
+   Snapshots are D1 rows with explicit source vintage. */
+const CENSUS_YEAR=2024;
+const CENSUS_FIELDS='NAME,B01001_001E,B19013_001E,B17001_001E,B17001_002E,B25064_001E';
+const CENSUS_PUBLIC_URL='https://api.census.gov/data/'+CENSUS_YEAR+'/acs/acs5';
+const snapshotHeaders={'Cache-Control':'public, max-age=300, s-maxage=1800'};
+function validAcsNumber(value){
+ const n=Number(value);
+ return value!==null&&value!==''&&Number.isFinite(n)&&n>=0&&n!==-666666666&&n!==-999999999?n:null;
+}
+function normalizeCensus(rows){
+ if(!Array.isArray(rows)||rows.length<2||!Array.isArray(rows[0]))throw Error('Invalid Census response');
+ const columns=rows[0];
+ const indexes=Object.fromEntries(columns.map((name,index)=>[name,index]));
+ for(const col of ['NAME','B01001_001E','B19013_001E','B17001_001E','B17001_002E','B25064_001E','state','county'])
+  if(!Object.hasOwn(indexes,col))throw Error('Census column missing');
+ const counties={};
+ for(const row of rows.slice(1)){
+  const state=String(row[indexes.state]||''),county=String(row[indexes.county]||'');
+  if(!/^\d{2}$/.test(state)||!/^\d{3}$/.test(county))continue;
+  const povertyTotal=validAcsNumber(row[indexes.B17001_001E]);
+  const povertyBelow=validAcsNumber(row[indexes.B17001_002E]);
+  counties[state+county]={
+   name:String(row[indexes.NAME]||'').slice(0,150),
+   population:validAcsNumber(row[indexes.B01001_001E]),
+   medianHouseholdIncome:validAcsNumber(row[indexes.B19013_001E]),
+   medianGrossRent:validAcsNumber(row[indexes.B25064_001E]),
+   povertyRate:povertyTotal>0&&povertyBelow!==null?Math.round(povertyBelow/povertyTotal*1000)/10:null
+  };
+ }
+ return counties;
+}
+async function refreshCensusSnapshot(env,fetchImpl=fetch,now=new Date()){
+ if(!env?.COUNTY_DB)throw Error('COUNTY_DB D1 binding missing');
+ const apiKey=env['CENSUS-API-KEY'];
+ if(!apiKey)throw Error('Census API credential not configured');
+ const u=new URL(CENSUS_PUBLIC_URL);
+ u.searchParams.set('get',CENSUS_FIELDS);
+ u.searchParams.set('for','county:*');
+ u.searchParams.set('in','state:*');
+ u.searchParams.set('key',apiKey);
+ const res=await fetchImpl(u.toString(),{headers:{Accept:'application/json'}});
+ if(!res.ok)throw Error('Census upstream HTTP '+res.status);
+ const rows=await res.json();
+ const counties=normalizeCensus(rows);
+ const count=Object.keys(counties).length;
+ if(count<2900)throw Error('Incomplete national Census dataset ('+count+' counties); previous snapshot retained');
+ const payload=JSON.stringify({source:'U.S. Census Bureau ACS 2024 5-Year',sourceUrl:CENSUS_PUBLIC_URL,period:'2020–2024',year:CENSUS_YEAR,refreshedAt:now.toISOString(),count,counties});
+ await env.COUNTY_DB.prepare('INSERT INTO county_snapshots (source, snapshot_json, refreshed_at, record_count) VALUES (?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET snapshot_json=excluded.snapshot_json,refreshed_at=excluded.refreshed_at,record_count=excluded.record_count')
+  .bind('census_acs5',payload,now.toISOString(),count).run();
+ return {count,refreshedAt:now.toISOString()};
+}
+async function getSnapshot(env){
+ if(!env?.COUNTY_DB)return new Response(JSON.stringify({status:'storage_not_configured',count:0}),{status:503,headers:{'Content-Type':'application/json',...snapshotHeaders}});
+ try{
+  const record=await env.COUNTY_DB.prepare('SELECT snapshot_json FROM county_snapshots WHERE source = ?').bind('census_acs5').first();
+  return new Response(record?.snapshot_json||JSON.stringify({status:'pending',count:0,message:'The first scheduled national collection has not completed.'}),{status:200,headers:{'Content-Type':'application/json',...snapshotHeaders}});
+ }catch(_){return new Response(JSON.stringify({status:'storage_unavailable',count:0}),{status:503,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});}
+}
+
 async function handleCore(request,env,ctx={},fetcher=fetch){
  const u=new URL(request.url),path=u.pathname.replace(/\/+$/,'');
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
  if(request.method!=='GET')return json({error:'GET only'},405);
  if(path==='/'||path==='/health')return json({service:'POLITICS Research API',status:'operational',providers:Object.keys(CATALOG).length+Object.keys(KEYLESS_SOURCES).length+Object.keys(ACCESS_REQUIRED).length,catalog:'/api/catalog'},200,300);
+ if(path==='/api/county-snapshot')return getSnapshot(env);
  if(path==='/api/catalog')return json({providers:[...Object.entries(CATALOG).map(([id,[binding,category,description]])=>({id,category,description,configured:id==='lobbyview'?['LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3'].filter(x=>!!key(env,x)).length:!!key(env,binding),access:'cloudflare-variable'})),...Object.entries(KEYLESS_SOURCES).map(([id,[category,description]])=>({id,category,description,configured:true,access:'keyless-public'})),...Object.entries(ACCESS_REQUIRED).map(([id,[category,description,keyName,userName]])=>({id,category,description,configured:!!key(env,keyName)&&!!key(env,userName),access:'requires-provider-credentials'}))]},200,600);
  const id=path.startsWith('/api/')?path.slice(5):'';
  if(!Object.hasOwn(CATALOG,id)&&!Object.hasOwn(KEYLESS_SOURCES,id)&&!Object.hasOwn(ACCESS_REQUIRED,id))return json({error:'Unknown endpoint'},404);
@@ -194,4 +256,7 @@ async function handleCore(request,env,ctx={},fetcher=fetch){
 export async function handle(request,env,ctx={},fetcher=fetch){
  return withOriginCors(await handleCore(request,env,ctx,fetcher),request,env);
 }
-export default {fetch:handle};
+export default {
+ fetch:handle,
+ scheduled(event,env,ctx){ctx.waitUntil(refreshCensusSnapshot(env));}
+};

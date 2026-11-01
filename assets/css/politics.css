@@ -8,3 +8,13 @@
 .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 #view-map .state:focus-visible,#view-map .county:focus-visible{stroke:#fff;stroke-width:2;outline:none}
 @media(max-width:760px){.atlasNav{grid-template-columns:1fr}.navCenter{font-size:11px}.navBrand,.navRight{display:none}}
+
+/* Map card: render only already stored, source-attributed county values. */
+#view-map .countyFacts{margin-top:13px}
+#view-map .countyFactsTitle{color:#83e3d0;font-size:12px;text-transform:uppercase;letter-spacing:.1em;font-weight:850;margin-bottom:9px}
+#view-map .countyFactGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#view-map .countyFact{padding:10px;border:1px solid rgba(155,203,248,.15);border-radius:12px;background:rgba(12,26,46,.65)}
+#view-map .countyFact span{display:block;font-size:10px;color:#a8bdd2;margin-bottom:5px;line-height:1.35}
+#view-map .countyFact strong{font-size:17px;font-variant-numeric:tabular-nums}
+#view-map .countyFactSource{margin-top:12px;font-size:10px;line-height:1.55;color:#afc0d5}
+#view-map .countyFactSource a{color:#87e0d5}

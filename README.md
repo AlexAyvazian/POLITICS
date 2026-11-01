@@ -1,20 +1,14 @@
-# POLITICS — Geographic Map Shell
+# POLITICS — County impact intelligence
 
-Standalone state-to-county map transplanted from the map view of [Directory](https://github.com/AlexAyvazian/Directory).
+Live map: https://politics-e5yt.onrender.com
 
-- Original D3/TopoJSON map geometry, source map styling, ambient backgrounds, glass controls, and state zoom animation.
-- U.S. -> state -> county selection, hover tooltips, search, back button, breadcrumbs, responsive layout and URL hash links (#map/CA/06019).
-- No Directory view, employee or facility records, contact data, Neon, GovDir, or API server. Only geographic boundaries and state/FIPS labels are carried over.
-- Ready for future political, economic and research layers keyed by FIPS.
+**Public county clicks never contact government provider APIs.** Render serves the map, which downloads one cached nationwide county snapshot from the Cloudflare D1-backed snapshot reader and filters it locally by five-digit FIPS code.
 
-## Usage
+- `crimson-mud-d254` Cloudflare Worker: existing 27 provider adapters, preserved credentials, plus a scheduled nationwide Census collector and D1 write access.
+- `politics-daily-snapshot` Cloudflare Worker: only serves saved D1 data to the browser. No upstream provider API calls, no API keys, no scheduled job.
+- `politics-county-snapshots` Cloudflare D1: stores last-good countrywide snapshots.
+- Render static hosting: no API variables or backend service required.
 
-Serve the repository as a static site (for example with python3 -m http.server 8000) or deploy through Cloudflare Pages or GitHub Pages. A sleeping Render service is not needed.
+Initial dataset: Census ACS 2024 five-year county population, household income, poverty and rent. Other sources require per-provider bulk collection and legitimate geographic normalization; merely having 27 adapters does not create 27 county datasets.
 
-## Verification
-
-Run npm test with Node 18+ to validate county geometry, geographical search, deep links, and map-only dependencies.
-
-## Attribution
-
-Uses the original visual styles and interaction patterns from Directory. Boundary geometries from Mike Bostock's us-atlas, under the ISC license in assets/vendor/us-atlas.LICENSE. D3 and topojson-client retain their source headers.
+See [the architecture and data integrity notes](docs/COUNTY_SNAPSHOTS.md).
