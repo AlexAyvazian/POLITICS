@@ -27,7 +27,7 @@
   '27':'#725648', // Minnesota — dark tobacco brown
   '26':'#8C624B', // Michigan — warm brown
   '19':'#C2A276', // Iowa — light sand brown
-  '55':'#3C280D', // Wisconsin — MOCHA
+  '55':'#74543D', // Wisconsin — softened MOCHA, retains warm brown hue
   '46':'#8A9A75', // South Dakota — former North Dakota sage olive
   '08':'#587966', // Colorado — muted dark green
 
@@ -40,27 +40,33 @@
   '54':'#B9B68A', // West Virginia takes old Virginia
   '39':'#C2AB7B', // Ohio takes old New Jersey
 
-  // Explicit latest Mid-Atlantic swatches: exact where unqualified; muted only when requested.
-  '42':'#FFB6C1', // Pennsylvania — LIGHT PINK, exact
-  '10':'#DEBAC3', // Delaware — muted PASTEL PINK #FFD1DC
-  '51':'#C46381', // Virginia — muted DARK PINK #E75480
-  '34':'#FFA6C9', // New Jersey — CARNATION, exact
-  '24':'#F6ADC6', // Maryland — NADESHIKO PINK, exact
+  // Requested Mid-Atlantic softening: varied pink values without dramatic saturation.
+  '42':'#D9A6AE', // Pennsylvania — toned-down Light Pink / warm dusty rose
+  '10':'#E2C0CB', // Delaware — softened light PASTEL PINK
+  '51':'#BC7791', // Virginia — softened DARK PINK
+  '34':'#B978A4', // New Jersey — softened CARNATION / darker mauve pink
+  '24':'#A9829D', // Maryland — softened NADESHIKO PINK / dusty lilac
 
-  // New muted choices: low-saturation adaptations of supplied hex values.
-  // Missouri #FEBA4F -> muted pastel orange; Kentucky #A91B0D -> muted Apple.
-  // Tennessee uses the exact supplied Berry #7A1712 option.
+  // Missouri stays as approved. Kentucky and Tennessee have softened reds.
   '29':'#D6A55C', // Missouri — muted PASTEL ORANGE #FEBA4F
-  '21':'#9F3B30', // Kentucky — muted APPLE #A91B0D
-  '47':'#7A1712', // Tennessee — BERRY, exact
+  '21':'#B36A61', // Kentucky — softened APPLE red
+  '47':'#92504A', // Tennessee — softened BERRY red
 
-  // Northern pink group: use requested Prince Charming for NH.
+  // Gradual southern earth-orange shift, retaining muted shade variations and
+  // complementing Missouri without recoloring unrelated Southern states.
+  '05':'#98634B', // Arkansas — deep earthy burnt orange
+  '22':'#C39A7C', // Louisiana — lighter warm caramel orange
+  '28':'#B48261', // Mississippi — medium muted orange-brown
+  '01':'#CF9D7B', // Alabama — soft apricot orange
+
+  // Muted Northeast purples: the same family, with softer value contrasts.
+
   '36':'#86627B', // New York
   '09':'#9F83B2', // Connecticut
-  '44':'#784B88', // Rhode Island — muted EMINENCE #6C3082
-  '25':'#645394', // Massachusetts — ULTRA VIOLET, exact
+  '44':'#A38DB8', // Rhode Island — softened purple-family EMINENCE
+  '25':'#8875A5', // Massachusetts — softened purple-family ULTRA VIOLET
   '50':'#AEA0B8', // Vermont
-  '33':'#493F5E', // New Hampshire — PRINCE CHARMING
+  '33':'#6B607C', // New Hampshire — softened PRINCE CHARMING
   '23':'#B18BA2'  // Maine
  });
  // Capture each donor's PREVIOUS color, including its hover and selection identity.
