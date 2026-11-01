@@ -52,3 +52,19 @@ test('missing keyless datasets stay pending with no invented scores or represent
   assert.equal(obj.count,0);
  }
 });
+
+test('political reader returns Open States by state and Congress.gov House vote snapshots from D1 only',async()=>{
+ const states={openstates_CA:{state:'CA',bills:[{identifier:'AB 1'}],people:[{name:'State Legislator'}]}};
+ const votes={congress_house_votes_recent:{chamber:'House',votes:[{voteNumber:100,stateVotes:{CA:[{cast:'Aye'}]}}]}};
+ const env={COUNTY_DB:fakeDb({...states,...votes})};
+ const open=await serve(req('/api/openstates-snapshot?state=CA'),env);
+ assert.equal(open.status,200);
+ assert.equal((await open.json()).people[0].name,'State Legislator');
+ const house=await serve(req('/api/house-votes-snapshot'),env);
+ assert.equal(house.status,200);
+ assert.equal((await house.json()).votes[0].stateVotes.CA[0].cast,'Aye');
+ const pending=await serve(req('/api/openstates-snapshot?state=TX'),env);
+ assert.equal((await pending.json()).status,'pending');
+ const invalid=await serve(req('/api/openstates-snapshot?state=NOTASTATE'),env);
+ assert.equal(invalid.status,400);
+});
