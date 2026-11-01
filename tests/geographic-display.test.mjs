@@ -72,13 +72,13 @@ test('rebalanced Great Lakes browns alternate light and dark tones', () => {
   '27':'#725648', // Minnesota dark tobacco
   '26':'#8C624B', // Michigan medium warm brown
   '19':'#C2A276', // Iowa lighter sand brown
-  '55':'#B28F83'  // Wisconsin lighter rosewood brown
+  '55':'#3C280D'  // Wisconsin Mocha
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
 });
 test('North Dakota, Colorado, Alaska and Hawaii use coordinated subdued colors',()=>{
  const c=setup().GEO_COLORS;
- const expected={'38':'#8A9A75','08':'#587966','02':'#697D9B','15':'#699FA6'};
+ const expected={'38':'#8A9A75','08':'#587966','02':'#9ACAF4','15':'#589BD5'};
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
  // Keep both Alaska and Hawaii blue but different from the California, Oregon and Washington.
  const pacific=['02','15','06','41','53'].map(id=>c.state(id).fill);
@@ -92,22 +92,36 @@ test('the Northeast has visually distinct, coordinated mauve and rose shades',()
   '44':'#79556F', // Rhode Island
   '25':'#C3A3A8', // Massachusetts
   '50':'#AEA0B8', // Vermont
-  '33':'#765A7B', // New Hampshire
+  '33':'#493F5E', // New Hampshire, Prince Charming
   '23':'#B18BA2'  // Maine
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
 });
-test('formerly bright yellows are replaced by six varied muted earth yellows',()=>{
+test('three color transfers use the exact previous colors, not reassigned destination colors',()=>{
+ const c=setup().GEO_COLORS;
+ assert.equal(c.state('17').fill,'#857B5B','Illinois receives previous Pennsylvania color');
+ assert.equal(c.state('54').fill,'#B9B68A','West Virginia receives previous Virginia color');
+ assert.equal(c.state('39').fill,'#C2AB7B','Ohio receives previous New Jersey color');
+});
+test('Mid-Atlantic uses five clearly separated original-style pinks',()=>{
  const c=setup().GEO_COLORS;
  const expected={
-  '54':'#A98D55', // West Virginia: ochre
-  '51':'#B9B68A', // Virginia: olive wheat
-  '24':'#D2BA79', // Maryland: antique wheat
-  '10':'#96805A', // Delaware: bronze
-  '34':'#C2AB7B', // New Jersey: golden tan
-  '42':'#857B5B'  // Pennsylvania: dark brass
+   '42':'#B996B6', // Pennsylvania, lighter dusty lavender-pink
+   '10':'#CDA7BD', // Delaware, light pink
+   '51':'#AA7E97', // Virginia, muted dusty pink
+   '34':'#805474', // New Jersey, deeper plum pink
+   '24':'#9B749B'  // Maryland, lilac-pink
  };
  for(const [id,hex] of Object.entries(expected))assert.equal(c.state(id).fill,hex,id);
+ assert.equal(new Set(Object.keys(expected).map(id=>c.state(id).fill)).size,5);
+ for(const id of Object.keys(expected))assert.ok(c.state(id).hue>=285&&c.state(id).hue<=343,'pink hue: '+id);
+});
+test('Missouri and Indiana distinguish themselves from Illinois and Ohio',()=>{
+ const c=setup().GEO_COLORS;
+ assert.equal(c.state('29').fill,'#86684F','Missouri: medium brown');
+ assert.equal(c.state('18').fill,'#789486','Indiana: muted sage');
+ assert.notEqual(c.state('17').fill,c.state('29').fill);
+ assert.notEqual(c.state('39').fill,c.state('18').fill);
 });
 
 test('unmentioned states preserve their existing map colors',()=>{
