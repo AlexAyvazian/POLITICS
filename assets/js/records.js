@@ -197,26 +197,26 @@ function voteGroup(cast){
 }
 function renderVoteDistribution(){
  const counts=model.voteDistribution(state.votes);
- const container=$('voteDistribution');
- container.replaceChildren();
+ const root=$('voteDistribution');root.replaceChildren();
  if(!counts.total)return;
- const graphic=document.createElement('div');graphic.className='recordsDistributionBar';
- graphic.setAttribute('role','img');
- graphic.setAttribute('aria-label',counts.yes+' yes, '+counts.no+' no, '+counts.other+' present, '+counts.absent+' not voting out of '+counts.total+' recorded votes');
- const legend=document.createElement('div');legend.className='recordsDistributionLegend';
- for(const [key,label] of [['yes','Voted yes'],['no','Voted no'],['other','Present'],['absent','Not voting']]){
-  const count=counts[key];
-  if(count){
-   const seg=document.createElement('span');seg.className=key;
-   seg.style.width=(count*100/counts.total).toFixed(2)+'%';
-   graphic.append(seg);
-  }
-  const item=document.createElement('span');item.className=key;
-  const swatch=document.createElement('i');swatch.setAttribute('aria-hidden','true');
-  const name=document.createElement('span');name.textContent=label+' · '+count;
-  item.append(swatch,name);legend.append(item);
+ const caption=document.createElement('p');caption.className='recordsDistributionCaption';
+ caption.textContent='HOW THIS PERSON VOTED · Percentage of recorded roll calls, not Democratic vs. Republican votes';
+ const rows=document.createElement('div');rows.className='recordsDistributionRows';
+ for(const [kind,label] of [['yes','Yes'],['no','No'],['other','Present'],['absent','Not voting']]){
+  const n=counts[kind],pct=100*n/counts.total;
+  const line=document.createElement('div');line.className='recordsDistributionRow '+kind;
+  const head=document.createElement('span');head.className='recordsDistributionLabel';head.textContent=label;
+  const track=document.createElement('div');track.className='recordsDistributionTrack';
+  track.setAttribute('role','img');track.setAttribute('aria-label',label+': '+n+' of '+counts.total+' votes ('+pct.toFixed(1)+'%)');
+  const fill=document.createElement('div');fill.className='recordsDistributionFill';
+  fill.style.width=pct.toFixed(2)+'%';track.append(fill);
+  const value=document.createElement('span');value.className='recordsDistributionValue';
+  value.textContent=n+' · '+pct.toFixed(1)+'%';
+  line.append(head,track,value);rows.append(line);
  }
- container.append(graphic,legend);
+ const note=document.createElement('p');note.className='recordsSectionNote';
+ note.textContent='A Yes can approve, confirm, or advance a question. It does not always mean approving a bill; individual vote questions appear below.';
+ root.append(caption,rows,note);
 }
 function renderVotes(){
  let filtered=model.filterVotes(state.votes,$('votesQuery').value);
@@ -242,23 +242,88 @@ function renderVotes(){
   list.append(p);
  }
 }
-function displayFinance(m){
- $('fecMemberLink').href='https://www.fec.gov/data/candidates/?q='+encodeURIComponent(cleanName(m.name));
- const disclosure=$('disclosureList');
- disclosure.replaceChildren();
- const sources=m.chamber==='House'?[
-  ['House gift travel filings','https://disclosures-clerk.house.gov/GiftTravelFilings'],
-  ['House official foreign travel','https://disclosures-clerk.house.gov/ForeignTravel'],
-  ['House personal financial reports','https://disclosures-clerk.house.gov/FinancialDisclosure']
- ]:[
-  ['Senate ethics disclosures','https://www.ethics.senate.gov/public/'],
-  ['Senate member office','https://www.senate.gov/senators/']
- ];
- for(const [label,url] of sources){
-  const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=label+' ↗';
-  disclosure.append(a);
+const moneyLabel=n=>typeof n==='number'&&Number.isFinite(n)?
+ new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n):'Not reported';
+function makeMetric(label,value){
+ const box=document.createElement('div');box.className='recordsFinanceMetric';
+ const h=document.createElement('span');h.textContent=label;
+ const n=document.createElement('strong');n.textContent=moneyLabel(value);
+ box.append(h,n);return box;
+}
+function renderFinance(data,m){
+ const root=$('financeVisualization');root.replaceChildren();
+ if(state.member?.bioguide!==m.bioguide)return;
+ if(!data||data.bioguide!==m.bioguide||data.cycle!==2026){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='A current FEC financial statement has not been linked to this member in our verified cache. No amount is assumed; this does not imply zero campaign funding.';
+  root.append(p);return;
  }
- $('congressMemberLink').href='https://www.congress.gov/member?q='+encodeURIComponent(cleanName(m.name));
+ const grid=document.createElement('div');grid.className='recordsFinanceMetrics';
+ for(const [label,key] of [['Total receipts','raised'],['Total spending','spent'],['Cash on hand','cashOnHand'],['Debts owed','debts']])
+  grid.append(makeMetric(label,data[key]));
+ root.append(grid);
+ const summary=document.createElement('p');summary.className='recordsEvidenceNote';
+ summary.textContent='2025–2026 FEC reported campaign activity, through '+(data.coverageEnd||'latest available filing')+'.';
+ root.append(summary);
+ const compared=[['Individuals','individualContributions'],['Other political committees','committeeContributions'],
+  ['Party committees','partyContributions'],['Candidate’s own contributions','selfContributions']];
+ const max=Math.max(...compared.map(([,key])=>Math.max(0,data[key]||0)),1);
+ const visual=document.createElement('div');visual.className='recordsFinanceBars';
+ for(const [label,key] of compared){
+  const value=data[key];
+  if(typeof value!=='number'||!Number.isFinite(value)||value<0)continue;
+  const row=document.createElement('div');row.className='recordsFinanceBarRow';
+  const name=document.createElement('span');name.textContent=label;
+  const track=document.createElement('div');track.className='recordsFinanceBarTrack';
+  const fill=document.createElement('span');fill.className='recordsFinanceBarFill';
+  fill.style.width=(value/max*100).toFixed(2)+'%';track.append(fill);
+  track.setAttribute('role','img');track.setAttribute('aria-label',label+': '+moneyLabel(value));
+  const val=document.createElement('strong');val.textContent=moneyLabel(value);
+  row.append(name,track,val);visual.append(row);
+ }
+ const title=document.createElement('h4');title.textContent='Reported contribution categories';
+ root.append(title,visual);
+ const explain=document.createElement('p');explain.className='recordsEvidenceNote';
+ explain.textContent='Each bar uses the largest displayed category as its scale. These categories do not necessarily add up to total receipts; loans and transfers can be reported separately.';
+ root.append(explain);
+}
+async function loadFinance(m){
+ $('financeVisualization').textContent='Loading official FEC campaign totals…';
+ let payload=null;
+ try{
+  const response=await fetch('assets/data/records/finance/'+encodeURIComponent(m.bioguide)+'.json',{credentials:'same-origin',cache:'default'});
+  if(response.ok)payload=await response.json();
+ }catch(_){}
+ renderFinance(payload,m);
+}
+function renderTravel(m){
+ const root=$('travelVisualization');root.replaceChildren();
+ const count=document.createElement('strong');count.className='recordsTravelHeadline';
+ count.textContent='No travel figures in the current local dataset';
+ const p=document.createElement('p');p.className='recordsEvidenceNote';
+ p.textContent='Official privately sponsored travel disclosures have not yet been converted into individual records for '+m.name+'. This is not a claim that the member took no sponsored trips.';
+ root.append(count,p);
+}
+function renderMeasures(){
+ const root=$('legislationVisualization');root.replaceChildren();
+ const totals=new Map();
+ for(const v of state.votes){
+  const raw=String(v.measure||'').trim().toUpperCase().replace(/\s+/g,'');
+  if(!raw||!/[0-9]/.test(raw))continue;
+  totals.set(raw,(totals.get(raw)||0)+1);
+ }
+ const ranked=[...totals.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);
+ if(!ranked.length){root.textContent='No measure identifiers in the current recorded vote snapshot.';return;}
+ const biggest=Math.max(...ranked.map(r=>r[1]),1);
+ for(const [bill,n] of ranked){
+  const row=document.createElement('div');row.className='recordsMeasureRow';
+  const name=document.createElement('strong');name.textContent=bill;
+  const track=document.createElement('div');track.className='recordsFinanceBarTrack';
+  const fill=document.createElement('span');fill.className='recordsMeasureFill';
+  fill.style.width=(n/biggest*100).toFixed(2)+'%';track.append(fill);
+  const count=document.createElement('span');count.textContent=n+' recorded vote'+(n===1?'':'s');
+  row.append(name,track,count);root.append(row);
+ }
 }
 async function loadVotes(m){
  const chamber=m.chamber.toLowerCase();
@@ -289,6 +354,7 @@ async function loadVotes(m){
  sum.innerHTML=[['yes','Voted yes'],['no','Voted no'],['other','Present'],['absent','Not voting']]
   .map(([key,label])=>'<div><strong>'+counts[key]+'</strong><span>'+esc(label)+'</span></div>').join('');
  renderVoteDistribution();
+ renderMeasures();
  renderVotes();
 }
 function select(id){
@@ -309,9 +375,11 @@ function select(id){
  portrait.append(photo);
  $('recordUpdated').textContent='Member roster checked '+formatDate(state.rosterDate)+' · individual vote coverage indicated alongside each captured snapshot.';
  $('votesQuery').value='';$('voteDistribution').replaceChildren();
+ $('financeVisualization').textContent='Loading official FEC totals…';
+ $('travelVisualization').replaceChildren();$('legislationVisualization').replaceChildren();
  for(const [key,name] of [['all','voteFilterAll'],['yes','voteFilterYea'],['no','voteFilterNay'],['absent','voteFilterAbsent']])
   $(name).setAttribute('aria-pressed',String(key==='all'));
- displayFinance(m);
+ renderTravel(m);loadFinance(m);
  try{history.replaceState(null,'','#state='+encodeURIComponent(m.state)+'&member='+encodeURIComponent(id));}catch{}
  $('memberProfile').scrollIntoView?.({behavior:'smooth',block:'start'});
  loadVotes(m);
