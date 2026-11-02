@@ -142,6 +142,7 @@ async function findMyRep(event){
   const districtName=district===0?'at-large district':'District '+district;
   status.textContent='Confirmed: '+stateByCode[code].name+' · '+districtName+' (119th Congress).';
   if(names.length===1){
+   $('addressInput').value='';
    const member=names[0];
    const action=document.createElement('button');action.type='button';
    action.className='recordsFoundRepresentative';
@@ -157,7 +158,7 @@ async function findMyRep(event){
  }catch(e){if(state.selectedState===code)status.textContent=e.message||'The district lookup could not be completed.';}
  finally{
   button.disabled=false;button.textContent='Find my representative';
-  $('addressInput').value=''; // do not keep entered address after lookup
+  // Keep the address if lookup failed so voters do not have to retype it.
  }
 }
 function showAllStates(){
