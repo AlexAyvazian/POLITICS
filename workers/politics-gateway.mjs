@@ -111,11 +111,20 @@ function withOriginCors(response,request,env){
 }
 const json=(data,status=200,ttl=0)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json',...CORS,'Cache-Control':ttl?'public, max-age=60, s-maxage='+ttl:'no-store'}});
 const key=(env,name)=>typeof env[name]==='string'&&env[name].trim()?env[name].trim():null;
+/* api.data.gov 40-character keys work across participating federal agencies.
+ * Use the already validated FEC key if an older Congress binding is malformed.
+ * Never expose the fallback credential to callers. */
+const congressApiKey=env=>{
+ const value=key(env,'CONGRESS_API_KEY');
+ if(value?.length===40)return value;
+ const alternate=key(env,'FEC_API_KEY');
+ return alternate?.length===40?alternate:value;
+};
 const qs=(url,query)=>{const u=new URL(url);for(const [k,v] of Object.entries(query||{}))if(v!==null&&v!==undefined&&v!=='')u.searchParams.set(k,String(v));return u.toString();};
 const limited=(v,regexp,max)=>typeof v==='string'&&v.length<=max&&regexp.test(v)?v:null;
 const maxRows=(p,n=10)=>{const v=Number(p.get('limit'));return Number.isInteger(v)&&v>0&&v<=25?v:n;};
 function target(id,p,env){
- const k=key(env,CATALOG[id][0]),f=limited(p.get('county'),/^\d{5}$/,5);
+ const k=id==='congress'?congressApiKey(env):key(env,CATALOG[id][0]),f=limited(p.get('county'),/^\d{5}$/,5);
  const s=limited(p.get('state'),/^[A-Za-z]{2}$/,2)?.toUpperCase()||'CA';
  const q=limited(p.get('q')||'',/^[\p{L}\p{N}\s,.'()\-]{0,70}$/u,70)||'';
  const n=maxRows(p);let u,options={headers:{Accept:'application/json'}};
@@ -513,7 +522,7 @@ async function refreshOpenStatesState(env,state,fetchImpl=fetch,now=new Date()){
  * No assertion about Senate votes, leadership elections or future elections.
  * Store actual individual choices, not presumed party-line votes. */
 async function refreshFederalHouseVotes(env,fetchImpl=fetch,now=new Date()){
- const db=env?.COUNTY_DB,token=key(env,'CONGRESS_API_KEY');
+ const db=env?.COUNTY_DB,token=congressApiKey(env);
  if(!db||!token)throw Error('Missing core D1 or Congress.gov key');
  async function get(path,limit,offset){
   const u=new URL('https://api.congress.gov/v3/'+path);
@@ -578,7 +587,7 @@ async function refreshFederalHouseVotes(env,fetchImpl=fetch,now=new Date()){
  * deliberately labeled a sample, NOT a complete legislative history. */
 async function refreshMemberLegislation(env,bioguide,fetchImpl=fetch,now=new Date()){
  if(!/^[A-Z][0-9]{6}$/.test(String(bioguide||'')))throw Error('Invalid Bioguide ID');
- const db=env?.COUNTY_DB,token=key(env,'CONGRESS_API_KEY');
+ const db=env?.COUNTY_DB,token=congressApiKey(env);
  if(!db||!token)throw Error('Missing Congress.gov key or D1 binding');
  async function collect(kind){
   const u=new URL('https://api.congress.gov/v3/member/'+bioguide+'/'+kind+'-legislation');
@@ -609,7 +618,7 @@ async function refreshMemberLegislation(env,bioguide,fetchImpl=fetch,now=new Dat
 }
 async function refreshMemberLegislationBatch(env,slot,fetchImpl=fetch,now=new Date()){
  const db=env?.COUNTY_DB;
- if(!db||!key(env,'CONGRESS_API_KEY'))return {status:'not_configured'};
+ if(!db||!congressApiKey(env))return {status:'not_configured'};
  const row=await db.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?').bind('congress_members_current').first();
  if(!row)return {status:'roster_pending'};
  const roster=JSON.parse(row.snapshot_json);
