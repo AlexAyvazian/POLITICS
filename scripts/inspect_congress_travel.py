@@ -28,3 +28,10 @@ with ZipFile(BytesIO(content)) as archive:
      print('SUB',sub.tag,'tags',[(x.tag,x.attrib, 'text='+repr((x.text or '')[:200]),'children='+str(len(x))) for x in list(sub)[:15]],flush=True)
    print('SECOND RECORD',ET.tostring(children[1],encoding='unicode')[:1800] if len(children)>1 else 'none',flush=True)
    break
+
+print("HOUSE_ARCHIVE_START",flush=True)
+house='https://disclosures-clerk.house.gov/public_disc/gift-pdfs/2026Travel.zip'
+req=Request(house,headers={'User-Agent':'Mozilla/5.0 (compatible; public civic disclosures)'},method='HEAD')
+try:
+ with urlopen(req,timeout=25) as h:print("HOUSE_HEAD",h.status,h.headers.get('Content-Length'),h.headers.get('Content-Type'),flush=True)
+except Exception as exc:print("HOUSE_HEAD_ERROR",repr(exc),flush=True)
