@@ -35,3 +35,15 @@ req=Request(house,headers={'User-Agent':'Mozilla/5.0 (compatible; public civic d
 try:
  with urlopen(req,timeout=25) as h:print("HOUSE_HEAD",h.status,h.headers.get('Content-Length'),h.headers.get('Content-Type'),flush=True)
 except Exception as exc:print("HOUSE_HEAD_ERROR",repr(exc),flush=True)
+
+try:
+ with urlopen(Request(house,headers={'User-Agent':'Mozilla/5.0'}),timeout=35) as r:payload=r.read(2_000_001)
+ if len(payload)>2_000_000:raise ValueError('Archive too big')
+ with ZipFile(BytesIO(payload)) as archive:
+  names=archive.namelist()
+  print('HOUSE_ZIP_ENTRY_COUNT',len(names),flush=True)
+  print('HOUSE_ZIP_ENTRIES',[(x,archive.getinfo(x).file_size) for x in names[:15]],flush=True)
+  for name in names[:3]:
+   if name.lower().endswith(('.txt','.csv','.xml','.json')):
+    print('HOUSE_ZIP_SAMPLE',name,archive.read(name)[:1300].decode('utf-8',errors='replace'),flush=True)
+except Exception as exc:print('HOUSE_ZIP_ERROR',repr(exc),flush=True)
