@@ -26,11 +26,11 @@ test('verified vacancy records never override a verified current incumbent or re
  assert.equal(model.districtPartyWithVacancies('republican',evidence),'republican');
  assert.equal(model.verifiedVacancy(vacancies,{layer:'house',state:'TX',district:'23'},'2026-12-01'),null);
 });
-test('confirmed vacancies are rendered as distinct gold and displayed as vacant, not unverified',()=>{
+test('confirmed vacancies are rendered in icy white and displayed as vacant',()=>{
  const css=read('assets/css/congressional-map.css');
  const html=read('congressional.html');
  const js=read('assets/js/congressional-political.js');
- assert.match(css,/#districtMap \.atlasFeature\[data-party="vacant"\]/);
+ assert.match(css,/#districtMap \.atlasFeature\[data-party="vacant"\]\{fill:#e9faff/);
  assert.match(html,/Vacant <\/span>|Vacant<\/span>/);
  assert.match(html,/assets\/js\/verified-vacancies\.js/);
  assert.match(js,/verifiedVacancy\(/);
