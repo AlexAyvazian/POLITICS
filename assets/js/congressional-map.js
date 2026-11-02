@@ -1,0 +1,218 @@
+/* Standalone Congressional Atlas: only geographic boundaries and interactions. */
+(function(){
+'use strict';
+const $=id=>document.getElementById(id),d3=window.d3,states=window.GEO_STATES,model=window.CONGRESSIONAL_MODEL;
+const byFips=Object.fromEntries(states.map(s=>[s.fips,s])),byCode=Object.fromEntries(states.map(s=>[s.abbr,s]));
+const layers={
+ house:{title:'U.S. House districts',type:'district',id:5,vintage:'119th Congress · January 2025 Census boundaries'},
+ stateSenate:{title:'State Senate districts',type:'district',id:8,vintage:'2024 Census legislative boundaries'},
+ stateHouse:{title:'State House / Assembly districts',type:'district',id:9,vintage:'2024 Census legislative boundaries'},
+ senate:{title:'U.S. Senate',type:'state',vintage:'State geography'},
+ governor:{title:'Governors',type:'state',vintage:'State geography'},
+ president:{title:'President',type:'state',vintage:'State geography'}
+};
+const TIGER='https://tigerweb.geo.census.gov/arcgis/rest/services/Generalized_ACS2025/Legislative/MapServer';
+const GATEWAY='https://crimson-mud-d254.alxayvazian.workers.dev';
+const svg=d3.select('#districtMap'),tip=$('congressTooltip'),cache=new Map();
+const us=window.topojson.feature(window.US_ATLAS,window.US_ATLAS.objects.states).features.filter(f=>byFips[String(f.id).padStart(2,'0')]);
+const outlines=new Map(us.map(f=>[String(f.id).padStart(2,'0'),f]));
+let state=null,layer='house',district=null,pendingCode=null,pendingGeoid=null,seq=0,root,zoom,home=d3.zoomIdentity,chosen=null;
+const stateName=()=>byCode[state]?.name||'United States';
+const digits=()=>layer==='house'?2:3;
+const currentCode=f=>model.districtCode(f.properties,layer);
+const meta=(feature,fips)=>{
+ const p=feature?.properties||{},code=feature?currentCode(feature):null;
+ const id=fips||p.STATE||byCode[state]?.fips||null;
+ return {scope:code===null?'state':'district',layer,state:byFips[id]?.abbr||null,stateFips:id,
+  district:code,geoid:code===null?id:String(p.GEOID),vintage:layers[layer].vintage};
+};
+function status(text){$('congressLoading').hidden=!text;$('congressLoading').textContent=text||'';}
+function tipOff(){tip.hidden=true;}
+function tipOn(e,text){tip.textContent=text;tip.hidden=false;tip.style.left=Math.max(6,Math.min(innerWidth-250,e.clientX+12))+'px';tip.style.top=Math.max(6,Math.min(innerHeight-65,e.clientY+12))+'px';}
+function announce(data){chosen=data;window.dispatchEvent(new CustomEvent('congressional-atlas:selection',{detail:data}));}
+function deselect(emit=false){
+ district=null;chosen=null;$('districtSelection').hidden=true;
+ if(root)root.selectAll('.atlasFeature').attr('data-active',null);
+ if(emit)announce(null);
+}
+function selectFeature(feature){
+ district=feature;
+ root.selectAll('.atlasFeature').attr('data-active',f=>f.properties?.GEOID===feature.properties.GEOID?'true':null);
+ display(meta(feature));hash();
+}
+function display(data){
+ $('districtSelection').hidden=false;
+ $('selectionType').textContent=data.scope==='district'?layers[layer].title.toUpperCase():'STATEWIDE GEOGRAPHY';
+ $('selectionName').textContent=byCode[data.state]?.name+(data.scope==='district'?' · District '+(Number(data.district)===0?'At-large':Number(data.district)):'');
+ $('selectionGeoid').textContent='GEOID: '+data.geoid;
+ announce(data);
+}
+function hash(){try{history.replaceState(null,'','#'+[state||'US',layer,district?currentCode(district):null].filter(Boolean).join('/'));}catch{}}
+function ui(){
+ $('congressState').value=state||'';
+ $('congressBack').hidden=!state;
+ $('districtMapLabel').textContent=stateName()+' · '+layers[layer].title;
+ $('districtVintage').textContent=layers[layer].vintage;
+ $('atlasHint').textContent=state?'Select a district · Scroll to zoom · Drag to move':'Select a state or district · Scroll to zoom · Drag to move';
+ document.querySelectorAll('[data-atlas-layer]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.atlasLayer===layer)));
+}
+function canvas(){
+ const el=$('atlasViewport'),w=Math.max(250,el.clientWidth),h=Math.max(240,el.clientHeight);
+ svg.attr('viewBox','0 0 '+w+' '+h).selectAll('*').remove();root=svg.append('g');
+ zoom=d3.zoom().scaleExtent([1,12]).on('zoom',e=>root.attr('transform',e.transform));
+ svg.call(zoom).on('dblclick.zoom',null);
+ home=d3.zoomIdentity;svg.call(zoom.transform,home);
+ return {w,h};
+}
+function reset(){if(zoom)svg.transition().duration(200).call(zoom.transform,home);}
+function zoomBy(n){if(zoom)svg.transition().duration(200).call(zoom.scaleBy,n);}
+function name(f,isState){
+ const s=byFips[String(isState?f.id:f.properties?.STATE).padStart(2,'0')];
+ return isState?(s?.name||'State'):(s?.name||stateName())+' · '+layers[layer].title+' '+(f.properties?.BASENAME||f.properties?.GEOID);
+}
+function plot(features,path,isState){
+ root.selectAll('path').data(features,f=>f.properties?.GEOID||f.id).join('path')
+  .attr('d',path).attr('class','atlasFeature'+(isState?' atlasState':''))
+  .attr('role','button').attr('tabindex',0)
+  .attr('aria-label',f=>name(f,isState))
+  .on('mousemove',(e,f)=>tipOn(e,name(f,isState))).on('mouseleave',tipOff)
+  .on('click',(e,f)=>pick(f,isState))
+  .on('keydown',(e,f)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(f,isState);}});
+}
+function pick(f,isState){
+ if(isState){
+  const s=byFips[String(f.id).padStart(2,'0')];if(!s)return;
+  if(state===s.abbr){if(layers[layer].type==='state')display(meta(null,s.fips));return;}
+  chooseState(s.abbr);return;
+ }
+ const s=byFips[String(f.properties?.STATE).padStart(2,'0')];if(!s)return;
+ if(!state){chooseState(s.abbr,{geoid:f.properties.GEOID});return;}
+ selectFeature(f);
+}
+function nationalStates(){
+ const {w,h}=canvas(),path=d3.geoPath();
+ const box=path.bounds({type:'FeatureCollection',features:us});
+ const scale=Math.min((w-48)/(box[1][0]-box[0][0]),(h-48)/(box[1][1]-box[0][1]));
+ const tx=w/2-scale*(box[0][0]+box[1][0])/2,ty=h/2-scale*(box[0][1]+box[1][1])/2;
+ home=d3.zoomIdentity.translate(tx,ty).scale(scale);
+ zoom.scaleExtent([scale,Math.max(scale*12,12)]);svg.call(zoom.transform,home);
+ plot(us,path,true);
+}
+function stateOutline(){
+ const f=outlines.get(byCode[state]?.fips);if(!f){nationalStates();return;}
+ const {w,h}=canvas();
+ const projection=d3.geoIdentity().fitExtent([[33,33],[w-33,h-33]],f);
+ plot([f],d3.geoPath(projection),true);
+}
+function polygons(data,national){
+ const {w,h}=canvas();
+ const features=data.features.filter(f=>f.geometry?.coordinates?.length&&byFips[String(f.properties?.STATE)]);
+ if(!features.length){status('No usable district shapes were returned.');return;}
+ const fc={type:'FeatureCollection',features};
+ const projection=national?d3.geoAlbersUsa():d3.geoMercator();
+ projection.fitExtent([[24,25],[w-24,h-25]],fc);
+ plot(features,d3.geoPath(projection),false);
+ if(!national&&(pendingCode||pendingGeoid)){
+  const match=features.find(f=>currentCode(f)===pendingCode||String(f.properties.GEOID)===pendingGeoid);
+  pendingCode=null;pendingGeoid=null;if(match)selectFeature(match);
+ }
+}
+function tigerUrl(fips){
+ const p=new URLSearchParams({where:fips?`STATE='${fips}'`:'1=1',outFields:'GEOID,BASENAME,STATE',
+   outSR:'4326',returnGeometry:'true',geometryPrecision:fips?'4':'3',f:'geojson'});
+ if(!fips)p.set('maxAllowableOffset','0.025');
+ return TIGER+'/'+layers[layer].id+'/query?'+p.toString();
+}
+async function geojson(url){
+ const c=new AbortController(),timer=setTimeout(()=>c.abort(),30000);
+ try{
+  const r=await fetch(url,{credentials:'omit',headers:{Accept:'application/json'},signal:c.signal});
+  if(!r.ok)throw Error('HTTP '+r.status);
+  const data=await r.json();
+  if(data?.type!=='FeatureCollection'||!Array.isArray(data.features)||!data.features.length)throw Error('Bad geographic response');
+  return data;
+ }finally{clearTimeout(timer);}
+}
+async function refresh(){
+ const turn=++seq;ui();tipOff();deselect();
+ if(state)stateOutline();else nationalStates();
+ if(layers[layer].type==='state'){
+  status('');if(state)display(meta(null,byCode[state].fips));hash();return;
+ }
+ if(!state&&layer!=='house'){status('Choose a state to view its '+layers[layer].title.toLowerCase()+'.');hash();return;}
+ const key=layer+'|'+(state||'US');
+ if(cache.has(key)){status('');polygons(cache.get(key),!state);hash();return;}
+ status(state?'Loading official '+layers[layer].title+'…':'Loading national congressional district boundaries…');
+ try{
+  const fips=state?byCode[state].fips:null;
+  let data;
+  try{data=await geojson(tigerUrl(fips));}
+  catch(error){
+   if(!fips)throw error;
+   const r=await fetch(GATEWAY+'/api/district-geometry?state='+fips+'&layer='+layer,{credentials:'omit'});
+   if(!r.ok)throw error;
+   const response=await r.json();data=response.data;
+   if(data?.type!=='FeatureCollection'||!Array.isArray(data.features))throw error;
+  }
+  if(turn!==seq)return;
+  const valid=data.features.filter(f=>f.geometry?.coordinates?.length&&byFips[String(f.properties?.STATE)]);
+  if(!valid.length)throw Error('Missing district GEOIDs');
+  const collection={type:'FeatureCollection',features:valid};
+  cache.set(key,collection);status('');polygons(collection,!state);
+ }catch(error){if(turn===seq)status('Official district boundaries could not be loaded. Select a state to retry.');}
+ finally{if(turn===seq)hash();}
+}
+function chooseState(code,opts={}){
+ if(code&&!byCode[code])return;
+ state=code||null;pendingCode=opts.code||null;pendingGeoid=opts.geoid||null;refresh();
+}
+function chooseLayer(value){
+ if(!layers[value]||value===layer)return;
+ layer=value;pendingCode=null;pendingGeoid=null;refresh();
+}
+function find(){
+ const text=$('districtSearch').value.trim();if(!text)return;
+ const found=states.find(s=>s.abbr.toLowerCase()===text.toLowerCase()||s.name.toLowerCase()===text.toLowerCase());
+ if(found){chooseState(found.abbr);return;}
+ const m=text.match(/^([a-z]{2})[ -]?0*(\d{1,3})$/i)||text.match(/^(0*\d{1,3})$/);
+ if(m&&layers[layer].type==='district'){
+  const abbreviation=m.length===3?m[1].toUpperCase():state;
+  const n=m.length===3?m[2]:m[1];
+  if(abbreviation&&byCode[abbreviation]){
+   const code=String(Number(n)).padStart(digits(),'0');
+   if(abbreviation===state&&cache.has(layer+'|'+state)){pendingCode=code;polygons(cache.get(layer+'|'+state),false);}
+   else chooseState(abbreviation,{code});
+   return;
+  }
+ }
+ status('No matching geography. Try California, CA-05, or a district number.');
+}
+const route=location.hash.replace(/^#/,'').split('/');
+if(byCode[route[0]])state=route[0];
+if(layers[route[1]])layer=route[1];
+if(/^\d{1,3}$/.test(route[2]||''))pendingCode=route[2];
+$('congressState').innerHTML='<option value="">All states</option>'+states.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(s=>'<option value="'+s.abbr+'">'+s.name+'</option>').join('');
+document.querySelectorAll('[data-atlas-layer]').forEach(b=>b.addEventListener('click',()=>chooseLayer(b.dataset.atlasLayer)));
+$('congressState').addEventListener('change',e=>chooseState(e.target.value));
+$('congressBack').addEventListener('click',()=>chooseState(null));
+$('districtFind').addEventListener('click',find);
+$('districtSearch').addEventListener('keydown',e=>{if(e.key==='Enter')find();});
+$('congressZoomIn').addEventListener('click',()=>zoomBy(1.5));
+$('congressZoomOut').addEventListener('click',()=>zoomBy(1/1.5));
+$('congressZoomReset').addEventListener('click',reset);
+$('selectionClose').addEventListener('click',()=>{deselect(true);hash();});
+window.addEventListener('resize',()=>{
+ const item=cache.get(layer+'|'+(state||'US'));
+ if(item&&layers[layer].type==='district')polygons(item,!state);
+ else if(state)stateOutline();else nationalStates();
+});
+window.POLITICS_CONGRESSIONAL_ATLAS=Object.freeze({
+ selectState:chooseState,selectLayer:chooseLayer,
+ selectDistrict(code){if(!state||layers[layer].type!=='district')return false;
+  pendingCode=String(Number(code)).padStart(digits(),'0');
+  if(cache.has(layer+'|'+state))polygons(cache.get(layer+'|'+state),false);return true;
+ },
+ getSelection:()=>chosen?{...chosen}:null,getLayer:()=>layer,getState:()=>state
+});
+refresh();
+})();
