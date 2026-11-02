@@ -8,7 +8,7 @@ const $=id=>document.getElementById(id);
 const model=window.POLITICS_RECORDS_MODEL;
 const reader='https://politics-daily-snapshot.alxayvazian.workers.dev/api/congress-snapshot';
 const rosterStatus=$('directoryStatus'),stateGrid=$('stateGrid');
-const state={members:[],member:null,votes:[],voteData:null,rosterDate:null,selectedState:null,activeVoteFilter:'all'};
+const state={members:[],member:null,votes:[],voteData:null,rosterDate:null,selectedState:null,activeVoteFilter:'all',measures:{}};
 const states=model.states(window.GEO_STATES||[]);
 const stateByCode=Object.fromEntries(states.map(item=>[item.abbr,item]));
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -218,6 +218,49 @@ function renderVoteDistribution(){
  note.textContent='A Yes can approve, confirm, or advance a question. It does not always mean approving a bill; individual vote questions appear below.';
  root.append(caption,rows,note);
 }
+function measureKey(value){return String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
+function voteMeaning(v){
+ const q=String(v.question||'').toLowerCase();
+ const measure=measureKey(v.measure);
+ const nomination=measure.startsWith('PN')||q.includes('nomination');
+ if(q.includes('cloture'))
+  return 'This vote concerned whether to limit debate or advance consideration. It does not by itself enact a bill or confirm an appointment.';
+ if(q.includes('motion to proceed'))
+  return 'This vote concerned taking up the measure for Senate consideration, rather than deciding whether the underlying proposal becomes law.';
+ if(nomination)
+  return 'This was a vote about a federal appointment. Approval confirms or advances a nominee; it is not a vote on a household spending program.';
+ if(q.includes('amendment'))
+  return 'This vote was on a proposed change to a legislative measure. The change is not necessarily enacted merely because this roll call passed.';
+ if(q.includes('passage')||q.includes('suspend the rules'))
+  return 'This was a legislative passage question in this chamber. Passage here does not necessarily mean the measure became federal law.';
+ return 'This is one recorded congressional question. The vote result shown above tells you what the chamber decided, not a measured effect on households.';
+}
+function addVoteExplanation(container,v){
+ const desc=document.createElement('div');desc.className='recordsVoteWhy';
+ const heading=document.createElement('strong');heading.textContent='What this vote decided: ';
+ const line=document.createElement('span');line.textContent=voteMeaning(v);
+ desc.append(heading,line);
+ const official=state.measures[measureKey(v.measure)];
+ if(official&&(official.title||official.summary)){
+  const paragraph=document.createElement('p');paragraph.className='recordsOfficialSummary';
+  const label=document.createElement('strong');label.textContent='What the proposal says: ';
+  const text=document.createElement('span');
+  text.textContent=official.summary||official.title;
+  paragraph.append(label,text);desc.append(paragraph);
+ }
+ container.append(desc);
+}
+async function loadOfficialSummaries(){
+ try{
+  const res=await fetch('assets/data/records/measures-119.json',{credentials:'same-origin'});
+  if(!res.ok)return;
+  const value=await res.json();
+  if(value&&typeof value==='object'&&!Array.isArray(value)){
+   state.measures=value;
+   if(state.member&&state.votes.length)renderVotes();
+  }
+ }catch(_){}
+}
 function renderVotes(){
  let filtered=model.filterVotes(state.votes,$('votesQuery').value);
  if(state.activeVoteFilter!=='all')
@@ -233,7 +276,8 @@ function renderVotes(){
   foot.textContent=formatDate(v.date)+' · Roll '+v.roll+' · '+(v.question||'Recorded vote')+
    (v.result?' · '+v.result:'');
   body.append(title,foot);
-  const link=document.createElement('a');link.href=sourceUrl(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Official roll ↗';
+  addVoteExplanation(body,v);
+  const link=document.createElement('a');link.href=sourceUrl(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Source';link.setAttribute('aria-label','Source document for roll call '+v.roll);
   card.append(cast,body,link);list.append(card);
  }
  if(!filtered.length){
@@ -417,6 +461,7 @@ $('backToDelegation').addEventListener('click',()=>{
  $('delegationDirectory').scrollIntoView?.({behavior:'smooth',block:'start'});
 });
 renderStateDirectory();
+loadOfficialSummaries();
 for(const [name,key] of [['voteFilterAll','all'],['voteFilterYea','yes'],['voteFilterNay','no'],['voteFilterAbsent','absent']]){
  $(name).addEventListener('click',()=>{
   state.activeVoteFilter=key;
