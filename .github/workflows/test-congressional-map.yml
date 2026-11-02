@@ -10,6 +10,9 @@ on:
       - "assets/js/atlas-atmosphere.js"
       - "index.html"
       - "tests/atlas-atmosphere.test.mjs"
+      - "tests/atlas-clean-legend.test.mjs"
+      - "assets/js/map.js"
+      - "assets/css/politics.css"
       - "congressional.html"
       - "tests/congressional*.test.mjs"
       - "tests/test_boundary_snapshot.py"
@@ -48,6 +51,8 @@ jobs:
         with:
           name: congressional-map-audit
           path: audit-results/
+      - name: Check clean political legend, icy vacancies, and County Atlas national hint
+        run: node --test tests/atlas-clean-legend.test.mjs
       - name: Verify both Atlas pages share Healthcare styling without changing geographic colors
         run: node --test tests/atlas-atmosphere.test.mjs
       - name: Verify snapshot-generation logic offline
