@@ -1,0 +1,208 @@
+/* Congressional Records / editorial directory and voting data story.
+   Keeps the geographic silhouette selector intact. */
+body[data-view="records"] .recordsDelegationDirectory,
+body[data-view="records"] .recordsProfile{
+ background:transparent;border:0;box-shadow:none;backdrop-filter:none;padding:0;
+}
+.recordsDelegationHero{
+ position:relative;display:flex;align-items:center;min-height:290px;
+ border-radius:28px;overflow:hidden;padding:38px clamp(20px,4vw,56px);
+ background:radial-gradient(ellipse at 82% 28%,rgba(114,170,215,.22),transparent 48%),
+ linear-gradient(120deg,#131e37 0%,#101d34 56%,#14294b 100%);
+ border:1px solid rgba(145,200,236,.23);isolation:isolate;
+ box-shadow:0 28px 76px rgba(0,0,0,.23);
+}
+.recordsDelegationHero::before{
+ content:"";position:absolute;inset:0;pointer-events:none;opacity:.28;
+ background-image:linear-gradient(rgba(127,211,245,.08) 1px,transparent 1px),
+ linear-gradient(90deg,rgba(127,211,245,.08) 1px,transparent 1px);
+ background-size:48px 48px;mask-image:linear-gradient(to left,black,transparent 85%);
+}
+.recordsDelegationHeroText{position:relative;z-index:2;max-width:720px}
+.recordsDelegationHero .recordsBack{display:block;width:max-content;margin-bottom:21px}
+.recordsDelegationHero h2{
+ font-size:clamp(42px,6.3vw,94px);line-height:1.0;font-weight:800;
+ letter-spacing:-.065em;margin:10px 0 15px;color:#f3f8ff;
+}
+.recordsDelegationHero p{font-size:14px;color:#b9d3e5;margin:0;line-height:1.6}
+.recordsHeroSteps{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:32px;color:#bacfe1;font-size:11px}
+.recordsHeroSteps b{color:#78e0e4;margin-right:6px;font-weight:800}
+.recordsDelegationSilhouette{
+ position:absolute;z-index:0;right:-22px;top:5px;bottom:5px;width:min(42%,440px);
+ display:grid;place-items:center;opacity:.23;pointer-events:none;
+ filter:drop-shadow(0 0 35px rgba(120,215,255,.24));
+}
+.recordsDelegationSilhouette svg{height:100%;width:100%;max-height:290px}
+.recordsDelegationSilhouette path{fill:#9dbbd3;stroke:#c0edfa;stroke-width:1.1;fill-rule:evenodd}
+.recordsAddressFinder{margin:18px 0 30px}
+.recordsDelegationSection{margin:42px 0}
+.recordsDirectorySubhead{align-items:flex-end;padding:0 4px 15px;margin-bottom:22px}
+.recordsDirectorySubhead h3{font-size:clamp(23px,2.8vw,34px);letter-spacing:-.045em}
+.recordsDirectorySubhead span{font-size:12px;color:#a5c6d8}
+.recordsMemberGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:16px}
+.recordsMemberCard{
+ position:relative;display:block;isolation:isolate;overflow:hidden;
+ min-height:278px;padding:0;
+ text-align:left;border:1px solid rgba(159,202,228,.15);
+ border-radius:19px;background:linear-gradient(140deg,#28354b,#172036);
+ box-shadow:0 15px 32px rgba(0,0,0,.16);
+ transition:transform .2s ease,border-color .2s,box-shadow .2s;
+}
+.recordsMemberCard::after{
+ content:"";z-index:1;position:absolute;inset:28% 0 0;pointer-events:none;
+ background:linear-gradient(180deg,transparent 0%,rgba(3,10,23,.38) 29%,rgba(3,9,23,.95) 100%);
+}
+.recordsMemberCard:hover,.recordsMemberCard:focus-visible,.recordsMemberCard[aria-current="true"]{
+ transform:translateY(-5px);border-color:rgba(126,226,246,.72);outline:none;
+ background:#28354b;box-shadow:0 19px 45px rgba(0,0,0,.35),0 0 0 2px rgba(83,197,221,.17);
+}
+.recordsMemberPortrait{position:absolute;inset:0;display:grid;place-items:center;overflow:hidden}
+.recordsMemberPortrait img{
+ display:block;height:100%;width:100%;object-fit:cover;object-position:50% 15%;
+ filter:saturate(.72);transition:transform .35s,filter .3s;
+}
+.recordsMemberCard:hover .recordsMemberPortrait img{transform:scale(1.055);filter:saturate(1)}
+.recordsMemberFallback{
+ position:absolute;inset:0;display:grid;place-items:center;
+ background:radial-gradient(ellipse at 50% 23%,rgba(132,184,211,.26),transparent 64%),#23314a;
+ font-size:64px;color:rgba(218,240,252,.27);letter-spacing:-.1em;font-weight:800;
+}
+.recordsMemberPortrait img[hidden]{display:none}
+.recordsMemberDistrict{
+ position:absolute;z-index:3;top:13px;left:13px;
+ border:1px solid rgba(214,241,254,.32);border-radius:999px;
+ padding:7px 10px;background:rgba(2,11,26,.74);backdrop-filter:blur(9px);
+ font-size:10px;letter-spacing:.07em;color:#c1e8ef;font-weight:780;
+}
+.recordsMemberCard .recordsMemberName{
+ z-index:3;position:absolute;bottom:36px;left:15px;right:12px;
+ font-size:clamp(17px,1.6vw,23px);font-weight:770;line-height:1.13;
+ color:#f3f9ff;letter-spacing:-.04em;text-wrap:balance;text-shadow:0 1px 10px rgba(0,0,0,.3);
+}
+.recordsMemberCard .recordsMemberParty{
+ z-index:3;position:absolute;bottom:14px;left:15px;right:12px;
+ font-size:11px;color:#bdd1e1;font-weight:610;
+}
+#senateMembers{grid-template-columns:repeat(2,minmax(0,1fr))}
+#senateMembers .recordsMemberCard{min-height:270px}
+#senateMembers .recordsMemberPortrait img{object-position:50% 16%}
+#senateMembers .recordsMemberCard .recordsMemberName{font-size:clamp(24px,2.7vw,36px);bottom:47px;left:22px;right:14px}
+#senateMembers .recordsMemberCard .recordsMemberParty{bottom:22px;left:22px}
+#senateMembers .recordsMemberDistrict{top:18px;left:21px}
+#senateMembers .recordsMemberPortrait{right:0;left:37%}
+#senateMembers .recordsMemberCard::after{
+ inset:0;background:linear-gradient(90deg,rgba(4,12,27,.96) 0%,rgba(6,15,30,.79) 30%,rgba(8,17,35,.09) 96%);
+}
+#senateMembers .recordsMemberFallback{font-size:95px}
+.recordsProfile{scroll-margin-top:84px}
+.recordsProfileHero{
+ display:grid;grid-template-columns:minmax(245px,30%) minmax(0,1fr);
+ min-height:355px;overflow:hidden;position:relative;
+ background:radial-gradient(circle at 72% 24%,rgba(106,185,227,.18),transparent 50%),
+ linear-gradient(125deg,#16253d 0%,#0c172c 100%);
+ border:1px solid rgba(177,217,243,.23);border-radius:28px;
+ box-shadow:0 24px 62px rgba(0,0,0,.22);margin-bottom:20px;
+}
+.recordsProfilePortrait{position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 20%,#485970,#17263d)}
+.recordsProfilePortrait img{display:block;width:100%;height:100%;object-fit:cover;object-position:center top;filter:saturate(.8)}
+.recordsProfilePortrait::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(11,23,42,.55),transparent 50%)}
+.recordsProfileHead{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;border:0;padding:35px clamp(22px,4vw,65px)}
+.recordsProfileHead h2{font-size:clamp(34px,5.5vw,70px);letter-spacing:-.06em;margin:0;line-height:1.04}
+.recordsProfileHead .recordsBack{margin-bottom:22px}
+.recordsProfileHead p{font-size:16px;color:#b9d4e5;margin:0}
+.recordsProfileActions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:15px}
+.recordsProfileActions>a{color:#bdf0f1;text-decoration:none;border:1px solid rgba(117,209,222,.4);border-radius:999px;padding:9px 14px;font-size:12px}
+.recordsProfileActions span{font-size:12px;color:#a0b7c9}
+.recordsPanels{grid-template-columns:minmax(0,1.8fr) minmax(260px,.7fr);gap:24px}
+.recordsVotesPanel{
+ background:linear-gradient(145deg,rgba(15,30,55,.92),rgba(8,17,34,.95));
+ border-color:rgba(161,207,238,.19);padding:clamp(18px,3vw,34px)
+}
+.recordsVotesPanel h3{font-size:clamp(26px,3.1vw,38px);letter-spacing:-.045em}
+.recordsSidebar .recordsPanel{border:0;border-bottom:1px solid rgba(167,203,233,.15);border-radius:0;background:transparent;padding:18px 8px 22px}
+.recordsSidebar .recordsPanel h3{font-size:20px}
+.recordsSidebar .recordsPanel small,.recordsSidebar .recordsPanel p{line-height:1.6}
+.recordsSidebar .recordsPanel a{border-radius:999px}
+.recordsVoteSummary{
+ grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;
+ padding:0;margin:24px 0 14px;
+}
+.recordsVoteSummary>div{
+ background:transparent;border:0;border-right:1px solid rgba(147,194,225,.2);
+ padding:5px 12px;
+}
+.recordsVoteSummary>div:last-child{border-right:0}
+.recordsVoteSummary strong{font-size:clamp(24px,3.2vw,37px);line-height:1.1;color:#fff}
+.recordsVoteSummary span{font-size:11px;line-height:1.3;display:block;margin-top:5px}
+.recordsDistribution{margin:22px 0 32px}
+.recordsDistributionBar{display:flex;overflow:hidden;border-radius:999px;min-height:12px;background:#46546d}
+.recordsDistributionBar span{display:block;min-height:12px}
+.recordsDistributionBar .yes{background:#4ea9c9}
+.recordsDistributionBar .no{background:#c86482}
+.recordsDistributionBar .other{background:#9c88c3}
+.recordsDistributionBar .absent{background:#718197}
+.recordsDistributionLegend{display:flex;gap:10px 18px;flex-wrap:wrap;margin-top:12px}
+.recordsDistributionLegend span{display:inline-flex;align-items:center;gap:7px;font-size:11px;color:#b4c9dc}
+.recordsDistributionLegend i{display:inline-block;height:9px;width:9px;border-radius:3px;background:#4ea9c9}
+.recordsDistributionLegend .no i{background:#c86482}
+.recordsDistributionLegend .other i{background:#9c88c3}
+.recordsDistributionLegend .absent i{background:#718197}
+.recordsVoteTools{display:grid;gap:17px;padding:22px 0 15px;border-top:1px solid rgba(150,190,220,.15)}
+.recordsVotePills{display:flex;gap:8px;flex-wrap:wrap}
+.recordsVotePills button{
+ border:1px solid rgba(153,193,226,.23);border-radius:999px;
+ padding:10px 14px;background:rgba(7,22,41,.8);color:#afcadf;cursor:pointer;
+ font-size:12px;font-weight:700;transition:background .18s,border-color .18s;
+}
+.recordsVotePills button:hover,.recordsVotePills button:focus-visible{border-color:#8ad7e7;outline:none}
+.recordsVotePills button[aria-pressed="true"]{color:#ebfcff;border-color:#84cdda;background:rgba(94,173,194,.2)}
+.recordsVoteFilter{margin:0}
+.recordsVoteFilter input{max-width:100%;background:#06162b}
+.recordsVoteList{gap:0;max-height:none}
+.recordsVoteRow{
+ grid-template-columns:minmax(85px,100px) minmax(0,1fr) auto;
+ border:0;border-bottom:1px solid rgba(162,200,228,.13);border-radius:0;
+ background:transparent;min-height:89px;padding:18px 6px;
+}
+.recordsVoteText strong{font-size:14px;line-height:1.4}
+.recordsVoteText small{font-size:11px;line-height:1.5}
+.recordsCast{border-radius:999px;font-size:11px;letter-spacing:.01em}
+.recordsCast.Yea{color:#8edddf;border-color:#529dad;background:rgba(82,157,173,.1)}
+.recordsCast.Nay{color:#ffd0d5;border-color:#a6606b;background:rgba(173,99,110,.11)}
+.recordsVoteRow a{color:#8edfe8;border-bottom:1px solid rgba(142,223,232,.35);padding-bottom:2px}
+@media(max-width:1000px){
+ .recordsMemberGrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .recordsPanels{grid-template-columns:1fr;gap:10px}
+ .recordsSidebar{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}
+}
+@media(max-width:760px){
+ .recordsDelegationHero{min-height:255px;padding:26px 20px}
+ .recordsDelegationHero h2{font-size:49px}
+ .recordsDelegationSilhouette{width:45%;opacity:.14}
+ .recordsHeroSteps{gap:8px 13px;margin-top:18px}
+ .recordsMemberGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+ #senateMembers{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #senateMembers .recordsMemberPortrait{left:0}
+ #senateMembers .recordsMemberCard::after{background:linear-gradient(180deg,transparent 0%,rgba(4,10,23,.9) 100%)}
+ #senateMembers .recordsMemberCard .recordsMemberName{font-size:20px;left:13px;bottom:36px}
+ #senateMembers .recordsMemberCard .recordsMemberParty{left:13px;bottom:14px}
+ .recordsProfileHero{grid-template-columns:34% 1fr;min-height:295px}
+ .recordsProfileHead{padding:20px}
+ .recordsProfileHead h2{font-size:35px}
+ .recordsSidebar{grid-template-columns:1fr}
+}
+@media(max-width:520px){
+ .recordsMemberGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .recordsMemberCard{min-height:240px}
+ #senateMembers .recordsMemberCard{min-height:210px}
+ .recordsProfileHero{grid-template-columns:1fr;min-height:0}
+ .recordsProfilePortrait{height:240px}
+ .recordsProfileHead{padding:22px}
+ .recordsProfileHead .recordsBack{margin-bottom:5px}
+ .recordsProfileHead h2{font-size:41px}
+ .recordsVoteRow{grid-template-columns:80px minmax(0,1fr);gap:8px}
+ .recordsVoteRow a{grid-column:2;justify-self:start}
+ .recordsVoteSummary>div{padding:4px}
+ .recordsDistributionLegend{gap:9px}
+ .recordsHeroSteps{font-size:10px}
+}
