@@ -160,7 +160,16 @@ function polygons(data,national){
  }
  if(!national&&(pendingCode||pendingGeoid)){
   const match=features.find(f=>currentCode(f)===pendingCode||String(f.properties.GEOID)===pendingGeoid);
-  pendingCode=null;pendingGeoid=null;if(match)selectFeature(match);
+  pendingCode=null;pendingGeoid=null;if(match){selectFeature(match);return;}
+ }
+ if(!national&&state){
+  // Statewide government data is visible immediately on state selection, even
+  // before a visitor chooses a particular legislative district.
+  if(district){
+   const match=features.find(f=>f.properties?.GEOID===district.properties?.GEOID);
+   if(match){selectFeature(match);return;}
+  }
+  display(meta(null,byCode[state].fips));
  }
 }
 function boundaryAsset(fips){
