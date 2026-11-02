@@ -1,5 +1,6 @@
-/* Congressional Atlas political data panel: reads ALREADY-CACHED D1 snapshots.
- * No upstream source/API-key request runs on a public click. Never colors the map.
+/* Congressional Atlas political data: read-only cached federal D1 and public
+ * static nightly state rosters. Fill colors mean verified CURRENT incumbency,
+ * not election outcomes or forecasts. No provider API-key call on a map click.
  */
 (function(){
 'use strict';
