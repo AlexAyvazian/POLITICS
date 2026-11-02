@@ -43,10 +43,11 @@ function selectFeature(feature){
 }
 function display(data){
  $('districtSelection').hidden=false;
- const atLarge=data.scope==='district'&&layer==='house'&&data.district==='00';
- $('selectionType').textContent=atLarge?'AT-LARGE U.S. HOUSE DISTRICT':data.scope==='district'?layers[layer].title.toUpperCase():'STATEWIDE GEOGRAPHY';
+ const delegate=data.scope==='district'&&layer==='house'&&data.state==='DC'&&data.district==='98';
+ const atLarge=data.scope==='district'&&layer==='house'&&(data.district==='00'||delegate);
+ $('selectionType').textContent=delegate?'AT-LARGE D.C. DELEGATE DISTRICT':atLarge?'AT-LARGE U.S. HOUSE DISTRICT':data.scope==='district'?layers[layer].title.toUpperCase():'STATEWIDE GEOGRAPHY';
  $('selectionName').textContent=byCode[data.state]?.name+(data.scope==='district'?' · '+model.districtDisplayName(layer,data.district):'');
- $('selectionGeoid').textContent='GEOID: '+data.geoid+(atLarge?' · The entire state is one congressional district.':'');
+ $('selectionGeoid').textContent='GEOID: '+data.geoid+(delegate?' · D.C. elects a non-voting delegate.':atLarge?' · The entire state is one congressional district.':'');
  announce(data);
 }
 function hash(){try{history.replaceState(null,'','#'+[state||'US',layer,district?currentCode(district):null].filter(Boolean).join('/'));}catch{}}
@@ -123,8 +124,8 @@ function polygons(data,national){
    .text(f=>model.districtDisplayName(layer,currentCode(f)));
  }
  if(!national&&features.length===1){
-  $('districtMapLabel').textContent=stateName()+' · 1 at-large U.S. House district';
-  $('atlasHint').textContent='No internal district boundaries — one representative district covers the entire state.';
+  $('districtMapLabel').textContent=stateName()+(state==='DC'?' · 1 at-large delegate district':' · 1 at-large U.S. House district');
+  $('atlasHint').textContent=state==='DC'?'No internal district boundaries — D.C. elects one delegate.':'No internal district boundaries — one representative district covers the entire state.';
   selectFeature(features[0]);
   return;
  }
@@ -142,7 +143,7 @@ async function geojson(url){
   const r=await fetch(url,{credentials:'same-origin',cache:'default',headers:{Accept:'application/json'},signal:c.signal});
   if(!r.ok)throw Error('HTTP '+r.status);
   const data=await r.json();
-  if(data?.type!=='FeatureCollection'||!Array.isArray(data.features)||!data.features.length)throw Error('Bad geographic response');
+  if(data?.type!=='FeatureCollection'||!Array.isArray(data.features))throw Error('Bad geographic response');
   return data;
  }finally{clearTimeout(timer);}
 }
