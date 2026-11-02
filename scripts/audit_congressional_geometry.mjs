@@ -57,7 +57,7 @@ for(const layer of layers){
   }
   if(layer==='house'&&features.length===1){
    report.layers[layer].atLarge++;
-   if(model.districtCode(features[0].properties,layer)!=='00')
+   if(!['00',...(state==='11'?['98']:[])].includes(model.districtCode(features[0].properties,layer)))
     fail(layer,state,'one-district-state-not-at-large');
   }
   try{
