@@ -456,7 +456,7 @@ async function loadFinanceDetail(m){
  root.append(note);
  const body=document.createElement('div');body.className='recordsInsightGrid';
  if(Array.isArray(data.byState))body.append(evidenceBars('Reported individual donation totals by state',data.byState,'state'));
- if(Array.isArray(data.contributionSizes))body.append(evidenceBars('Itemized contributions by FEC size group',data.contributionSizes,'size'));
+ if(Array.isArray(data.contributionSizes))body.append(evidenceBars('Reported donation-size categories (FEC)',data.contributionSizes,'size'));
  if(Array.isArray(data.reportedEmployers))body.append(evidenceBars('Contributors’ reported employers',data.reportedEmployers,'employer'));
  if(Array.isArray(data.outsideSpending))body.append(evidenceBars('Independent spending: supporting vs opposing',data.outsideSpending,'side'));
  root.append(body);
