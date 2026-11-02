@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const tick=()=>new Promise(r=>setImmediate(r));
 function node(id=''){
- const el={id,children:[],hidden:false,attributes:{},listeners:{},value:'',textContent:'',innerHTML:'',className:'',
+ const el={id,children:[],hidden:false,attributes:{},listeners:{},value:'',textContent:'',innerHTML:'',className:'',style:{},
   addEventListener(name,handler){this.listeners[name]=handler},
   setAttribute(k,v){this.attributes[k]=v},
   replaceChildren(...items){this.children=items},
@@ -15,7 +15,7 @@ function node(id=''){
  return el;
 }
 function build(){
- const ids=['directoryStatus','stateGrid','stateDirectory','delegationDirectory','delegationTitle','delegationIntro','senateCount','houseCount','houseHeading','senateMembers','houseMembers','backToStates','backToDelegation','districtLookupForm','addressInput','findMyRep','districtLookupStatus','districtLookupResult','memberProfile','recordsStart','profileName','profileChamber','profileInfo','profileBio','recordUpdated','votesQuery','voteStatus','voteSummary','votePeriod','memberVotes','fecMemberLink','disclosureList','congressMemberLink'];
+ const ids=['directoryStatus','stateGrid','stateDirectory','delegationDirectory','delegationTitle','delegationIntro','delegationSilhouette','senateCount','houseCount','houseHeading','senateMembers','houseMembers','backToStates','backToDelegation','districtLookupForm','addressInput','findMyRep','districtLookupStatus','districtLookupResult','memberProfile','recordsStart','profilePortrait','profileName','profileChamber','profileInfo','profileBio','recordUpdated','votesQuery','voteStatus','voteSummary','voteDistribution','voteFilterAll','voteFilterYea','voteFilterNay','voteFilterAbsent','votePeriod','memberVotes','fecMemberLink','disclosureList','congressMemberLink'];
  const el=Object.fromEntries(ids.map(id=>[id,node(id)]));
  el.stateDirectory.hidden=false;el.delegationDirectory.hidden=true;el.memberProfile.hidden=true;
  el.addressInput.value='';
@@ -60,7 +60,16 @@ test('state tiles are the default directory, choosing Colorado exposes the deleg
  await tick();await tick();
  assert.equal(el.profileName.textContent,'District Three');
  assert.equal(el.memberProfile.hidden,false);
+ assert.equal(el.delegationDirectory.hidden,true);
  assert.match(el.voteStatus.textContent,/1 recorded votes/);
+ assert.equal(el.voteSummary.hidden,false);
+ assert.equal(el.voteDistribution.children.length,2);
+ el.voteFilterYea.click();
+ assert.equal(el.voteFilterYea.attributes['aria-pressed'],'true');
+ assert.equal(el.memberVotes.children.length,1);
+ el.voteFilterNay.click();
+ assert.match(el.memberVotes.children[0].textContent,/No captured votes match/);
+ el.voteFilterAll.click();
  assert.equal(el.memberVotes.children.length,1);
  assert.ok(requests.some(u=>u.includes('assets/data/records/members/H000002.json')));
  el.backToDelegation.click();
