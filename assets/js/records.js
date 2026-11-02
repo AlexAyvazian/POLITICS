@@ -340,13 +340,67 @@ async function loadFinance(m){
  }catch(_){}
  renderFinance(payload,m);
 }
-function renderTravel(m){
+function renderTravel(m,report=null){
  const root=$('travelVisualization');root.replaceChildren();
+ if(state.member?.bioguide!==m.bioguide)return;
+ const filings=Array.isArray(report?.filings)&&report.bioguide===m.bioguide?
+  report.filings.filter(r=>r&&Number.isInteger(r.reportedYear)&&(r.reportedYear===2025||r.reportedYear===2026)):[];
+ if(!filings.length){
+  const message=document.createElement('p');message.className='recordsEvidenceNote';
+  message.textContent='No individual filings have been loaded for this '+(m.chamber==='Senate'?'Senate office':'House member')+' yet. That does not mean no sponsored travel occurred.';
+  root.append(message);return;
+ }
  const count=document.createElement('strong');count.className='recordsTravelHeadline';
- count.textContent='No travel figures in the current local dataset';
- const p=document.createElement('p');p.className='recordsEvidenceNote';
- p.textContent='Official privately sponsored travel disclosures have not yet been converted into individual records for '+m.name+'. This is not a claim that the member took no sponsored trips.';
- root.append(count,p);
+ count.textContent=filings.length+' published filing'+(filings.length===1?'':'s')+' linked to this Senate office';
+ root.append(count);
+ const explanation=document.createElement('p');explanation.className='recordsEvidenceNote';
+ explanation.textContent='Office-associated disclosures, including staff travel. These are filings, not confirmed trips by the senator personally. Travel expenses are not totaled because the archive does not supply verified dollar values.';
+ root.append(explanation);
+ const years=new Map([[2025,0],[2026,0]]);
+ for(const filing of filings)years.set(filing.reportedYear,years.get(filing.reportedYear)+1);
+ const comparison=document.createElement('div');comparison.className='recordsTravelYears';
+ const max=Math.max(...years.values(),1);
+ for(const [year,n] of years){
+  const row=document.createElement('div');row.className='recordsTravelYearRow';
+  const label=document.createElement('span');label.textContent=String(year);
+  const track=document.createElement('div');track.className='recordsFinanceBarTrack';
+  const bar=document.createElement('span');bar.className='recordsTravelYearFill';
+  bar.style.width=(n/max*100).toFixed(1)+'%';track.append(bar);
+  track.setAttribute('role','img');track.setAttribute('aria-label',year+': '+n+' office-associated filings');
+  const total=document.createElement('strong');total.textContent=n+' filing'+(n===1?'':'s');
+  row.append(label,track,total);comparison.append(row);
+ }
+ root.append(comparison);
+ const heading=document.createElement('h4');heading.textContent='Recent reported travel';
+ root.append(heading);
+ const listing=document.createElement('div');listing.className='recordsTravelList';
+ for(const filing of filings.slice(0,12)){
+  const item=document.createElement('div');item.className='recordsTravelItem';
+  const title=document.createElement('strong');
+  title.textContent=filing.title||'Travel disclosure';
+  const details=document.createElement('span');details.className='recordsTravelMeta';
+  details.textContent=(filing.beginDate||'Dates not listed')+
+   (filing.endDate?' – '+filing.endDate:'')+' · '+(filing.traveler||'Traveler not specified');
+  const badge=document.createElement('span');badge.className='recordsTravelBadge';
+  badge.textContent=filing.travelerType==='staff'?'Staff filing':'Traveler status not established';
+  item.append(title,details,badge);listing.append(item);
+ }
+ root.append(listing);
+ if(filings.length>12){
+  const more=document.createElement('p');more.className='recordsEvidenceNote';
+  more.textContent='Showing the 12 most recent of '+filings.length+' published office-associated filings.';
+  root.append(more);
+ }
+}
+async function loadTravel(m){
+ if(m.chamber!=='Senate'){renderTravel(m);return;}
+ $('travelVisualization').textContent='Loading Senate office travel filings…';
+ let report=null;
+ try{
+  const response=await fetch('assets/data/records/travel/'+encodeURIComponent(m.bioguide)+'.json',{credentials:'same-origin',cache:'default'});
+  if(response.ok)report=await response.json();
+ }catch(_){}
+ renderTravel(m,report);
 }
 function renderMeasures(){
  const root=$('legislationVisualization');root.replaceChildren();
@@ -423,7 +477,7 @@ function select(id){
  $('travelVisualization').replaceChildren();$('legislationVisualization').replaceChildren();
  for(const [key,name] of [['all','voteFilterAll'],['yes','voteFilterYea'],['no','voteFilterNay'],['absent','voteFilterAbsent']])
   $(name).setAttribute('aria-pressed',String(key==='all'));
- renderTravel(m);loadFinance(m);
+ loadTravel(m);loadFinance(m);
  try{history.replaceState(null,'','#state='+encodeURIComponent(m.state)+'&member='+encodeURIComponent(id));}catch{}
  $('memberProfile').scrollIntoView?.({behavior:'smooth',block:'start'});
  loadVotes(m);
