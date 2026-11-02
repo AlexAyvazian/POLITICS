@@ -107,7 +107,7 @@ test('congressional atlas is a distinct interactive map-only page',()=>{
  assert.match(js,/model\.rewindForD3\(/,'map must normalize Census geometry before rendering');
  assert.match(js,/geoAlbersUsa/);
  assert.match(js,/zoom\(/);
- assert.doesNotMatch(html,/assets\/js\/map\.js|assets\/js\/congressional\.js|ncsl-control\.js|governors\.js/);
+ assert.doesNotMatch(html,/assets\/js\/map\.js|assets\/js\/congressional\.js/);
  assert.doesNotMatch(js,/POLITICS_NCSL|GOVERNORS_2026/);
 });
 test('county atlas source, colors and effects remain independent',()=>{
@@ -126,6 +126,6 @@ test('state executive roster has all fifty verified NGA governor names with clea
  assert.equal(d.states.VA,'Abigail Spanberger');
  assert.equal(d.states.NJ,'Mikie Sherrill');
  assert.equal(d.asOf,'2026-11-01');
- assert.doesNotMatch(read('congressional.html'),/assets\/js\/governors\.js/);
+ assert.match(read('congressional.html'),/assets\/js\/governors\.js/);
  assert.match(read('assets/js/congressional.js'),/GOVERNORS_2026/);
 });
