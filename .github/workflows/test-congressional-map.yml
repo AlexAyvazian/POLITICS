@@ -6,6 +6,7 @@ on:
       - "assets/js/congressional-map.js"
       - "assets/js/congressional-model.js"
       - "assets/css/congressional-map.css"
+      - "assets/css/congressional-chrome.css"
       - "assets/css/healthcare-atmosphere.css"
       - "assets/js/atlas-atmosphere.js"
       - "index.html"
@@ -39,6 +40,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Verify County-style Congressional toolbar and trackpad zoom controls
+        run: node --test tests/congressional-chrome.test.mjs
       - name: Verify Congressional Atlas and boundary gateway regression tests
         run: node --test tests/congressional*.test.mjs
       - name: Audit all 153 state/layer boundary maps using actual D3
