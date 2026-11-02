@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes,refreshMemberLegislation} from '../workers/politics-gateway.mjs';
+import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes,refreshMemberLegislation,refreshMemberFinanceDetail,refreshMemberLobby} from '../workers/politics-gateway.mjs';
 
 const specs=COUNTY_CATEGORY_CONFIG.specs;
 const expectedCategories=['housing','jobs','income','healthcare','education','families','infrastructure'];
@@ -216,4 +216,56 @@ test('Congress.gov member sponsorship is collected by exact Bioguide ID and stor
  assert.ok(!JSON.stringify(data).includes('test-key'));
  await assert.rejects(refreshMemberLegislation({COUNTY_DB:store,CONGRESS_API_KEY:'test-key'},'INVALID',fetcher,now));
  assert.equal(store.writes.length,1);
+});
+
+test('FEC analysis joins an exact Bioguide-to-FEC candidate ID and labels self-reported employer aggregates',async()=>{
+ const store=db(),urls=[];
+ const mock=async (input,options={})=>{
+  const u=new URL(input);urls.push(u);
+  if(u.hostname==='politics-e5yt.onrender.com')
+   return new Response(JSON.stringify({bioguide:'H000001',candidateId:'H1CA00001',cycle:2026}),{status:200});
+  if(u.pathname.endsWith('/by_size/by_candidate/'))
+   return new Response(JSON.stringify({results:[{size:0,total:1200,count:9}]}));
+  if(u.pathname.endsWith('/by_state/by_candidate/'))
+   return new Response(JSON.stringify({results:[{state:'CA',total:1420,count:11}]}));
+  if(u.pathname.endsWith('/totals/by_candidate/'))
+   return new Response(JSON.stringify({results:[{support_oppose:'S',total:550,count:1}]}));
+  if(u.pathname.endsWith('/committees/'))
+   return new Response(JSON.stringify({results:[{committee_id:'C00000001',designation:'P'}]}));
+  if(u.pathname.endsWith('/by_employer/'))
+   return new Response(JSON.stringify({results:[{employer:'SCHOOL DISTRICT',total:1300,count:2}]}));
+  throw Error('unexpected '+u.pathname);
+ };
+ const out=await refreshMemberFinanceDetail({COUNTY_DB:store,FEC_API_KEY:'test-fec'},'H000001',mock,now);
+ assert.equal(out.candidateId,'H1CA00001');assert.equal(out.sections,4);
+ assert.equal(store.writes[0][0],'member_finance_detail_H000001');
+ const saved=JSON.parse(store.writes[0][1]);
+ assert.equal(saved.contributionSizes[0].total,1200);
+ assert.equal(saved.byState[0].state,'CA');
+ assert.equal(saved.outsideSpending[0].total,550);
+ assert.equal(saved.reportedEmployers[0].employer,'SCHOOL DISTRICT');
+ assert.equal(saved.employerScope,'Principal campaign committee only; employer is self-reported and does not establish a corporate contribution.');
+ assert.ok(!JSON.stringify(saved).includes('test-fec'));
+ assert.ok(urls.filter(x=>x.hostname==='api.open.fec.gov').every(x=>x.searchParams.get('candidate_id')==='H1CA00001'||x.searchParams.get('committee_id')==='C00000001'||x.pathname.endsWith('/committees/')));
+ await assert.rejects(refreshMemberFinanceDetail({COUNTY_DB:store,FEC_API_KEY:'test-fec'},'bad',mock,now));
+ assert.equal(store.writes.length,1);
+});
+test('LobbyView network records distinguish research linkages from direct payments to members',async()=>{
+ const store=db(),uuid='44563806-56d2-5e99-84a1-95d22a7a69b3',seen=[];
+ const mock=async (url,options={})=>{
+  const u=new URL(url);seen.push({u,options});
+  if(u.pathname.endsWith('/networks'))
+   return new Response(JSON.stringify({data:[{client_uuid:uuid,legislator_id:'H000001',report_year:2025,n_bills_sponsored:2}]}));
+  if(u.pathname.endsWith('/clients'))
+   return new Response(JSON.stringify({data:[{client_uuid:uuid,client_name:'Example Civic Association'}]}));
+  throw Error('unexpected '+u.pathname);
+ };
+ const out=await refreshMemberLobby({COUNTY_DB:store,LOBBYVIEW_API_KEY:'test-lobby'},'H000001',mock,now);
+ assert.equal(out.clientCount,1);
+ const data=JSON.parse(store.writes[0][1]);
+ assert.equal(data.clients[0].name,'Example Civic Association');
+ assert.equal(data.clients[0].billOverlapCount,2);
+ assert.equal(data.source,'LobbyView researcher-coded bill/client networks');
+ assert.ok(!JSON.stringify(data).includes('test-lobby'));
+ assert.ok(seen.every(x=>x.options.headers.token==='test-lobby'));
 });
