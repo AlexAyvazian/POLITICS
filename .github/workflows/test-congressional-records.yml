@@ -10,6 +10,9 @@ on:
       - assets/css/records.css
       - tests/congressional-records.test.mjs
       - tests/congressional-records-directory-ui.test.mjs
+      - tests/congressional-records-silhouettes.test.mjs
+      - assets/js/state-silhouettes.js
+      - assets/js/records-address-model.js
       - scripts/update_voteview_rollcalls.py
       - tests/test_voteview_rollcalls.py
       - ".github/workflows/test-congressional-records.yml"
