@@ -72,6 +72,13 @@ def match_house(rows,people):
   data={key:value for key,value in row.items() if key not in ('memberName','state','district')}
   result.setdefault(bio,[]).append(data)
  return result
+def filing_date_sort(row):
+ raw=str(row.get('beginDate') or '')
+ try:return datetime.strptime(raw,'%m/%d/%Y')
+ except ValueError:
+  try:return datetime.strptime(raw,'%m/%d/%y')
+  except ValueError:return datetime(int(row.get('reportedYear') or 2025),1,1)
+
 def main():
  try:import yaml
  except ImportError:raise SystemExit('Requires PyYAML')
@@ -92,7 +99,7 @@ def main():
  OUT.mkdir(parents=True,exist_ok=True)
  updated=0
  for bio,filings in mapping.items():
-  filings.sort(key=lambda r:(r['reportedYear'],r['beginDate'],r['documentId']),reverse=True)
+  filings.sort(key=lambda r:(filing_date_sort(r),r['documentId']),reverse=True)
   record={'bioguide':bio,'officeAssociation':'House member office',
    'source':'U.S. House Clerk Gift Travel Filings',
    'sourceUrl':'https://disclosures-clerk.house.gov/GiftTravelFilings/ViewReport',
