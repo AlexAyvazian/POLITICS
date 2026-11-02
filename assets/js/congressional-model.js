@@ -99,6 +99,7 @@ function districtViewport(width,height,count){
 }
 function districtDisplayName(layer,code){
  if(layer==='house'&&String(code)==='00')return 'At-large';
+ if(layer==='house'&&String(code)==='98')return 'At-large delegate';
  const value=Number(code);
  return Number.isInteger(value)&&value>=0?'District '+value:'District';
 }
