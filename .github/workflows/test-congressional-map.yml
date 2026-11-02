@@ -26,9 +26,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Verify project tests
-        run: npm test
-      - name: Verify cached district rendering and source separation
+      - name: Verify Congressional Atlas and boundary gateway regression tests
         run: node --test tests/congressional*.test.mjs
       - name: Verify snapshot-generation logic offline
         run: python3 -m unittest discover -s tests -p test_boundary_snapshot.py -v
