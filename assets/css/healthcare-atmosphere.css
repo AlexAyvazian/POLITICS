@@ -1,0 +1,149 @@
+/* Healthcare Directory atmosphere, adapted for POLITICS.
+ * Deliberately SCOPED TO BACKGROUNDS, GLASS SURFACES AND CONTROLS.
+ * No SVG fill, stroke, district geometry, county colors, or political classification here.
+ * Reference: Healthcare-Directory/assets/css/world.css.
+ */
+body[data-view="map"],
+body[data-view="congress"]{
+  --atlas-ice:#e8f6ff;
+  --atlas-edge:rgba(150,190,255,.22);
+  --atlas-frost:rgba(125,211,252,.22);
+  background:radial-gradient(circle at 20% 10%,#0d1f45 0,#050814 45%) fixed,#050814;
+  color:#eaf2ff;
+}
+
+/* The Directory's seven floating bioluminescent orbs, not geographic fills. */
+body[data-view="map"] #view-map .orb,
+body[data-view="congress"] .orb{
+  position:fixed;
+  border-radius:999px;
+  z-index:0;
+  filter:blur(10px);
+  opacity:.5;
+  mix-blend-mode:screen;
+  pointer-events:none;
+  background:#e8f6ff;
+  box-shadow:0 0 60px 18px rgba(205,236,255,.55),0 0 140px 50px rgba(170,220,255,.22);
+  animation:atlasAmbientFloat 18s ease-in-out infinite alternate,atlasAmbientPulse 6s ease-in-out infinite alternate;
+}
+body[data-view="map"] #view-map .orb.one,
+body[data-view="congress"] .orb.one{width:360px;height:360px;left:-120px;top:80px}
+body[data-view="map"] #view-map .orb.two,
+body[data-view="congress"] .orb.two{width:280px;height:280px;right:60px;top:60px;animation-delay:-5s,-2s}
+body[data-view="map"] #view-map .orb.three,
+body[data-view="congress"] .orb.three{width:220px;height:220px;right:20%;bottom:40px;animation-delay:-9s,-4s}
+body[data-view="map"] #view-map .orb.four,
+body[data-view="congress"] .orb.four{width:110px;height:110px;left:38%;top:16%;animation-delay:-3s,-1s}
+body[data-view="map"] #view-map .orb.five,
+body[data-view="congress"] .orb.five{width:70px;height:70px;left:12%;bottom:18%;animation-delay:-12s,-5s}
+body[data-view="map"] #view-map .orb.six,
+body[data-view="congress"] .orb.six{width:90px;height:90px;right:34%;top:42%;animation-delay:-7s,-3s}
+body[data-view="map"] #view-map .orb.seven,
+body[data-view="congress"] .orb.seven{width:50px;height:50px;left:58%;bottom:10%;animation-delay:-15s,-2.5s}
+@keyframes atlasAmbientFloat{
+ from{transform:translate3d(0,0,0) scale(1)}
+ to{transform:translate3d(70px,45px,0) scale(1.12)}
+}
+@keyframes atlasAmbientPulse{
+ from{opacity:.36;filter:blur(10px) brightness(.9)}
+ to{opacity:.62;filter:blur(10px) brightness(1.25)}
+}
+
+/* Existing county map.js already follows the cursor. Congress has its own tiny visual-only listener. */
+body[data-view="map"] #view-map .cursorGlow,
+body[data-view="congress"] .cursorGlow{
+ position:fixed;
+ width:280px;height:280px;border-radius:999px;
+ background:radial-gradient(circle,rgba(125,211,252,.16),transparent 65%);
+ pointer-events:none;transform:translate(-50%,-50%);
+ z-index:1;
+}
+body[data-view="congress"] .cursorGlow{left:-400px;top:-400px}
+body[data-view="congress"] .atlasHeader,
+body[data-view="congress"] .districtAtlas{position:relative;z-index:2}
+
+/* The directory's frosted-panel tone: deeply transparent, with lit rims and soft depth. */
+body[data-view="map"] #view-map .glass,
+body[data-view="congress"] .atlasMapShell{
+ background:linear-gradient(145deg,rgba(17,29,61,.75),rgba(7,12,27,.55));
+ border:1px solid var(--atlas-edge);
+ box-shadow:0 24px 80px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.08);
+ backdrop-filter:blur(18px);
+ -webkit-backdrop-filter:blur(18px);
+ border-radius:28px;
+}
+body[data-view="map"] #view-map .mapShell,
+body[data-view="congress"] .atlasViewport{
+ background:linear-gradient(180deg,rgba(4,9,22,.74),rgba(8,15,34,.52));
+ border:1px solid rgba(255,255,255,.09);
+ border-radius:24px;
+ overflow:hidden;
+}
+body[data-view="map"] .atlasNav,
+body[data-view="congress"] .atlasHeader{
+ background:linear-gradient(145deg,rgba(17,29,61,.80),rgba(7,12,27,.64));
+ border:1px solid rgba(180,222,255,.2);
+ box-shadow:0 18px 60px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.11);
+ backdrop-filter:blur(22px);
+ -webkit-backdrop-filter:blur(22px);
+}
+body[data-view="congress"] .atlasHeader{border-radius:0 0 20px 20px}
+body[data-view="congress"] .atlasControls,
+body[data-view="congress"] .atlasFoot{
+ background:linear-gradient(180deg,rgba(17,29,61,.47),rgba(7,12,27,.33));
+ border-color:rgba(150,190,255,.17);
+}
+body[data-view="congress"] .atlasLayerTabs button[aria-pressed="true"]{
+ background:linear-gradient(135deg,rgba(125,211,252,.24),rgba(167,139,250,.24));
+ border-color:rgba(125,211,252,.42);
+ box-shadow:0 0 0 1px rgba(125,211,252,.12),0 0 22px rgba(125,211,252,.1);
+ color:#f1faff;
+}
+body[data-view="congress"] .atlasFind :is(input,select,button),
+body[data-view="congress"] .atlasMapActions button,
+body[data-view="congress"] .atlasMapTop button,
+body[data-view="map"] #view-map .mapToolbar :is(input,select,button){
+ background:rgba(4,8,20,.70);
+ border-color:rgba(148,163,184,.23);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+ border-radius:16px;
+}
+body[data-view="congress"] .atlasFind :is(input,select,button):focus-visible,
+body[data-view="congress"] .atlasLayerTabs button:focus-visible,
+body[data-view="map"] #view-map .mapToolbar :is(input,select,button):focus-visible{
+ outline:2px solid #7dd3fc;
+ outline-offset:2px;
+ border-color:#69dcff;
+ box-shadow:0 0 0 3px rgba(105,220,255,.12),0 0 30px rgba(105,220,255,.08);
+}
+body[data-view="congress"] :is(.atlasFind button,.atlasLayerTabs button,.atlasMapActions button):hover,
+body[data-view="map"] #view-map .mapToolbar button:hover{
+ box-shadow:0 0 0 1px rgba(125,211,252,.4),0 0 24px rgba(125,211,252,.16);
+}
+body[data-view="congress"] .atlasSelection,
+body[data-view="map"] #view-map .selectedCard{
+ background:linear-gradient(145deg,rgba(17,29,61,.89),rgba(7,12,27,.85));
+ border:1px solid rgba(150,190,255,.30);
+ box-shadow:0 24px 80px rgba(0,0,0,.43),inset 0 1px 0 rgba(255,255,255,.10),0 0 28px rgba(125,211,252,.09);
+ backdrop-filter:blur(22px);
+ -webkit-backdrop-filter:blur(22px);
+}
+body[data-view="congress"] .atlasSelection{border-radius:22px}
+body[data-view="congress"] .atlasMapTop span,
+body[data-view="congress"] .atlasMessage,
+body[data-view="congress"] .atlasTooltip,
+body[data-view="congress"] .atlasHint{
+ background:rgba(4,8,20,.74);
+ border-color:rgba(180,222,255,.20);
+}
+@media(prefers-reduced-motion:reduce){
+ body[data-view="map"] #view-map .orb,
+ body[data-view="congress"] .orb{animation:none}
+ body[data-view="map"] #view-map .cursorGlow,
+ body[data-view="congress"] .cursorGlow{display:none}
+}
+@media(max-width:760px){
+ body[data-view="map"] #view-map .orb,
+ body[data-view="congress"] .orb{opacity:.27}
+ body[data-view="congress"] .atlasHeader{border-radius:0 0 14px 14px}
+}
