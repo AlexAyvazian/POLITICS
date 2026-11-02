@@ -119,3 +119,6 @@
   }
   #view-map #mapSvg .countyInnerLight{animation:none;opacity:.82}
 }
+
+/* Hide only the empty nationwide hint; state/county context and errors stay visible. */
+#view-map .mapLabel:empty{display:none}
