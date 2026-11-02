@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+"""Read public Senate gift travel archive schema for verified ingestion."""
+from urllib.request import Request,urlopen
+from zipfile import ZipFile
+from io import BytesIO
+from collections import Counter
+import xml.etree.ElementTree as ET
+url='https://giftrule-disclosure.senate.gov/media/giftruledownloads/giftruledata.zip'
+req=Request(url,headers={'User-Agent':'Mozilla/5.0 (POLITICS Civic Records)'})
+with urlopen(req,timeout=65) as res:
+ content=res.read(12_000_001)
+if len(content)>12_000_000:raise ValueError('Unexpectedly large archive')
+with ZipFile(BytesIO(content)) as archive:
+ files=archive.namelist()
+ print('FILES:',[(n,archive.getinfo(n).file_size) for n in files[:10]],flush=True)
+ for name in files:
+  if name.lower().endswith('.xml'):
+   with archive.open(name) as stream:
+    root=ET.parse(stream).getroot()
+   print('ROOT',root.tag,'children',len(root),flush=True)
+   print('ROOT ATTR',list(root.attrib),flush=True)
+   children=list(root)
+   print('CHILD_TAGS',Counter(c.tag for c in children).most_common(10),flush=True)
+   if children:
+    one=children[0]
+    print('FIRST ITEM TAGS',[(a.tag, 'nested='+str(len(a)), 'text_len='+str(len(a.text or ''))) for a in list(one)[:35]],flush=True)
+    for sub in list(one)[:8]:
+     print('SUB',sub.tag,'tags',[(x.tag, 'text_len='+str(len(x.text or ''))) for x in list(sub)[:15]],flush=True)
+   break
