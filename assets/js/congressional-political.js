@@ -6,9 +6,24 @@
 const READER='https://politics-daily-snapshot.alxayvazian.workers.dev';
 const panel=document.getElementById('politicalDetails');
 const model=window.CONGRESSIONAL_POLITICAL_MODEL;
-const NCSL=window.POLITICS_NCSL,governors=window.GOVERNORS_2026;
+const NCSL=window.POLITICS_NCSL,governors=window.GOVERNORS_2026,atlas=window.POLITICS_CONGRESSIONAL_ATLAS;
 if(!panel||!model)return;
 const stateCache=new Map();
+/* Party classes are categorical current incumbency, never vote predictions.
+ * A missing or partial legislative roster leaves unmatched districts neutral. */
+function resolveParty({layer,state,scope,district}){
+ if(!state)return 'unknown';
+ if(layer==='house')return scope==='district'?model.houseParty(federal,state,district):'unknown';
+ if(layer==='stateSenate'||layer==='stateHouse')
+  return scope==='district'?model.stateDistrictParty(stateData.get(state),layer,district):
+   model.chamberMajority(NCSL?.states?.[state],layer);
+ if(layer==='senate')return model.senateParty(federal,state);
+ if(layer==='governor')return model.partyClass(NCSL?.states?.[state]?.governor);
+ if(layer==='president')return model.partyClass('Republican');
+ return 'unknown';
+}
+function repaint(){atlas?.setPartyResolver?.(resolveParty);}
+
 let federal=null,federalStatus='loading',current=null,renderSeq=0;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const party=x=>({D:'Democratic',R:'Republican',S:'Divided',Nonpartisan:'Nonpartisan','N/A':'Not applicable'}[x]||x||'Not reported');
@@ -30,8 +45,8 @@ function fetchStored(path){
 }
 const federalTask=fetchStored('/api/congress-snapshot').then(data=>{
  if(!data?.states||!data?.count)throw Error('Congressional roster not collected');
- federal=data;federalStatus='ready';
-}).catch(()=>{federalStatus='unavailable';});
+ federal=data;federalStatus='ready';repaint();
+}).catch(()=>{federalStatus='unavailable';repaint();});
 function openStates(state){
  if(!stateCache.has(state)){
   stateCache.set(state,fetchStored('/api/openstates-snapshot?state='+encodeURIComponent(state))
@@ -122,16 +137,18 @@ async function onSelection(selection){
  if(federalStatus==='loading'){
   federalTask.then(()=>{if(seq===renderSeq)render();});
  }
- if(selection.scope==='district'&&['stateSenate','stateHouse'].includes(selection.layer)&&
+ if(['stateSenate','stateHouse'].includes(selection.layer)&&
     !stateData.has(selection.state)&&!statePending.has(selection.state)){
   const key=selection.state;statePending.add(key);render();
   const result=await openStates(key);
   statePending.delete(key);
   if(result)stateData.set(key,result);
+  repaint();
   if(seq===renderSeq)render();
  }
 }
 window.addEventListener('congressional-atlas:selection',e=>{onSelection(e.detail);});
+repaint();
 const initial=window.POLITICS_CONGRESSIONAL_ATLAS?.getSelection?.();
 if(initial)onSelection(initial);
 window.POLITICS_CONGRESSIONAL_POLITICAL=Object.freeze({getFederalStatus:()=>federalStatus});
