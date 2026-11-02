@@ -89,3 +89,29 @@ body[data-view="congress"] button,body[data-view="congress"] input,body[data-vie
 .atlasSelectionClose{position:absolute;top:7px;right:10px;background:transparent;border:0;color:#b4cde0;cursor:pointer;font-size:21px}
 @media(max-width:1150px){.atlasControls{align-items:flex-start}.atlasLayerTabs{flex:1 1 100%}.atlasFind{width:100%}.atlasFind input{flex:1}.districtAtlas{padding:8px}}
 @media(max-width:600px){body[data-view="congress"]{overflow:auto}.atlasHeader{height:auto;min-height:59px;flex-wrap:wrap;padding:10px}.atlasTitle{font-size:12px}.atlasNavLinks{font-size:10px}.atlasNavLinks a,.atlasNavLinks span{padding:5px 8px}.districtAtlas{height:calc(100dvh - 96px);min-height:500px}.atlasControls{padding:7px}.atlasLayerTabs button{padding:8px 9px;font-size:11px}.atlasFind select{width:110px}.atlasFind input{width:80px}.atlasSelection{right:61px;bottom:47px;width:190px}.atlasHint{font-size:10px;max-width:70%}.atlasFoot{font-size:10px}}
+
+
+/* Contextual political-information details only; never re-color map geometry. */
+.atlasSelection:has(.atlasPoliticalDetails:not(:empty)){
+ width:min(370px,calc(100% - 108px));
+ max-height:min(74vh,670px);
+ overflow-y:auto;
+ scrollbar-width:thin;
+ scrollbar-color:rgba(155,205,235,.4) transparent;
+}
+.atlasPoliticalDetails{margin-top:12px;padding-top:11px;border-top:1px solid rgba(178,221,255,.19);line-height:1.5}
+.atlasPoliticalDetails:empty{display:none}
+.atlasPoliticalHeading{font-size:12px;letter-spacing:.045em;color:#bce4ef;margin:14px 0 8px;font-weight:850}
+.atlasPoliticalHeading:first-child{margin-top:2px}
+.atlasPoliticalRow{display:flex;justify-content:space-between;gap:12px;align-items:start;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.055);font-size:12px}
+.atlasPoliticalRow span{color:#9db8cb;max-width:50%}
+.atlasPoliticalRow strong{font-size:12px;color:#e3f4ff;text-align:right;overflow-wrap:anywhere}
+.atlasPoliticalPerson{display:flex;flex-direction:column;gap:3px;margin:7px 0;padding:10px;border:1px solid rgba(170,221,255,.15);border-radius:11px;background:rgba(9,26,47,.59);font-size:13px}
+.atlasPoliticalPerson strong{font-size:14px;color:#f0faff}
+.atlasPoliticalPerson span{color:#c3d3e4;font-size:12px}
+.atlasPoliticalDetails a{color:#98e9f1;text-decoration:none}
+.atlasPoliticalDetails a:hover{text-decoration:underline}
+.atlasPoliticalNote{color:#a9bdcc;font-size:11px;line-height:1.55;margin:9px 0 5px}
+@media(max-width:600px){.atlasSelection:has(.atlasPoliticalDetails:not(:empty)){
+ width:min(290px,calc(100% - 76px));max-height:57vh;right:60px;bottom:47px;
+}}
