@@ -621,7 +621,14 @@ async function refreshMemberLegislationBatch(env,slot,fetchImpl=fetch,now=new Da
  const ids=Array.from({length:8},(_,i)=>members[(start+i)%members.length]);
  const results=await Promise.allSettled(ids.map(id=>refreshMemberLegislation(env,id,fetchImpl,now)));
  const failed=results.filter(x=>x.status==='rejected');
- if(failed.length)console.warn('Congress.gov member legislation refresh failed for '+failed.length+' of '+ids.length+' members');
+ const errorReasons=[...new Set(failed.map(x=>String(x.reason?.message||'Provider request failed').slice(0,140)))].slice(0,4);
+ // Persist sanitized operational evidence. Do not include keys, requests or full error stacks.
+ const status={source:'Congress.gov member sponsorship ingestion',asOf:now.toISOString(),
+  attempted:ids.length,updated:ids.length-failed.length,failed:failed.length,
+  examples:errorReasons,recordCount:ids.length-failed.length};
+ try{await politicalSnapshotWrite(db,'member_legislation_collection_health',status,now,status.updated);}
+ catch(e){console.warn('Could not save member collector health: '+e.message);}
+ if(failed.length)console.warn('Congress.gov member legislation refresh failures '+failed.length+'/'+ids.length+': '+errorReasons.join(' | '));
  return {attempted:ids.length,updated:ids.length-failed.length,failed:failed.length};
 }
 /* Source: Census TIGERweb official 2025 generalized legislative boundary polygons.
