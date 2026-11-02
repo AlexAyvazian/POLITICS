@@ -14,9 +14,9 @@ XML='''<GiftRule>
 class TravelTests(unittest.TestCase):
  def test_office_filing_does_not_claim_staff_travel_was_senators_own(self):
   filings=parse_office(XML.encode())
-  self.assertEqual(len(filings['COLLINS, SUSAN']),2)
-  self.assertEqual(filings['COLLINS, SUSAN'][0]['travelerType'],'staff')
-  self.assertEqual(filings['COLLINS, SUSAN'][1]['travelerType'],'unknown')
+  self.assertEqual(len(filings['COLLINS SUSAN']),2)
+  self.assertEqual(filings['COLLINS SUSAN'][0]['travelerType'],'staff')
+  self.assertEqual(filings['COLLINS SUSAN'][1]['travelerType'],'unknown')
  def test_office_name_exact_not_surname_only(self):
   p={'id':{'bioguide':'C001035'},'name':{'first':'Susan','last':'Collins'},'terms':[{'type':'sen'}]}
   n={'id':{'bioguide':'S000148'},'name':{'first':'Charles','nickname':'Chuck','last':'Schumer'},'terms':[{'type':'sen'}]}
