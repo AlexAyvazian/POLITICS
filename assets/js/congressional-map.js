@@ -91,8 +91,6 @@ function canvas(){
  home=d3.zoomIdentity;svg.call(zoom.transform,home);
  return {w,h};
 }
-function reset(){if(zoom)svg.transition().duration(200).call(zoom.transform,home);}
-function zoomBy(n){if(zoom)svg.transition().duration(200).call(zoom.scaleBy,n);}
 function name(f,isState){
  const s=byFips[String(isState?f.id:f.properties?.STATE).padStart(2,'0')];
  return isState?(s?.name||'State'):(s?.name||stateName())+' · '+layers[layer].title+' · '+model.districtDisplayName(layer,currentCode(f));
@@ -271,9 +269,6 @@ $('congressState').addEventListener('change',e=>chooseState(e.target.value));
 $('congressBack').addEventListener('click',()=>chooseState(null));
 $('districtFind').addEventListener('click',find);
 $('districtSearch').addEventListener('keydown',e=>{if(e.key==='Enter')find();});
-$('congressZoomIn').addEventListener('click',()=>zoomBy(1.5));
-$('congressZoomOut').addEventListener('click',()=>zoomBy(1/1.5));
-$('congressZoomReset').addEventListener('click',reset);
 $('selectionClose').addEventListener('click',()=>{deselect(true);hash();});
 window.addEventListener('resize',()=>{
  const item=cache.get(layer+'|'+(state||'US'));
