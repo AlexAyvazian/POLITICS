@@ -113,8 +113,11 @@ function renderVotes(){
   const card=document.createElement('div');card.className='recordsVoteRow';
   const cast=document.createElement('span');cast.className='recordsCast '+(v.cast==='Yea'?'Yea':v.cast==='Nay'?'Nay':'');cast.textContent=v.cast;
   const body=document.createElement('div');body.className='recordsVoteText';
-  const title=document.createElement('strong');title.textContent=(v.measure?v.measure+' · ':'')+(v.question||'Recorded roll call');
-  const foot=document.createElement('small');foot.textContent=formatDate(v.date)+' · Roll '+v.roll+' · '+(v.result||'Result not reported');
+  const title=document.createElement('strong');
+  title.textContent=(v.measure?v.measure+' · ':'')+(v.subject||v.question||'Recorded roll call');
+  const foot=document.createElement('small');
+  foot.textContent=formatDate(v.date)+' · Roll '+v.roll+' · '+(v.question||'Recorded vote')+
+   (v.result?' · '+v.result:'');
   body.append(title,foot);
   const link=document.createElement('a');link.href=sourceUrl(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Official roll ↗';
   card.append(cast,body,link);list.append(card);
