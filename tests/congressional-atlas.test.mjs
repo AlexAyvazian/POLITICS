@@ -61,6 +61,18 @@ test('multipolygon congressional islands rewind each exterior and hole independe
  }
 });
 
+test('D.C. delegate district remains distinct from state at-large district code',()=>{
+ const c=setup();
+ assert.equal(c.districtCode({GEOID:'1198'},'house'),'98');
+ assert.equal(c.districtDisplayName('house','98'),'At-large delegate');
+ assert.equal(c.districtDisplayName('house','00'),'At-large');
+});
+test('nonexistent State House or Senate chambers display an accurate empty-state message',()=>{
+ const js=read('assets/js/congressional-map.js');
+ assert.match(js,/data\.features\.length===0&&state/);
+ assert.doesNotMatch(js,/!Array\.isArray\(data\.features\)\|\|!data\.features\.length/);
+});
+
 test('single at-large House district is shown in a restrained centered viewport',()=>{
  const c=setup();
  const one=c.districtViewport(1300,600,1);
