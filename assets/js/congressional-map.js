@@ -1,7 +1,7 @@
 /* Standalone Congressional Atlas: only geographic boundaries and interactions. */
 (function(){
 'use strict';
-const $=id=>document.getElementById(id),d3=window.d3,states=window.GEO_STATES,model=window.CONGRESSIONAL_MODEL;
+const $=id=>document.getElementById(id),d3=window.d3,states=window.GEO_STATES,model=window.CONGRESSIONAL_MODEL,partyModel=window.CONGRESSIONAL_POLITICAL_MODEL;
 const byFips=Object.fromEntries(states.map(s=>[s.fips,s])),byCode=Object.fromEntries(states.map(s=>[s.abbr,s]));
 const layers={
  house:{title:'U.S. House districts',type:'district',id:5,vintage:'119th Congress · January 2025 Census boundaries'},
@@ -17,7 +17,7 @@ const BOUNDARY_ASSETS='assets/data/congressional';
 const svg=d3.select('#districtMap'),tip=$('congressTooltip'),cache=new Map();
 const us=window.topojson.feature(window.US_ATLAS,window.US_ATLAS.objects.states).features.filter(f=>byFips[String(f.id).padStart(2,'0')]);
 const outlines=new Map(us.map(f=>[String(f.id).padStart(2,'0'),f]));
-let state=null,layer='house',district=null,pendingCode=null,pendingGeoid=null,seq=0,root,zoom,home=d3.zoomIdentity,chosen=null;
+let state=null,layer='house',district=null,pendingCode=null,pendingGeoid=null,seq=0,root,zoom,home=d3.zoomIdentity,chosen=null,partyResolver=null;
 const stateName=()=>byCode[state]?.name||'United States';
 const digits=()=>layer==='house'?2:3;
 const currentCode=f=>model.districtCode(f.properties,layer);
@@ -59,10 +59,34 @@ function ui(){
  $('atlasHint').textContent=state?'Select a district · Scroll to zoom · Drag to move':'Select a state or district · Scroll to zoom · Drag to move';
  document.querySelectorAll('[data-atlas-layer]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.atlasLayer===layer)));
 }
+/* Keep numerals the same screen size through zoom instead of scaling text.
+ * Text coordinates stay attached to the geography; inverse glyph scaling
+ * compensates for the SVG parent transform while district polygons zoom. */
+function syncDistrictLabels(k){
+ if(!root)return;
+ const inv=1/Math.max(.001,k);
+ root.selectAll('.atlasDistrictLabel')
+  .attr('transform',function(){
+   return 'translate('+this.getAttribute('data-x')+','+this.getAttribute('data-y')+') scale('+(inv)+')';
+  });
+}
+function partyForFeature(feature){
+ if(typeof partyResolver!=='function')return 'unknown';
+ const props=feature?.properties||{};
+ const isState=feature?.id!==undefined&&!props.GEOID;
+ const fips=isState?String(feature.id).padStart(2,'0'):String(props.STATE||'').padStart(2,'0');
+ const code=byFips[fips]?.abbr;
+ if(!code)return 'unknown';
+ const result=partyResolver({layer,state:code,scope:isState?'state':'district',district:isState?null:currentCode(feature)});
+ return ['democratic','republican','other','split'].includes(result)?result:'unknown';
+}
+function paintPartyColors(){
+ if(root)root.selectAll('.atlasFeature').attr('data-party',partyForFeature);
+}
 function canvas(){
  const el=$('atlasViewport'),w=Math.max(250,el.clientWidth),h=Math.max(240,el.clientHeight);
  svg.attr('viewBox','0 0 '+w+' '+h).selectAll('*').remove();root=svg.append('g');
- zoom=d3.zoom().scaleExtent([1,12]).on('zoom',e=>root.attr('transform',e.transform));
+ zoom=d3.zoom().scaleExtent([1,12]).on('zoom',e=>{root.attr('transform',e.transform);syncDistrictLabels(e.transform.k);});
  svg.call(zoom).on('dblclick.zoom',null);
  home=d3.zoomIdentity;svg.call(zoom.transform,home);
  return {w,h};
@@ -76,6 +100,7 @@ function name(f,isState){
 function plot(features,path,isState,group=root){
  group.selectAll('path').data(features,f=>f.properties?.GEOID||f.id).join('path')
   .attr('d',path).attr('class','atlasFeature'+(isState?' atlasState':''))
+  .attr('data-party',partyForFeature)
   .attr('role','button').attr('tabindex',0)
   .attr('aria-label',f=>name(f,isState))
   .on('mousemove',(e,f)=>tipOn(e,name(f,isState))).on('mouseleave',tipOff)
@@ -149,8 +174,10 @@ function polygons(data,national){
  if(!national){
   root.selectAll('.atlasDistrictLabel').data(labelFeatures.filter(f=>path.area(f)>190)).join('text')
    .attr('class','atlasDistrictLabel')
-   .attr('transform',f=>{const [x,y]=path.centroid(f);return 'translate('+x+','+y+')';})
-   .text(f=>model.districtDisplayName(layer,currentCode(f)));
+   .attr('data-x',f=>path.centroid(f)[0])
+   .attr('data-y',f=>path.centroid(f)[1])
+   .text(f=>partyModel.districtMarker(layer,currentCode(f)));
+  syncDistrictLabels(d3.zoomTransform(svg.node()).k);
  }
  if(!national&&features.length===1){
   $('districtMapLabel').textContent=stateName()+(state==='DC'?' · 1 at-large delegate district':' · 1 at-large U.S. House district');
@@ -255,6 +282,7 @@ window.addEventListener('resize',()=>{
 });
 window.POLITICS_CONGRESSIONAL_ATLAS=Object.freeze({
  selectState:chooseState,selectLayer:chooseLayer,
+ setPartyResolver(fn){partyResolver=typeof fn==='function'?fn:null;paintPartyColors();},
  selectDistrict(code){if(!state||layers[layer].type!=='district')return false;
   pendingCode=String(Number(code)).padStart(digits(),'0');
   if(cache.has(layer+'|'+state))polygons(cache.get(layer+'|'+state),false);return true;
