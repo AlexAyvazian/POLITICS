@@ -390,3 +390,17 @@ body[data-view="records"] .recordsProfile{
  .recordsDecisionsHeader{display:block}
  .recordsDecisionsHeader p{margin-top:9px}
 }
+
+
+/* Member-specific Congress.gov sponsorship, separate from roll-call measures. */
+#sponsoredLinks{grid-column:1/-1;scroll-margin-top:90px}
+.recordsSponsorVisualization{margin-top:10px}
+.recordsSponsorColumns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(15px,3vw,42px);margin:17px 0}
+.recordsSponsorColumn{min-width:0}
+.recordsSponsorColumn h4{font-size:18px;letter-spacing:-.03em;margin:4px 0 14px;color:#e7f7ff}
+.recordsSponsorBill{padding:13px 0;border-top:1px solid rgba(137,185,207,.18)}
+.recordsSponsorBill>strong{font-size:14px;display:block;line-height:1.4;color:#ecf7ff}
+.recordsSponsorMeta{display:block;color:#a2bfd0;margin:8px 0;font-size:11px}
+.recordsSponsorBill p{color:#a2bccb;font-size:11px;line-height:1.5;margin:6px 0}
+.recordsSponsorBill a{color:#a2e5e4;font-size:11px;text-underline-offset:3px}
+@media(max-width:760px){.recordsSponsorColumns{grid-template-columns:1fr;gap:17px}}
