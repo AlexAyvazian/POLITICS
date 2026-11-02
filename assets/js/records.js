@@ -242,11 +242,20 @@ function addVoteExplanation(container,v){
  desc.append(heading,line);
  const official=state.measures[measureKey(v.measure)];
  if(official&&(official.title||official.summary)){
-  const paragraph=document.createElement('p');paragraph.className='recordsOfficialSummary';
+  const paragraph=document.createElement('div');paragraph.className='recordsOfficialSummary';
   const label=document.createElement('strong');label.textContent='What the proposal says: ';
   const text=document.createElement('span');
-  text.textContent=official.summary||official.title;
-  paragraph.append(label,text);desc.append(paragraph);
+  const original=String(official.summary||official.title||'');
+  const excerpt=original.length>390?original.slice(0,390).replace(/\\s+\\S*$/,'').trim():original;
+  text.textContent=excerpt+(original.length>390?'…':'');
+  paragraph.append(label,text);
+  if(original.length>390){
+   const expand=document.createElement('details');expand.className='recordsSummaryDetails';
+   const button=document.createElement('summary');button.textContent='Read full official explanation';
+   const full=document.createElement('p');full.textContent=original;
+   expand.append(button,full);paragraph.append(expand);
+  }
+  desc.append(paragraph);
  }
  container.append(desc);
 }
