@@ -67,6 +67,7 @@ def parse_rollcalls(handle,chamber):
   calls[n]={
    'year':year,'roll':roll,'voteviewRoll':n,'date':date,
    'measure':str(row.get('bill_number') or '').strip()[:110],
+   'subject':str(row.get('vote_desc') or '').strip()[:340],
    'question':(str(row.get('vote_question') or '').strip() or str(row.get('vote_desc') or '').strip())[:350],
    'result':str(row.get('vote_result') or '').strip()[:120],
    'url':url}
