@@ -56,7 +56,7 @@ function render(opts={}){
   chrome();renderCard();
 }
 function renderUS(opts){
-  $('mapLabel').textContent='U.S. map · select a state to explore its counties';
+  $('mapLabel').textContent='';
   $('legend').hidden=true;
   const L=usLayout(),path=d3.geoPath();
   const g=svg.append('g').attr('class','usLayer'+(opts.fade?' fadeIn':''))
