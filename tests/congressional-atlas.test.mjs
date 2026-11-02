@@ -33,6 +33,34 @@ test('district mapping only uses matching current term, no county-to-district in
  assert.equal(c.federalMembers([person],'CA','house','07','2026-11-01').length,0);
  assert.equal(c.federalMembers([person],'NY','house','05','2026-11-01').length,0);
 });
+
+test('Census GeoJSON rings are normalized to D3 spherical winding without changing boundary coordinates',()=>{
+ const c=setup();
+ // The real Washington Census 119th district source has a CCW exterior.
+ const ccw=[[-124,46],[-123,46],[-123,47],[-124,47],[-124,46]];
+ const holeCW=[[-123.8,46.2],[-123.8,46.8],[-123.2,46.8],[-123.2,46.2],[-123.8,46.2]];
+ const area=ring=>ring.reduce((sum,p,i)=>{const q=ring[(i+1)%ring.length];return sum+p[0]*q[1]-q[0]*p[1];},0);
+ const geometry={type:'Polygon',coordinates:[ccw,holeCW]};
+ const source={type:'FeatureCollection',features:[{type:'Feature',properties:{GEOID:'5303',STATE:'53'},geometry}]};
+ const normalized=c.rewindForD3(source);
+ assert.ok(area(normalized.features[0].geometry.coordinates[0])<0,'D3 must receive clockwise exterior');
+ assert.ok(area(normalized.features[0].geometry.coordinates[1])>0,'D3 must receive counterclockwise holes');
+ assert.equal(normalized.features[0].properties.GEOID,'5303');
+ assert.deepEqual(source.features[0].geometry.coordinates[0],ccw,'source coordinates remain untouched');
+ assert.deepEqual(c.rewindForD3(normalized).features[0].geometry.coordinates,normalized.features[0].geometry.coordinates,'rewinding is idempotent');
+});
+test('multipolygon congressional islands rewind each exterior and hole independently',()=>{
+ const c=setup();
+ const ccw1=[[0,0],[1,0],[1,1],[0,1],[0,0]],ccw2=[[2,2],[3,2],[3,3],[2,3],[2,2]];
+ const source={type:'FeatureCollection',features:[{type:'Feature',properties:{GEOID:'5303',STATE:'53'},geometry:{type:'MultiPolygon',coordinates:[[ccw1],[ccw2]]}}]};
+ const result=c.rewindForD3(source);
+ for(const polygon of result.features[0].geometry.coordinates){
+  const ring=polygon[0];let a=0;
+  for(let i=0;i<ring.length;i++){const p=ring[i],q=ring[(i+1)%ring.length];a+=p[0]*q[1]-q[0]*p[1];}
+  assert.ok(a<0);
+ }
+});
+
 test('congressional atlas is a distinct interactive map-only page',()=>{
  const html=read('congressional.html'),home=read('index.html'),js=read('assets/js/congressional-map.js');
  assert.match(html,/assets\/js\/congressional-map\.js/);
