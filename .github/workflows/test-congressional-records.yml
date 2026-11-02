@@ -9,6 +9,7 @@ on:
       - assets/js/states.js
       - assets/css/records.css
       - tests/congressional-records.test.mjs
+      - tests/congressional-records-directory-ui.test.mjs
       - scripts/update_voteview_rollcalls.py
       - tests/test_voteview_rollcalls.py
       - ".github/workflows/test-congressional-records.yml"
@@ -29,6 +30,6 @@ jobs:
         with:
           node-version: "22"
       - name: Verify state-first directory, exact member profiles, and voting joins
-        run: node --test tests/congressional-records.test.mjs
+        run: node --test tests/congressional-records*.test.mjs
       - name: Verify archived roll-call dataset joins and vote code meanings
         run: python3 -m unittest discover -s tests -p test_voteview_rollcalls.py -v
