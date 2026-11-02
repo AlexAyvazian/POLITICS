@@ -404,3 +404,22 @@ body[data-view="records"] .recordsProfile{
 .recordsSponsorBill p{color:#a2bccb;font-size:11px;line-height:1.5;margin:6px 0}
 .recordsSponsorBill a{color:#a2e5e4;font-size:11px;text-underline-offset:3px}
 @media(max-width:760px){.recordsSponsorColumns{grid-template-columns:1fr;gap:17px}}
+
+/* FEC and LobbyView evidence: compact editorial comparisons, not endless cards. */
+.recordsFinanceDetail{border-top:1px solid rgba(143,201,213,.23);margin:24px 0 0;padding:22px 0 0}
+.recordsFinanceDetail>h4{font-size:clamp(19px,2.5vw,29px);letter-spacing:-.04em;margin:0 0 5px}
+.recordsInsightGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:25px 40px;margin:23px 0}
+.recordsInsightGroup{min-width:0}
+.recordsInsightGroup h4{color:#e3f2fc;font-size:14px;letter-spacing:-.01em;margin:0 0 13px}
+.recordsInsightLine{display:grid;grid-template-columns:minmax(80px,1fr) minmax(65px,1.15fr) 100px;align-items:center;gap:10px;margin:10px 0}
+.recordsInsightLine>span{color:#c1d9e6;font-size:11px;overflow-wrap:anywhere}
+.recordsInsightLine>strong{color:#edf7fb;font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+.recordsInsightTrack{background:rgba(176,209,222,.12);height:9px;border-radius:15px;overflow:hidden}
+.recordsInsightFill{display:block;background:linear-gradient(90deg,#519faa,#86c7c2);height:100%;border-radius:15px}
+.recordsFinanceDetail>a,.recordsLobbyVisualization>a{display:inline-block;color:#a6e1eb;font-size:12px;text-underline-offset:3px;margin-top:8px}
+#lobbyLinks{scroll-margin-top:90px}
+.recordsLobbyCount{display:block;font-size:clamp(21px,2.4vw,30px);letter-spacing:-.04em;margin:16px 0}
+.recordsLobbyRow{border-top:1px solid rgba(150,197,223,.16);padding:12px 0;display:flex;justify-content:space-between;gap:12px}
+.recordsLobbyRow strong{font-size:13px;color:#e4f5ff}
+.recordsLobbyRow span{color:#a0c3cf;font-size:11px}
+@media(max-width:760px){.recordsInsightGrid{grid-template-columns:1fr}.recordsInsightLine{grid-template-columns:minmax(70px,1fr) minmax(50px,1fr) 80px;gap:8px}.recordsInsightLine>strong{font-size:11px}.recordsLobbyRow{display:block}.recordsLobbyRow span{display:block;margin-top:5px}}
