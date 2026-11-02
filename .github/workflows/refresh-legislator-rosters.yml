@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/refresh-legislator-rosters.yml
       - scripts/update_legislator_rosters.py
+      - tests/test_legislator_roster.py
 
 permissions:
   contents: write
