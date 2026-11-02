@@ -36,6 +36,13 @@ function senateCast(vote,member){
 }
 function memberVotes(snapshot,member){
  if(!Array.isArray(snapshot?.votes)||!member)return [];
+ // The per-member static Voteview cache is keyed by Bioguide and already
+ // records each actual cast. Reject a wrong member file, don't guess.
+ if(snapshot.bioguide){
+  return snapshot.bioguide===member.bioguide&&snapshot.chamber===member.chamber?
+    snapshot.votes.filter(v=>typeof v.cast==='string'&&v.cast&&Number.isInteger(v.roll))
+     .slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||Number(b.roll)-Number(a.roll)):[];
+ }
  const results=[];
  for(const record of snapshot.votes){
   const cast=member.chamber==='House'?record.members?.[member.bioguide]:member.chamber==='Senate'?senateCast(record,member):null;
