@@ -1,0 +1,50 @@
+name: Refresh official Congressional roll-call records
+
+on:
+  schedule:
+    - cron: "37 11 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/refresh-congressional-rollcalls.yml"
+      - "scripts/update_congressional_rollcalls.py"
+      - "tests/test_congressional_rollcalls.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: politics-congressional-rollcall-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate exact member votes and official XML parsing
+        run: python -m unittest discover -s tests -p test_congressional_rollcalls.py -v
+      - name: Capture validated House and Senate individual roll calls
+        run: python scripts/update_congressional_rollcalls.py
+      - name: Commit only actual newly verified roll-call records
+        shell: bash
+        run: |
+          git add assets/data/records/
+          if git diff --cached --quiet; then
+            echo "No new verified roll calls."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update official congressional member roll-call records"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
