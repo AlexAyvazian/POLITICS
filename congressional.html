@@ -8,13 +8,15 @@
  <link rel="stylesheet" href="assets/css/atlas.css">
  <link rel="stylesheet" href="assets/css/congressional-map.css">
  <link rel="stylesheet" href="assets/css/healthcare-atmosphere.css">
+ <link rel="stylesheet" href="assets/css/congressional-chrome.css">
 </head>
 <body data-view="congress">
  <div class="ambientLights" aria-hidden="true"><div class="orb one" aria-hidden="true"></div><div class="orb two" aria-hidden="true"></div><div class="orb three" aria-hidden="true"></div><div class="orb four" aria-hidden="true"></div><div class="orb five" aria-hidden="true"></div><div class="orb six" aria-hidden="true"></div><div class="orb seven" aria-hidden="true"></div></div>
  <div class="cursorGlow" id="cursorGlow" aria-hidden="true"></div>
  <header class="atlasHeader">
-  <div class="atlasIdentity"><span class="atlasMark" aria-hidden="true"></span><span>POLITICS</span><span class="atlasTitle">Congressional Atlas</span></div>
-  <nav class="atlasNavLinks" aria-label="Atlas navigation"><a href="index.html#map">County Atlas</a><span aria-current="page">Congressional Atlas</span></nav>
+  <div class="atlasIdentity"><span class="atlasMark" aria-hidden="true"></span><span class="atlasBrandName">POLITICS · Geographic Explorer</span></div>
+  <div class="atlasHeaderCenter">United States Congressional Atlas <a class="atlasHeaderShortcut" href="index.html#map">County Atlas</a></div>
+  <div class="atlasHeaderRight"><span class="atlasHeaderCurrent" aria-current="page">Congressional Atlas</span></div>
  </header>
  <main class="districtAtlas" aria-label="Interactive geographic map of federal and state legislative districts">
   <section class="atlasMapShell" aria-label="Legislative boundary map">
@@ -27,23 +29,19 @@
      <button type="button" data-atlas-layer="governor" aria-pressed="false">Governors</button>
      <button type="button" data-atlas-layer="president" aria-pressed="false">President</button>
     </div>
-    <div class="atlasFind">
+    <div class="atlasFind atlasToolbarFields">
+     <label class="atlasScreenReader" for="districtSearch">Find a state or district</label>
+     <input id="districtSearch" type="search" placeholder="Jump to a state or district…" autocomplete="off" aria-label="Find a state or district">
      <label class="atlasScreenReader" for="congressState">Select state</label>
      <select id="congressState" aria-label="Select state"><option value="">All states</option></select>
-     <label class="atlasScreenReader" for="districtSearch">Find a state or district</label>
-     <input id="districtSearch" type="search" placeholder="Find state or district…" autocomplete="off" aria-label="Find a state or district">
      <button id="districtFind" type="button" aria-label="Search district">Find</button>
+     <button id="congressBack" type="button" hidden>← U.S. Map</button>
+     <span id="districtMapLabel" class="atlasStateBadge">United States · U.S. House districts</span>
     </div>
    </div>
    <div id="atlasViewport" class="atlasViewport">
     <svg id="districtMap" role="group" aria-label="Interactive U.S. legislative district map"></svg>
-    <div class="atlasMapTop"><button id="congressBack" type="button" hidden>← United States</button><span id="districtMapLabel">United States · U.S. House districts</span></div>
     <div id="congressLoading" class="atlasMessage" hidden role="status" aria-live="polite"></div>
-    <div class="atlasMapActions" role="group" aria-label="Map zoom controls">
-     <button id="congressZoomIn" type="button" aria-label="Zoom in" title="Zoom in">+</button>
-     <button id="congressZoomOut" type="button" aria-label="Zoom out" title="Zoom out">−</button>
-     <button id="congressZoomReset" type="button" aria-label="Reset map position" title="Reset map">⌖</button>
-    </div>
     <section id="districtSelection" class="atlasSelection" hidden aria-live="polite" aria-label="Selected geography">
      <button id="selectionClose" type="button" aria-label="Close selection" class="atlasSelectionClose">×</button>
      <small id="selectionType">DISTRICT</small>
