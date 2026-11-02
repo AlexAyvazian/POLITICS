@@ -209,3 +209,40 @@ body[data-view="records"] .recordsProfile{
 
 /* The State silhouettes users already approved remain unchanged. */
 .recordsStateGlyph{display:flex;align-items:center;justify-content:center}
+
+/* Fix photographed senators: show the whole source portrait instead of object-fit:cover zoom. */
+#senateMembers .recordsMemberPortrait{
+ left:36%;right:0;top:0;bottom:0;
+ display:flex;justify-content:flex-end;align-items:flex-end;
+ overflow:hidden;
+ background:radial-gradient(ellipse at 75% 25%,#35465c,#172236 72%);
+}
+#senateMembers .recordsMemberPortrait img{
+ position:relative;
+ width:auto;max-width:100%;height:100%;
+ object-fit:contain;object-position:bottom right;
+ filter:saturate(.83);transform:none;
+}
+#senateMembers .recordsMemberCard:hover .recordsMemberPortrait img{transform:none;filter:saturate(.95)}
+#senateMembers .recordsMemberFallback{z-index:0}
+#senateMembers .recordsMemberPortrait img:not([hidden]){z-index:1}
+/* Votes are not political parties. Independent bars, each measured on one exact denominator. */
+.recordsDistribution{border:1px solid rgba(130,174,206,.21);border-radius:18px;padding:18px;margin:17px 0 26px;background:rgba(2,13,30,.28)}
+.recordsDistributionCaption{font-size:12px;color:#c5d9e5;margin:0 0 16px;line-height:1.45}
+.recordsDistributionRows{display:grid;gap:14px}
+.recordsDistributionRow{display:grid;grid-template-columns:132px minmax(0,1fr) 80px;align-items:center;gap:13px}
+.recordsDistributionLabel{font-size:12px;color:#deebf5;font-weight:700}
+.recordsDistributionTrack{background:#293a4e;height:10px;border-radius:50px;overflow:hidden}
+.recordsDistributionFill{height:100%;border-radius:50px;background:#69c6aa}
+.recordsDistributionRow.no .recordsDistributionFill{background:#e8b46a}
+.recordsDistributionRow.other .recordsDistributionFill{background:#ad97bd}
+.recordsDistributionRow.absent .recordsDistributionFill{background:#b5c8d9}
+.recordsDistributionValue{text-align:right;font-size:11px;font-variant-numeric:tabular-nums;color:#dceaf4}
+.recordsSectionNote{font-size:11px;line-height:1.5;color:#9eb8ce;margin:14px 0 0}
+.recordsVoteRow{align-items:start}
+.recordsVoteWhy{font-size:12px;color:#c5d9e8;line-height:1.55;margin-top:10px;max-width:75ch}
+.recordsVoteWhy strong{display:inline;font-size:12px}
+.recordsVoteWhy button{background:transparent;border:0;padding:0;margin:0;color:#a7e3e5;cursor:pointer;font-size:11px}
+.recordsVoteWhy button:hover{text-decoration:underline}
+@media(max-width:760px){#senateMembers .recordsMemberPortrait{left:15%}#senateMembers .recordsMemberPortrait img{object-fit:contain;max-width:100%;object-position:right bottom}}
+@media(max-width:520px){.recordsDistributionRow{grid-template-columns:90px minmax(0,1fr) 65px;gap:8px}.recordsDistribution{padding:12px}}
