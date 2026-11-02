@@ -55,10 +55,23 @@ function countVotes(votes){
  for(const x of votes)if(Object.hasOwn(counts,x.cast))counts[x.cast]++;
  return counts;
 }
+function voteDistribution(votes){
+ const result={yes:0,no:0,other:0,absent:0,total:0};
+ for(const vote of Array.isArray(votes)?votes:[]){
+  const cast=vote?.cast;
+  if(['Yea','Aye','Paired Yea','Announced Yea'].includes(cast))result.yes++;
+  else if(['Nay','No','Paired Nay','Announced Nay'].includes(cast))result.no++;
+  else if(cast==='Present')result.other++;
+  else if(cast==='Not Voting')result.absent++;
+  else continue;
+  result.total++;
+ }
+ return result;
+}
 function filterVotes(votes,query){
  const q=String(query||'').trim().toLowerCase();
  if(!q)return votes;
  return votes.filter(v=>[v.question,v.measure,v.result,v.date,String(v.roll),v.cast].join(' ').toLowerCase().includes(q));
 }
-root.POLITICS_RECORDS_MODEL=Object.freeze({members,states,delegation,getMember,senateCast,memberVotes,countVotes,filterVotes});
+root.POLITICS_RECORDS_MODEL=Object.freeze({members,states,delegation,getMember,senateCast,memberVotes,countVotes,voteDistribution,filterVotes});
 })(typeof window!=='undefined'?window:globalThis);
