@@ -47,7 +47,7 @@ test('zoom maintains constant 12px maximum screen font through an inverse label 
  assert.match(js,/function syncDistrictLabels\(/);
  assert.match(js,/scale\('\+\(1\s*\/\s*k\)\+\'\)/);
  assert.match(js,/on\('zoom',e=>\{/);
- assert.match(js,/\.text\(f=>model\.districtMarker\(layer,currentCode\(f\)\)\)/);
+ assert.match(js,/\.text\(f=>partyModel\.districtMarker\(layer,currentCode\(f\)\)\)/);
  assert.equal(model.districtMarker('stateSenate','022'),'22');
  assert.equal(model.districtMarker('house','00'),'AL');
  assert.equal(model.districtMarker('house','98'),'DC');
