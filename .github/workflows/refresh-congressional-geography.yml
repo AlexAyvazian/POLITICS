@@ -1,0 +1,48 @@
+name: Refresh Congressional Atlas boundary cache
+
+on:
+  # Census is contacted only by this workflow, never by website visitors.
+  schedule:
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+  # Bootstrap the first map snapshot when this workflow is introduced.
+  push:
+    paths:
+      - .github/workflows/refresh-congressional-geography.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: congressional-atlas-boundary-snapshot
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout public POLITICS repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate snapshot generator
+        run: python -m unittest discover -s tests -p test_boundary_snapshot.py -v
+      - name: Validate and refresh official geographic boundary files
+        run: python scripts/update_congressional_boundaries.py --workers 3
+      - name: Commit only changed static boundary files
+        shell: bash
+        run: |
+          git add assets/data/congressional/
+          if git diff --cached --quiet; then
+            echo "Census boundaries unchanged. Keeping all previously published snapshots."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh cached congressional and state legislative geography"
+          git push
