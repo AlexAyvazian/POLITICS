@@ -631,6 +631,137 @@ async function refreshMemberLegislationBatch(env,slot,fetchImpl=fetch,now=new Da
  if(failed.length)console.warn('Congress.gov member legislation refresh failures '+failed.length+'/'+ids.length+': '+errorReasons.join(' | '));
  return {attempted:ids.length,updated:ids.length-failed.length,failed:failed.length};
 }
+
+/* Federal election influence data. Explicit Bioguide-to-FEC candidate IDs
+ * are supplied by the existing validated FEC finance cache; no name joins.
+ * Numbers below describe FEC reporting categories, not payments to lawmakers. */
+const FEC_MEMBER_ROOT='https://politics-e5yt.onrender.com/assets/data/records/finance/';
+function safePositiveNumber(v){
+ const n=typeof v==='number'?v:typeof v==='string'&&v.trim()?Number(v):NaN;
+ return Number.isFinite(n)&&n>=0?n:null;
+}
+async function refreshMemberFinanceDetail(env,bioguide,fetchImpl=fetch,now=new Date()){
+ if(!/^[A-Z][0-9]{6}$/.test(String(bioguide||'')))throw Error('Invalid Bioguide ID');
+ const db=env?.COUNTY_DB,token=key(env,'FEC_API_KEY');
+ if(!db||!token)throw Error('FEC or D1 not configured');
+ const identity=await fetchImpl(FEC_MEMBER_ROOT+bioguide+'.json',{headers:{Accept:'application/json'}});
+ if(!identity.ok)throw Error('No verified candidate-to-member finance file HTTP '+identity.status);
+ const finance=await identity.json();
+ const id=finance?.candidateId;
+ if(finance?.bioguide!==bioguide||finance?.cycle!==2026||!/^[HS][A-Z0-9]{8}$/.test(String(id||'')))
+  throw Error('Member finance file has no verified 2026 FEC candidate identifier');
+ async function fec(path,args){
+  const u=new URL('https://api.open.fec.gov/v1/'+path);
+  for(const [k,v] of Object.entries({api_key:token,cycle:2026,per_page:20,...args}))u.searchParams.set(k,String(v));
+  const response=await fetchImpl(u.toString(),{headers:{Accept:'application/json'}});
+  if(!response.ok)throw Error('FEC '+path+' HTTP '+response.status);
+  const body=await response.json();
+  if(!Array.isArray(body?.results))throw Error('FEC '+path+' response does not include results');
+  return body.results;
+ }
+ const queries={
+  size:fec('schedules/schedule_a/by_size/by_candidate/',{candidate_id:id,election_full:false}),
+  state:fec('schedules/schedule_a/by_state/by_candidate/',{candidate_id:id,election_full:false}),
+  outside:fec('schedules/schedule_e/totals/by_candidate/',{candidate_id:id,election_full:false}),
+  committee:fec('candidate/'+id+'/committees/',{designation:'P'})
+ };
+ const settled=await Promise.allSettled(Object.values(queries));
+ const data=Object.fromEntries(Object.keys(queries).map((k,i)=>[k,settled[i].status==='fulfilled'?settled[i].value:null]));
+ if(!data.size&&!data.state&&!data.outside)throw Error('All member FEC aggregate requests failed');
+ const list=(rows,make)=>rows?.slice(0,20).map(make).filter(Boolean)||[];
+ const contributionSizes=data.size?list(data.size,x=>{
+  const total=safePositiveNumber(x.total);if(total===null||x.size===undefined)return null;
+  return {size:String(x.size).slice(0,50),total,count:safePositiveNumber(x.count)};
+ }):null;
+ const byState=data.state?list(data.state,x=>{
+  const state=String(x.state||'').toUpperCase(),total=safePositiveNumber(x.total);
+  if(!/^[A-Z]{2}$/.test(state)||total===null)return null;
+  return {state,total,count:safePositiveNumber(x.count)};
+ }):null;
+ const outsideSpending=data.outside?list(data.outside,x=>{
+  const total=safePositiveNumber(x.total),side=String(x.support_oppose||x.support_oppose_indicator||'').toUpperCase();
+  if(total===null||!['S','O','SUPPORT','OPPOSE'].includes(side))return null;
+  return {side:side.startsWith('S')?'support':'oppose',total,count:safePositiveNumber(x.count)};
+ }):null;
+ let reportedEmployers=null,employerScope=null;
+ const committees=data.committee?.filter(x=>x?.designation==='P'&&/^C[0-9]{8}$/.test(String(x.committee_id||'')))||[];
+ if(committees.length===1){
+  try{
+   const rows=await fec('schedules/schedule_a/by_employer/',{committee_id:committees[0].committee_id});
+   reportedEmployers=list(rows,x=>{
+    const employer=safeBillText(x.employer,90),total=safePositiveNumber(x.total);
+    if(!employer||total===null)return null;
+    return {employer,total,count:safePositiveNumber(x.count)};
+   });
+   employerScope='Principal campaign committee only; employer is self-reported and does not establish a corporate contribution.';
+  }catch(_){}
+ }
+ const sections=[contributionSizes,byState,outsideSpending,reportedEmployers].filter(x=>x!==null).length;
+ const doc={source:'Federal Election Commission',bioguide,candidateId:id,cycle:2026,retrievedAt:now.toISOString(),
+  coverage:'Limited itemized FEC aggregate breakdowns for the 2025–2026 cycle. These summaries do not exhaust all contributions, committees or transfers.',
+  sourceUrl:'https://www.fec.gov/data/candidate/'+id+'/?cycle=2026',
+  contributionSizes,byState,outsideSpending,reportedEmployers,employerScope,sections};
+ await politicalSnapshotWrite(db,'member_finance_detail_'+bioguide,doc,now,sections);
+ return {bioguide,candidateId:id,sections};
+}
+/* LobbyView networks are research-constructed client/bill overlap records.
+ * They are not evidence that clients paid lawmakers or contacted their offices.
+ * A verified client_uuid must match before a client name can be presented. */
+async function refreshMemberLobby(env,bioguide,fetchImpl=fetch,now=new Date()){
+ if(!/^[A-Z][0-9]{6}$/.test(String(bioguide||'')))throw Error('Invalid Bioguide ID');
+ const db=env?.COUNTY_DB;
+ if(!db)throw Error('LobbyView D1 binding missing');
+ const route={u:'https://rest-api.lobbyview.org/api/networks?legislator_id=eq.'+bioguide+'&page=1',options:{headers:{Accept:'application/json'}}};
+ const resp=await getUpstream('lobbyview',route,env,fetchImpl);
+ if(!resp.ok)throw Error('LobbyView networks HTTP '+resp.status);
+ const body=await resp.json();
+ const rows=Array.isArray(body)?body:Array.isArray(body?.data)?body.data:Array.isArray(body?.results)?body.results:null;
+ if(!rows)throw Error('LobbyView network response schema not recognized');
+ const connections=rows.filter(x=>x?.legislator_id===bioguide&&[2025,2026].includes(Number(x.report_year))&&
+  /^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(String(x.client_uuid||'')));
+ const unique=[...new Map(connections.map(x=>[x.client_uuid,x])).values()];
+ const clients=[];
+ for(const link of unique.slice(0,2)){
+  const url='https://rest-api.lobbyview.org/api/clients?client_uuid=eq.'+encodeURIComponent(link.client_uuid);
+  try{
+   const r=await getUpstream('lobbyview',{u:url,options:{headers:{Accept:'application/json'}}},env,fetchImpl);
+   if(!r.ok)continue;
+   const payload=await r.json();
+   const list=Array.isArray(payload)?payload:Array.isArray(payload?.data)?payload.data:Array.isArray(payload?.results)?payload.results:[];
+   const item=list.find(x=>x.client_uuid===link.client_uuid&&typeof x.client_name==='string');
+   if(item)clients.push({clientUuid:link.client_uuid,name:safeBillText(item.client_name,120),
+    reportYear:Number(link.report_year),billOverlapCount:safePositiveNumber(link.n_bills_sponsored)});
+  }catch(_){}
+ }
+ const record={source:'LobbyView researcher-coded bill/client networks',bioguide,retrievedAt:now.toISOString(),
+  sourceUrl:'https://www.lobbyview.org/data-download/api/',clientCount:unique.length,clients,
+  coverage:'Only available 2025–2026 network records in the first returned page; network matches are research-coded bill/client overlaps, not donations, payments or confirmed lobbying meetings.'};
+ await politicalSnapshotWrite(db,'member_lobby_network_'+bioguide,record,now,record.clientCount);
+ return {bioguide,clientCount:unique.length,identifiedClients:clients.length};
+}
+async function refreshMemberExtraBatch(env,kind,slot,fetchImpl=fetch,now=new Date()){
+ const db=env?.COUNTY_DB;
+ if(!db)throw Error('D1 not configured');
+ const r=await db.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?').bind('congress_members_current').first();
+ if(!r)return {status:'roster_pending'};
+ const roster=JSON.parse(r.snapshot_json);
+ const ids=[...new Set(Object.values(roster.states||{}).flatMap(s=>[...(s.house||[]),...(s.senators||[])])
+  .map(m=>m.bioguide).filter(id=>/^[A-Z][0-9]{6}$/.test(String(id||''))))].sort();
+ if(ids.length<400)return {status:'incomplete_roster'};
+ const finance=kind==='finance',count=finance?5:2;
+ const days=Math.floor(now.getTime()/86400000);
+ const start=((days*36+slot-12)*count)%ids.length;
+ const selected=Array.from({length:count},(_,i)=>ids[(start+i)%ids.length]);
+ const jobs=selected.map(id=>(finance?refreshMemberFinanceDetail:refreshMemberLobby)(env,id,fetchImpl,now));
+ const results=await Promise.allSettled(jobs);
+ const issues=[...new Set(results.filter(x=>x.status==='rejected').map(x=>String(x.reason?.message||'unknown failure').slice(0,130)))].slice(0,6);
+ const ok=results.filter(x=>x.status==='fulfilled').length;
+ const summary={source:finance?'FEC member aggregate collector':'LobbyView member network collector',
+  asOf:now.toISOString(),attempted:count,updated:ok,failed:count-ok,examples:issues};
+ await politicalSnapshotWrite(db,finance?'member_finance_collection_health':'member_lobby_collection_health',summary,now,ok);
+ return summary;
+}
+
 /* Source: Census TIGERweb official 2025 generalized legislative boundary polygons.
  * Layer 5 = 119th U.S. House; 8 = 2024 state Senate; 9 = 2024 state House.
  * This proxy serves only public polygons; does not mix in county boundaries. */
@@ -703,6 +834,8 @@ export default {
    const state=BILL_COMMONS_STATES[(days*18+index)%BILL_COMMONS_STATES.length];
    ctx.waitUntil(slot%2===0?refreshOpenStatesState(env,state):refreshBillCommonsState(env,state));
    ctx.waitUntil(refreshMemberLegislationBatch(env,slot,fetch,when));
+   ctx.waitUntil(refreshMemberExtraBatch(env,'finance',slot,fetch,when));
+   ctx.waitUntil(refreshMemberExtraBatch(env,'lobby',slot,fetch,when));
    return;
   }
   const task=tasks[slot];if(!task)return;
@@ -711,4 +844,4 @@ export default {
 };
 
 // Named exports for the scheduled-collection regression suite.
-export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes, refreshMemberLegislation, refreshMemberLegislationBatch };
+export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes, refreshMemberLegislation, refreshMemberLegislationBatch, refreshMemberFinanceDetail, refreshMemberLobby, refreshMemberExtraBatch };
