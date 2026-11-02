@@ -97,7 +97,7 @@ test('congressional atlas is a distinct interactive map-only page',()=>{
  const html=read('congressional.html'),home=read('index.html'),js=read('assets/js/congressional-map.js');
  assert.match(html,/assets\/js\/congressional-map\.js/);
  assert.match(html,/assets\/css\/congressional-map\.css/);
- for(const id of ['districtMap','congressState','districtSelection','districtSearch','congressZoomIn','congressZoomOut','congressZoomReset'])
+ for(const id of ['districtMap','congressState','districtSelection','districtSearch','districtFind','congressBack','districtMapLabel'])
   assert.match(html,new RegExp('id="'+id+'"'));
  for(const name of ['house','stateSenate','stateHouse','senate','governor','president'])
   assert.match(html,new RegExp('data-atlas-layer="'+name+'"'));
