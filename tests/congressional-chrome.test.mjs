@@ -9,7 +9,7 @@ test('Congressional Atlas uses County-like floating pill navigation and two-row 
  assert.match(html,/class="atlasHeaderCenter"/);
  assert.match(html,/class="atlasHeaderShortcut"/);
  assert.match(html,/class="atlasHeaderRight"/);
- assert.match(html,/class="atlasToolbarFields"/);
+ assert.match(html,/class="atlasFind atlasToolbarFields"/);
  assert.match(html,/assets\/css\/congressional-chrome\.css/);
  assert.match(css,/body\[data-view="congress"\] \.atlasHeader\s*\{/);
  assert.match(css,/border-radius:999px/);
