@@ -24,9 +24,9 @@ test('directory lists every state and D.C., preserves House district order, and 
  }};
  const members=x.members(roster);
  const directory=x.states(stateObjects);
- assert.deepEqual(directory.map(s=>s.abbr),['CA','CO','DC']);
+ assert.deepEqual(Array.from(directory,s=>s.abbr),['CA','CO','DC']);
  const delegation=x.delegation(members,'CO');
- assert.deepEqual(delegation.house.map(p=>p.district),[3,7]);
+ assert.deepEqual(Array.from(delegation.house,p=>p.district),[3,7]);
  assert.equal(delegation.senate.length,2);
  assert.equal(x.delegation(members,'DC').house[0].district,0);
 });
