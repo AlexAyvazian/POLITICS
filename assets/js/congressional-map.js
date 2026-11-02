@@ -157,7 +157,7 @@ async function refresh(){
   if(turn!==seq)return;
   const valid=data.features.filter(f=>f.geometry?.coordinates?.length&&byFips[String(f.properties?.STATE)]);
   if(!valid.length)throw Error('Missing district GEOIDs');
-  const collection={type:'FeatureCollection',features:valid};
+  const collection=model.rewindForD3({type:'FeatureCollection',features:valid});
   cache.set(key,collection);status('');polygons(collection,!state);
  }catch(error){if(turn===seq)status('Official district boundaries could not be loaded. Select a state to retry.');}
  finally{if(turn===seq)hash();}
