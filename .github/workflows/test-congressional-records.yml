@@ -11,6 +11,8 @@ on:
       - tests/congressional-records.test.mjs
       - tests/congressional-records-directory-ui.test.mjs
       - tests/congressional-records-silhouettes.test.mjs
+      - tests/congressional-records-editorial.test.mjs
+      - assets/css/records-editorial.css
       - assets/js/state-silhouettes.js
       - assets/js/records-address-model.js
       - scripts/update_voteview_rollcalls.py
