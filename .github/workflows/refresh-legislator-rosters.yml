@@ -1,0 +1,47 @@
+name: Refresh current state legislator rosters
+
+on:
+  schedule:
+    - cron: "27 10 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/refresh-legislator-rosters.yml
+      - scripts/update_legislator_rosters.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: politics-nightly-legislator-rosters
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out political atlas repository
+        uses: actions/checkout@v4
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check state roster parser and guardrails
+        run: python -m unittest discover -s tests -p test_legislator_roster.py -v
+      - name: Collect all available 50 state current legislator CSV snapshots
+        run: python scripts/update_legislator_rosters.py
+      - name: Publish changed cached rosters only
+        shell: bash
+        run: |
+          git add assets/data/legislators/
+          if git diff --cached --quiet; then
+            echo "No changes to source roster. Keeping existing cache."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh current Open States legislator party snapshots"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
