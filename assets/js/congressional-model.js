@@ -51,5 +51,43 @@ function stateLawmakerMatches(people,layer,code){
   return Number(role.district)===wanted&&(layer==='stateSenate'?upper:lower);
  });
 }
-root.CONGRESSIONAL_MODEL=Object.freeze({LAYERS,censusUrl,districtCode,federalMembers,stateLawmakerMatches});
+
+// GeoJSON follows RFC 7946 (CCW exterior), while D3's spherical geoPath
+// considers clockwise rings to be the polygon interior. If left unchanged,
+// each congressional district becomes a near-global filled rectangle.
+// Ensure each exterior is clockwise and each hole counterclockwise.
+// Never mutate the received Census coordinates or property records.
+function signedRingArea(ring){
+ if(!Array.isArray(ring)||ring.length<3)return 0;
+ let sum=0;
+ for(let i=0;i<ring.length;i++){
+  const a=ring[i],b=ring[(i+1)%ring.length];
+  if(!Array.isArray(a)||!Array.isArray(b))return 0;
+  sum+=a[0]*b[1]-b[0]*a[1];
+ }
+ return sum/2;
+}
+function rewindRing(ring,outer){
+ if(!Array.isArray(ring))return ring;
+ const area=signedRingArea(ring);
+ // Negative shoelace area means clockwise in geographic lon/lat coordinates.
+ return ((outer&&area>0)||(!outer&&area<0))?ring.slice().reverse():ring.slice();
+}
+function rewindPolygon(polygon){
+ return polygon.map((ring,index)=>rewindRing(ring,index===0));
+}
+function rewindForD3(collection){
+ if(collection?.type!=='FeatureCollection'||!Array.isArray(collection.features))return collection;
+ return {...collection,features:collection.features.map(feature=>{
+  const geometry=feature?.geometry;
+  if(!geometry)return feature;
+  let coords;
+  if(geometry.type==='Polygon')coords=rewindPolygon(geometry.coordinates);
+  else if(geometry.type==='MultiPolygon')coords=geometry.coordinates.map(rewindPolygon);
+  else return feature;
+  return {...feature,geometry:{...geometry,coordinates:coords}};
+ })};
+}
+
+root.CONGRESSIONAL_MODEL=Object.freeze({LAYERS,censusUrl,districtCode,federalMembers,stateLawmakerMatches,rewindForD3});
 })(typeof window!=='undefined'?window:globalThis);
