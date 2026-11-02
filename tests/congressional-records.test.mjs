@@ -83,7 +83,9 @@ test('campaign, travel and legislative data are on-page visualizations, not outg
  assert.match(js,/renderFinance/);
  assert.match(js,/assets\/data\/records\/finance/);
  assert.match(js,/renderMeasures/);
- assert.match(js,/No travel figures in the current local dataset/);
+ assert.match(js,/office-associated filings/);
+ assert.match(js,/renderTravel/);
+ assert.match(js,/assets\\/data\\/records\\/travel/);
  assert.doesNotMatch(js,/displayFinance\(/);
 });
 test('vote distribution uses neutral labeled independent tracks, not a partisan stacked bar',()=>{
