@@ -72,6 +72,7 @@ test('congressional atlas is a distinct interactive map-only page',()=>{
  assert.match(home,/href="congressional\.html"/);
  assert.match(js,/POLITICS_CONGRESSIONAL_ATLAS/);
  assert.match(js,/congressional-atlas:selection/);
+ assert.match(js,/model\.rewindForD3\(/,'map must normalize Census geometry before rendering');
  assert.match(js,/geoAlbersUsa/);
  assert.match(js,/zoom\(/);
  assert.doesNotMatch(html,/assets\/js\/map\.js|assets\/js\/congressional\.js|ncsl-control\.js|governors\.js/);
