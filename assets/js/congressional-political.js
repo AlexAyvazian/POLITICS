@@ -7,21 +7,23 @@
 const READER='https://politics-daily-snapshot.alxayvazian.workers.dev';
 const panel=document.getElementById('politicalDetails');
 const model=window.CONGRESSIONAL_POLITICAL_MODEL;
-const NCSL=window.POLITICS_NCSL,governors=window.GOVERNORS_2026,atlas=window.POLITICS_CONGRESSIONAL_ATLAS;
+const NCSL=window.POLITICS_NCSL,governors=window.GOVERNORS_2026,atlas=window.POLITICS_CONGRESSIONAL_ATLAS,vacancies=window.POLITICS_VERIFIED_VACANCIES;
 if(!panel||!model)return;
 const stateCache=new Map();
 /* Party classes are categorical current incumbency, never vote predictions.
  * A missing or partial legislative roster leaves unmatched districts neutral. */
 function resolveParty({layer,state,scope,district}){
  if(!state)return 'unknown';
- if(layer==='house')return scope==='district'?model.houseParty(federal,state,district):'unknown';
- if(layer==='stateSenate'||layer==='stateHouse')
-  return scope==='district'?model.stateDistrictParty(stateData.get(state),layer,district):
+ const vacancy=scope==='district'?model.verifiedVacancy(vacancies,{layer,state,district}):null;
+ let incumbentParty='unknown';
+ if(layer==='house')incumbentParty=scope==='district'?model.houseParty(federal,state,district):'unknown';
+ else if(layer==='stateSenate'||layer==='stateHouse')
+  incumbentParty=scope==='district'?model.stateDistrictParty(stateData.get(state),layer,district):
    model.chamberMajority(NCSL?.states?.[state],layer);
- if(layer==='senate')return model.senateParty(federal,state);
- if(layer==='governor')return model.partyClass(NCSL?.states?.[state]?.governor);
- if(layer==='president')return model.partyClass('Republican');
- return 'unknown';
+ else if(layer==='senate')incumbentParty=model.senateParty(federal,state);
+ else if(layer==='governor')incumbentParty=model.partyClass(NCSL?.states?.[state]?.governor);
+ else if(layer==='president')incumbentParty=model.partyClass('Republican');
+ return model.districtPartyWithVacancies(incumbentParty,vacancy);
 }
 function repaint(){atlas?.setPartyResolver?.(resolveParty);}
 
@@ -70,6 +72,8 @@ function openStates(state){
 function render(){
  const s=current;if(!s?.state){panel.innerHTML='';return;}
  const state=s.state,scope=s.scope,layer=s.layer;
+ const vacancy=scope==='district'?model.verifiedVacancy(vacancies,s):null;
+ const verifiedVacancyNote=()=>note('<strong>Vacant — no current officeholder.</strong> '+esc(vacancy.detail)+' Verified vacancy · '+esc(vacancies.asOf)+' · '+link(vacancy.sourceUrl,vacancy.sourceName)+'.');
  const ns=NCSL?.states?.[state],gv=governors?.states?.[state];
  const chunks=[];
  // Countrywide presidential incumbents are independently verified on USAGov.
@@ -105,6 +109,7 @@ function render(){
     const people=model.house(federal,state,s.district);
     if(federalStatus==='loading')chunks.push(note('Loading the stored congressional roster…'));
     else if(federalStatus==='unavailable')chunks.push(note('The stored congressional roster is temporarily unavailable.'));
+    else if(!people.length&&vacancy)chunks.push(verifiedVacancyNote());
     else if(!people.length)chunks.push(note('No matching current member in the stored roster; this does not establish a vacancy.'));
     else chunks.push(...people.map(p=>person(p,'federal')));
    }else chunks.push(note('Choose a U.S. House district to see its current representative.'));
@@ -127,7 +132,8 @@ function render(){
    else{
     const people=model.stateMembers(data,layer,s.district);
     chunks.push(...people.map(p=>person(p,'state')));
-    if(!people.length)chunks.push(note('No matching legislator in the partial roster; this is not evidence that the seat is vacant.'));
+    if(!people.length&&vacancy)chunks.push(verifiedVacancyNote());
+    else if(!people.length)chunks.push(note('No matching legislator in the available roster; this is not evidence that the seat is vacant.'));
     if(model.stateCompleteness(data)==='partial')chunks.push(note(
      'Partial roster: '+data.people.length+' of '+(Number.isInteger(data.totalPeople)?data.totalPeople:'unknown')+
      ' reported records. Some districts are not yet represented here.'));
