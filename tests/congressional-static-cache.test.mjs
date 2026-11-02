@@ -21,7 +21,7 @@ test('a daily automated workflow prebuilds country and state legislative distric
  for(const id of ['house','stateSenate','stateHouse'])assert.ok(script.includes(id));
  assert.match(script,/returnCountOnly/);
  assert.match(script,/US-house\.geojson/);
- assert.match(script,/assets\/data\/congressional/);
+ assert.match(script,/ROOT \/ "assets" \/ "data" \/ "congressional"/);
 });
 test('no static asset absence causes an upstream Census request in the user browser',()=>{
  const js=read('assets/js/congressional-map.js');
