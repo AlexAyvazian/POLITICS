@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+test('state-first directory retains silhouettes but members are recognizable photographic portraits',()=>{
+ const js=read('assets/js/records.js');
+ const css=read('assets/css/records-editorial.css');
+ const html=read('records.html');
+ assert.match(js,/unitedstates\.github\.io\/images\/congress\/225x275/);
+ assert.match(js,/recordsMemberPortrait/);
+ assert.match(js,/recordsMemberName/);
+ assert.match(js,/recordsMemberParty/);
+ assert.match(css,/\.recordsMemberPortrait/);
+ assert.match(css,/\.recordsMemberGrid/);
+ assert.match(css,/\.recordsStateGlyph/);
+ assert.match(html,/records-editorial\.css/);
+ assert.match(html,/id="delegationHero"/);
+ assert.match(html,/id="delegationSilhouette"/);
+});
+test('member details are a distinct full page view with one large portrait, voting distribution and vote filters',()=>{
+ const js=read('assets/js/records.js'),html=read('records.html'),css=read('assets/css/records-editorial.css');
+ assert.match(html,/id="profilePortrait"/);
+ assert.match(html,/id="voteDistribution"/);
+ assert.match(html,/id="voteFilterAll"/);
+ assert.match(html,/id="voteFilterYea"/);
+ assert.match(html,/id="voteFilterNay"/);
+ assert.match(html,/id="voteFilterAbsent"/);
+ assert.match(js,/recordsProfilePortrait/);
+ assert.match(js,/renderVoteDistribution/);
+ assert.match(js,/activeVoteFilter/);
+ assert.match(css,/\.recordsProfileHero/);
+ assert.match(css,/\.recordsDistributionBar/);
+});
+test('profile selection hides delegation and return restores directory without losing which state',()=>{
+ const js=read('assets/js/records.js');
+ assert.match(js,/\$\('delegationDirectory'\)\.hidden=true/);
+ assert.match(js,/\$\('delegationDirectory'\)\.hidden=false/);
+ assert.match(js,/backToDelegation/);
+ assert.match(js,/renderDelegation/);
+});
+test('voting summaries preserve all recorded statuses and never invent missed votes',()=>{
+ const ctx={window:{}};
+ const vm=await import('node:vm');
+ vm.runInNewContext(read('assets/js/records-model.js'),ctx);
+ const m=ctx.window.POLITICS_RECORDS_MODEL;
+ const types=['Yea','Paired Yea','Announced Yea','Nay','Paired Nay','Announced Nay','Present','Not Voting'];
+ const counts=m.voteDistribution(types.map(cast=>({cast})));
+ assert.equal(counts.yes,3);
+ assert.equal(counts.no,3);
+ assert.equal(counts.other,1);
+ assert.equal(counts.absent,1);
+ assert.equal(counts.total,8);
+ assert.equal(m.voteDistribution([{cast:'Unknown status'}]).total,0);
+});
