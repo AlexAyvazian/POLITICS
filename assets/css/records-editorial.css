@@ -206,3 +206,6 @@ body[data-view="records"] .recordsProfile{
  .recordsDistributionLegend{gap:9px}
  .recordsHeroSteps{font-size:10px}
 }
+
+/* The State silhouettes users already approved remain unchanged. */
+.recordsStateGlyph{display:flex;align-items:center;justify-content:center}
