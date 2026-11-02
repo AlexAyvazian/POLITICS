@@ -1,0 +1,54 @@
+/* Map-only Congressional Atlas; independent of County Atlas. */
+:root{color-scheme:dark}
+body[data-view="congress"]{margin:0;min-height:100vh;background:#070e1b;color:#edf5ff;overflow:hidden;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+body[data-view="congress"] button,body[data-view="congress"] input,body[data-view="congress"] select{font:inherit}
+.atlasScreenReader{position:absolute!important;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.atlasHeader{height:59px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;background:#0b1628;border-bottom:1px solid #24364e;gap:16px}
+.atlasIdentity{display:flex;align-items:center;gap:11px;font-size:12px;letter-spacing:.13em;font-weight:750;white-space:nowrap}
+.atlasMark{width:10px;height:10px;border-radius:50%;background:#6ad0d5;box-shadow:0 0 15px #4ab9d7aa}
+.atlasTitle{font-size:14px;letter-spacing:0;color:#d8ebfa;border-left:1px solid #38506a;padding-left:12px;font-weight:700}
+.atlasNavLinks{display:flex;align-items:center;gap:9px;font-size:12px;white-space:nowrap}
+.atlasNavLinks a,.atlasNavLinks span{border:1px solid #29425c;padding:8px 12px;border-radius:8px;color:#c1d5e9;text-decoration:none}
+.atlasNavLinks span{background:#1e3449;border-color:#507386;color:#effbff}
+.districtAtlas{height:calc(100dvh - 59px);padding:15px;min-height:410px}
+.atlasMapShell{height:100%;min-height:0;display:flex;flex-direction:column;border:1px solid #2b3b53;background:#0b182a;border-radius:15px;overflow:hidden;box-shadow:0 18px 50px #0003}
+.atlasControls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;padding:11px 14px;background:#101e33;border-bottom:1px solid #2c3f57}
+.atlasLayerTabs{display:flex;max-width:100%;overflow-x:auto;gap:4px;scrollbar-width:thin}
+.atlasLayerTabs button{border:1px solid transparent;border-radius:7px;background:transparent;color:#a6bcd0;font-size:12px;font-weight:700;padding:10px 12px;white-space:nowrap;cursor:pointer}
+.atlasLayerTabs button:hover,.atlasLayerTabs button:focus-visible{border-color:#60899e;color:#fff}
+.atlasLayerTabs button[aria-pressed="true"]{background:#244b5d;color:#e8ffff;border-color:#487f8e}
+.atlasFind{display:flex;align-items:center;gap:7px;min-width:0}
+.atlasFind select,.atlasFind input,.atlasFind button{background:#0b1728;border:1px solid #3a4e69;border-radius:7px;color:#eaf6ff;height:38px;padding:0 10px;font-size:12px}
+.atlasFind select{max-width:180px;min-width:110px}
+.atlasFind input{width:178px;min-width:0}
+.atlasFind button{cursor:pointer;background:#253c54;font-weight:700}
+.atlasFind button:hover{background:#365676}
+.atlasViewport{position:relative;min-height:0;flex:1;background:radial-gradient(ellipse at 60% 46%,#122640 0%,#0d1a2d 60%,#091321 100%);overflow:hidden}
+#districtMap{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#districtMap:active{cursor:grabbing}
+.atlasMapTop{position:absolute;top:14px;left:15px;display:flex;align-items:center;gap:11px;pointer-events:none;max-width:calc(100% - 90px)}
+.atlasMapTop span{padding:9px 13px;border:1px solid #36516d;background:#0a1929d9;border-radius:8px;font-size:12px;font-weight:700;color:#cfe4f5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.atlasMapTop button{padding:9px 12px;pointer-events:auto;background:#224357ed;color:#dfffff;border:1px solid #49768c;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
+.atlasMapTop button[hidden]{display:none}
+.atlasMapActions{position:absolute;right:16px;bottom:46px;display:flex;flex-direction:column;gap:7px}
+.atlasMapActions button{width:39px;height:39px;cursor:pointer;font-size:23px;border:1px solid #44617c;border-radius:9px;background:#182e47e8;color:#dff8ff}
+.atlasMapActions button:hover{background:#2c4e69}
+.atlasFeature{fill:#375676;stroke:#a6c1da;stroke-width:.8;vector-effect:non-scaling-stroke;cursor:pointer;transition:fill .12s}
+.atlasFeature:hover,.atlasFeature:focus-visible{fill:#5b8ca8;stroke:#e6faff;outline:none}
+.atlasFeature[data-active="true"]{fill:#6ab3c1;stroke:#efffff;stroke-width:1.6;filter:drop-shadow(0 0 4px #5fd8e488)}
+.atlasFeature.atlasState{fill:#29425d;stroke:#8098b2;stroke-width:1.15}
+.atlasFeature.atlasState:hover,.atlasFeature.atlasState:focus-visible{fill:#527e9d}
+.atlasMessage{position:absolute;left:15px;top:63px;max-width:min(420px,calc(100% - 90px));background:#142b42ed;padding:11px 14px;color:#d3ecf6;font-size:12px;line-height:1.5;border:1px solid #4d718a;border-radius:9px}
+.atlasMessage[hidden],.atlasSelection[hidden]{display:none}
+.atlasFoot{min-height:40px;padding:9px 15px;background:#0e1b2e;border-top:1px solid #263a50;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:#9eb6cc}
+.atlasFoot a{color:#a9dce4}
+.atlasHint{position:absolute;bottom:14px;left:17px;color:#96afc7;font-size:11px;pointer-events:none;background:#08162988;padding:6px 8px;border-radius:6px}
+.atlasTooltip{position:fixed;z-index:70;pointer-events:none;background:#111f35;color:#effaff;border:1px solid #6493a6;border-radius:9px;box-shadow:0 8px 20px #0009;padding:8px 11px;font-size:12px;max-width:270px}
+.atlasTooltip[hidden]{display:none}
+.atlasSelection{position:absolute;right:70px;bottom:44px;width:230px;max-width:calc(100% - 100px);border-radius:11px;background:#10253be8;backdrop-filter:blur(10px);border:1px solid #54849a;box-shadow:0 12px 28px #0007;padding:15px 17px}
+.atlasSelection small{letter-spacing:.12em;color:#9cc8d4;font-size:10px;font-weight:800}
+.atlasSelection h2{font-size:19px;margin:9px 0 7px;line-height:1.25}
+.atlasSelectionId{color:#b5cbdc;font-size:12px}
+.atlasSelectionClose{position:absolute;top:7px;right:10px;background:transparent;border:0;color:#b4cde0;cursor:pointer;font-size:21px}
+@media(max-width:1150px){.atlasControls{align-items:flex-start}.atlasLayerTabs{flex:1 1 100%}.atlasFind{width:100%}.atlasFind input{flex:1}.districtAtlas{padding:8px}}
+@media(max-width:600px){body[data-view="congress"]{overflow:auto}.atlasHeader{height:auto;min-height:59px;flex-wrap:wrap;padding:10px}.atlasTitle{font-size:12px}.atlasNavLinks{font-size:10px}.atlasNavLinks a,.atlasNavLinks span{padding:5px 8px}.districtAtlas{height:calc(100dvh - 96px);min-height:500px}.atlasControls{padding:7px}.atlasLayerTabs button{padding:8px 9px;font-size:11px}.atlasFind select{width:110px}.atlasFind input{width:80px}.atlasSelection{right:61px;bottom:47px;width:190px}.atlasHint{font-size:10px;max-width:70%}.atlasFoot{font-size:10px}}
