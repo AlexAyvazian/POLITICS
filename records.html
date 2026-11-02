@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#050814">
+ <meta name="description" content="Search current members of Congress and inspect documented roll-call votes, campaign finance and travel disclosures.">
+ <title>Congressional Records · POLITICS</title>
+ <link rel="stylesheet" href="assets/css/atlas.css">
+ <link rel="stylesheet" href="assets/css/records.css">
+</head>
+<body data-view="records">
+ <header class="recordsNav">
+  <div class="recordsBrand"><i aria-hidden="true"></i><span>POLITICS · Geographic Explorer</span></div>
+  <strong>Congressional Records</strong>
+  <nav aria-label="Atlas sections"><a href="index.html#map">County Atlas</a><a href="congressional.html">Congressional Atlas</a><span aria-current="page">Records</span></nav>
+ </header>
+ <main class="recordsMain">
+  <section class="recordsIntro">
+   <div><p class="recordsEyebrow">DOCUMENTED CONGRESSIONAL ACTIVITY</p><h1>Congressional Records</h1><p>Find a member. Follow the recorded votes, legislation, campaign financing, and disclosed travel back to their sources.</p></div>
+   <div class="recordsSourceTag">119th Congress · 2025–2026</div>
+  </section>
+  <section class="recordsExplorer" aria-label="Search for a member of Congress">
+   <div class="recordsSearchRow">
+    <div class="recordsQueryBox"><label for="memberSearch">Search members of Congress</label><input id="memberSearch" type="search" placeholder="Name, state, or district (e.g. CO-03)" autocomplete="off" aria-controls="memberResults"></div>
+    <label class="recordsChamberField" for="memberChamber">Chamber<select id="memberChamber"><option value="all">House and Senate</option><option value="House">U.S. House</option><option value="Senate">U.S. Senate</option></select></label>
+   </div>
+   <div id="searchStatus" class="recordsStatus" role="status">Loading the current congressional roster…</div>
+   <div id="memberResults" class="recordsResults" aria-label="Matching current members"></div>
+  </section>
+  <section id="memberProfile" class="recordsProfile" hidden aria-labelledby="profileName">
+   <div class="recordsProfileHead">
+    <div><span class="recordsKicker" id="profileChamber"></span><h2 id="profileName"></h2><p id="profileInfo"></p></div>
+    <a id="profileBio" target="_blank" rel="noopener noreferrer">Congressional biography ↗</a>
+   </div>
+   <div class="recordsPanels">
+    <section class="recordsPanel recordsVotesPanel" aria-label="Recorded floor votes">
+     <div class="recordsSectionHead"><div><span class="recordsKicker">THE RECORD</span><h3>Recorded votes</h3></div><span class="recordsSectionMeta" id="votePeriod"></span></div>
+     <p class="recordsHelp">Captured roll calls only. Voice votes and uncollected records are not counted as missed votes. Dates and votes link to official sources.</p>
+     <div id="voteStatus" class="recordsStatus" role="status">Loading official roll calls…</div>
+     <div class="recordsVoteSummary" id="voteSummary" hidden></div>
+     <label class="recordsVoteFilter" for="votesQuery">Search recorded votes<input id="votesQuery" type="search" placeholder="Bill number, subject, vote, or date…"></label>
+     <div id="memberVotes" class="recordsVoteList"></div>
+    </section>
+    <aside class="recordsSidebar">
+     <section class="recordsPanel" id="financeLinks"><span class="recordsKicker">MONEY</span><h3>Campaign contributions</h3><p>Official campaign receipts and donors reported to the FEC. Campaign donations are different from personal financial assets.</p><a id="fecMemberLink" target="_blank" rel="noopener noreferrer">Search FEC filings ↗</a><small>FEC filings update over time. No dollar totals are estimated here.</small></section>
+     <section class="recordsPanel" id="travelLinks"><span class="recordsKicker">DISCLOSURES</span><h3>Travel and financial filings</h3><p>Explore privately sponsored travel, sponsor disclosures, and personal financial reports. The actual filings are the evidence.</p><div class="recordsLinkStack" id="disclosureList"></div><small>These filings are not equivalent to campaign contributions. Travel records may be scanned PDFs.</small></section>
+     <section class="recordsPanel" id="legislationLinks"><span class="recordsKicker">LEGISLATION</span><h3>Bills and sponsorships</h3><p>Review legislation sponsored or cosponsored by this member through Congress.gov.</p><a href="https://www.congress.gov/member" target="_blank" rel="noopener noreferrer" id="congressMemberLink">Search Congress.gov ↗</a></section>
+     <section class="recordsPanel recordsTransparency"><span class="recordsKicker">DATA SOURCES</span><h3>How this is verified</h3><p id="recordUpdated"></p><p>Roster: unitedstates/congress-legislators. Recorded votes: House Clerk and U.S. Senate. Financing: FEC. Travel: disclosure filings. No inferred votes or election forecasts.</p></section>
+    </aside>
+   </div>
+  </section>
+  <section id="recordsStart" class="recordsEmpty"><strong>Select a member to explore the documented record.</strong><p>Choose a name above. The voting table will distinguish official captured rolls from records not yet imported.</p></section>
+ </main>
+ <script src="assets/js/records-model.js"></script>
+ <script src="assets/js/records.js"></script>
+</body>
+</html>
