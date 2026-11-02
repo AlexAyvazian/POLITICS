@@ -7,34 +7,98 @@
 const $=id=>document.getElementById(id);
 const model=window.POLITICS_RECORDS_MODEL;
 const reader='https://politics-daily-snapshot.alxayvazian.workers.dev/api/congress-snapshot';
-const rosterStatus=$('searchStatus'),results=$('memberResults'),search=$('memberSearch');
-const state={members:[],member:null,votes:[],voteData:null,rosterDate:null};
+const rosterStatus=$('directoryStatus'),stateGrid=$('stateGrid');
+const state={members:[],member:null,votes:[],voteData:null,rosterDate:null,selectedState:null};
+const states=model.states(window.GEO_STATES||[]);
+const stateByCode=Object.fromEntries(states.map(item=>[item.abbr,item]));
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cleanName=n=>String(n||'').replace(/[^\p{L}\p{N} .'-]/gu,' ').trim();
 const external=(url,label)=>'<a target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">'+esc(label)+' ↗</a>';
 const formatDate=d=>{if(!d)return 'Date not supplied';const dt=new Date(d);return Number.isNaN(dt.valueOf())?String(d):dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});};
 const chamberSource=member=>member.chamber==='House'?'U.S. House Clerk':'U.S. Senate';
-function renderCandidates(){
- const q=search.value.trim().toLowerCase();
- const chamber=$('memberChamber').value;
- const filtered=state.members.filter(m=>{
-  if(chamber!=='all'&&m.chamber!==chamber)return false;
-  return !q||[m.name,m.state,m.chamber,m.bioguide,(m.chamber==='House'?m.state+'-'+String(m.district).padStart(2,'0'):'')].join(' ').toLowerCase().includes(q);
- });
- const shown=filtered.slice(0,45);
- results.replaceChildren();
- for(const m of shown){
-  const button=document.createElement('button');
-  button.type='button';button.setAttribute('aria-current',String(state.member?.bioguide===m.bioguide));
-  const title=document.createElement('strong');title.textContent=m.name;
-  const subtitle=document.createElement('span');
-  subtitle.textContent=m.chamber==='Senate'?m.state+' · U.S. Senate · '+m.party:m.state+'-'+String(m.district).padStart(2,'0')+' · U.S. House · '+m.party;
-  button.append(title,subtitle);
-  button.addEventListener('click',()=>select(m.bioguide));
-  results.append(button);
+function renderStateDirectory(){
+ stateGrid.replaceChildren();
+ for(const item of states){
+  const btn=document.createElement('button');
+  btn.type='button';btn.className='recordsStateCard';
+  btn.setAttribute('aria-label','Browse '+item.name+' congressional delegation');
+  const abbreviation=document.createElement('span');
+  abbreviation.className='recordsStateAbbr';abbreviation.textContent=item.abbr;
+  const name=document.createElement('strong');
+  name.textContent=item.name;
+  btn.append(abbreviation,name);
+  btn.addEventListener('click',()=>showState(item.abbr,true));
+  stateGrid.append(btn);
  }
- rosterStatus.textContent=shown.length?filtered.length+' current matching member'+(filtered.length===1?'':'s')+
-   (filtered.length>45?' · showing first 45':''):'No matches. Try a member name or state abbreviation.';
+ rosterStatus.textContent=state.members.length?
+   'Select a state to see its current senators and representatives.':'Loading the current congressional delegation directory…';
+}
+function memberCard(m){
+ const btn=document.createElement('button');
+ btn.type='button';btn.className='recordsMemberCard';
+ btn.setAttribute('aria-current',String(state.member?.bioguide===m.bioguide));
+ const district=document.createElement('span');
+ district.className='recordsMemberDistrict';
+ district.textContent=m.chamber==='Senate'?'U.S. SENATE':
+  m.state==='DC'?'AT-LARGE DELEGATE':
+  Number(m.district)===0?'AT-LARGE DISTRICT':'DISTRICT '+m.district;
+ const name=document.createElement('strong');name.textContent=m.name;
+ const party=document.createElement('span');party.className='recordsMemberParty';
+ party.textContent=m.party||'Party not reported';
+ btn.append(district,name,party);
+ btn.addEventListener('click',()=>select(m.bioguide));
+ return btn;
+}
+function renderDelegation(){
+ const abbr=state.selectedState;
+ const item=stateByCode[abbr];
+ if(!item)return;
+ const delegation=model.delegation(state.members,abbr);
+ $('delegationTitle').textContent=item.name;
+ $('delegationIntro').textContent=delegation.house.length+' House member'+(delegation.house.length===1?'':'s')+
+  (abbr==='DC'?' or delegate':'')+' · '+delegation.senate.length+' senator'+(delegation.senate.length===1?'':'s');
+ $('senateCount').textContent=String(delegation.senate.length)+' listed';
+ $('houseCount').textContent=String(delegation.house.length)+' listed';
+ $('houseHeading').textContent=abbr==='DC'?'U.S. Delegate':'U.S. Representatives';
+ const senate=$('senateMembers'),house=$('houseMembers');
+ senate.replaceChildren();house.replaceChildren();
+ for(const member of delegation.senate)senate.append(memberCard(member));
+ for(const member of delegation.house)house.append(memberCard(member));
+ if(!delegation.senate.length){
+  const msg=document.createElement('p');msg.className='recordsStatus';
+  msg.textContent=abbr==='DC'?'Washington, D.C. does not elect voting U.S. senators.':'No current senators in this directory snapshot.';
+  senate.append(msg);
+ }
+ if(!delegation.house.length){
+  const msg=document.createElement('p');msg.className='recordsStatus';
+  msg.textContent='No House member in this directory snapshot. A seat may be vacant; no incumbent is inferred.';
+  house.append(msg);
+ }
+}
+function showState(code,shouldScroll=false){
+ if(!stateByCode[code])return;
+ state.selectedState=code;
+ $('stateDirectory').hidden=true;
+ $('delegationDirectory').hidden=false;
+ if(state.member?.state!==code){
+  state.member=null;state.votes=[];state.voteData=null;
+  $('memberProfile').hidden=true;
+  $('recordsStart').hidden=false;
+ }
+ renderDelegation();
+ if(shouldScroll){
+  try{history.replaceState(null,'','#state='+encodeURIComponent(code));}catch{}
+  $('delegationDirectory').scrollIntoView?.({behavior:'smooth',block:'start'});
+ }
+}
+function showAllStates(){
+ state.selectedState=null;state.member=null;state.votes=[];state.voteData=null;
+ $('delegationDirectory').hidden=true;
+ $('stateDirectory').hidden=false;
+ $('memberProfile').hidden=true;
+ $('recordsStart').hidden=false;
+ try{history.replaceState(null,'',location.pathname+location.search);}catch{}
+ $('stateDirectory').scrollIntoView?.({behavior:'smooth',block:'start'});
 }
 function sourceUrl(v){
  if(typeof v.url==='string'&&/^https:\/\/(clerk\.house\.gov|www\.senate\.gov)\//.test(v.url))return v.url;
@@ -116,8 +180,10 @@ function select(id){
  $('profileInfo').textContent=(m.chamber==='House'?m.state+' · District '+(m.district===0?'At-large':m.district):m.state+' · U.S. Senate')+' · '+m.party;
  $('profileBio').href='https://bioguide.congress.gov/search/bio/'+m.bioguide;
  $('recordUpdated').textContent='Member roster checked '+formatDate(state.rosterDate)+' · individual vote coverage indicated alongside each captured snapshot.';
- $('votesQuery').value='';displayFinance(m);renderCandidates();
- try{history.replaceState(null,'','#member='+encodeURIComponent(id));}catch{}
+ $('votesQuery').value='';displayFinance(m);renderDelegation();
+ if(state.selectedState!==m.state)showState(m.state);
+ try{history.replaceState(null,'','#state='+encodeURIComponent(m.state)+'&member='+encodeURIComponent(id));}catch{}
+ $('memberProfile').scrollIntoView?.({behavior:'smooth',block:'start'});
  loadVotes(m);
 }
 async function begin(){
@@ -128,16 +194,19 @@ async function begin(){
   const members=model.members(payload);
   if(!members.length)throw Error('Roster is empty');
   state.members=members;state.rosterDate=payload.asOf||payload.retrievedAt;
-  renderCandidates();
+  renderStateDirectory();
   const route=new URLSearchParams(location.hash.slice(1));
-  const id=route.get('member');
-  if(id&&model.getMember(members,id))select(id);
+  const id=route.get('member'),stateCode=route.get('state');
+  const target=id?model.getMember(members,id):null;
+  if(target)showState(target.state);
+  else if(stateCode&&stateByCode[stateCode.toUpperCase()])showState(stateCode.toUpperCase());
+  if(target)select(target.bioguide);
  }catch(_){
   rosterStatus.textContent='The cached congressional roster is temporarily unavailable. Reopen the page to retry.';
  }
 }
-search.addEventListener('input',renderCandidates);
-$('memberChamber').addEventListener('change',renderCandidates);
+$('backToStates').addEventListener('click',showAllStates);
+renderStateDirectory();
 $('votesQuery').addEventListener('input',()=>{if(state.member)renderVotes();});
 begin();
 })();
