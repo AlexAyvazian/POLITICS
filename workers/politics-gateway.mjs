@@ -833,9 +833,8 @@ export default {
    const index=Math.floor((slot-12)/2);
    const state=BILL_COMMONS_STATES[(days*18+index)%BILL_COMMONS_STATES.length];
    ctx.waitUntil(slot%2===0?refreshOpenStatesState(env,state):refreshBillCommonsState(env,state));
-   ctx.waitUntil(refreshMemberLegislationBatch(env,slot,fetch,when));
-   ctx.waitUntil(refreshMemberExtraBatch(env,'finance',slot,fetch,when));
-   ctx.waitUntil(refreshMemberExtraBatch(env,'lobby',slot,fetch,when));
+   // Member-level FEC, lobbying and sponsorship fetches run in the isolated
+   // politics-member-ingest Worker. Keep this scheduled job focused on states.
    return;
   }
   const task=tasks[slot];if(!task)return;
