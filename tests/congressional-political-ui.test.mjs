@@ -6,11 +6,12 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const wait=()=>new Promise(done=>setImmediate(done));
 function mount(){
  const listeners={};
+ let partyResolver=null;
  const box={innerHTML:''};
  const names={politicalDetails:box};
  const window={
   addEventListener(name,fn){listeners[name]=fn},
-  POLITICS_CONGRESSIONAL_ATLAS:{getSelection(){return null}}
+  POLITICS_CONGRESSIONAL_ATLAS:{getSelection(){return null},setPartyResolver(fn){partyResolver=fn;}}
  };
  for(const path of ['assets/js/ncsl-control.js','assets/js/governors.js','assets/js/congressional-political-model.js']){
   vm.runInNewContext(read(path),{window});
@@ -33,7 +34,7 @@ function mount(){
   console,encodeURIComponent
  });
  const choose=selection=>listeners['congressional-atlas:selection']({detail:selection});
- return {choose,requests,box};
+ return {choose,requests,box,party:value=>partyResolver?.(value)};
 }
 test('clicking a real House GEOID reveals only the verified matching representative',async()=>{
  const app=mount();
@@ -45,6 +46,8 @@ test('clicking a real House GEOID reveals only the verified matching representat
  assert.match(app.box.innerHTML,/NCSL seat counts/);
  assert.match(app.box.innerHTML,/2026-11-02/);
  assert.equal(app.requests.filter(x=>x.includes('congress-snapshot')).length,1);
+ assert.equal(app.party({layer:'house',state:'CA',scope:'district',district:'05'}),'republican');
+ assert.equal(app.party({layer:'house',state:'CA',scope:'district',district:'06'}),'unknown');
  assert.equal(app.requests.filter(x=>x.includes('openstates-snapshot')).length,0);
 });
 test('state legislative panel displays validated matching names and warns about partial coverage',async()=>{
@@ -53,11 +56,15 @@ test('state legislative panel displays validated matching names and warns about 
  await wait();await wait();
  assert.match(app.box.innerHTML,/Example State Senator/);
  assert.match(app.box.innerHTML,/Partial roster: 1 of 122/);
- assert.equal(app.requests.filter(x=>x.includes('openstates-snapshot')).length,1);
+ assert.equal(app.party({layer:'stateSenate',state:'CA',scope:'district',district:'039'}),'democratic');
+ assert.equal(app.party({layer:'stateSenate',state:'CA',scope:'district',district:'038'}),'unknown');
+ assert.equal(app.requests.filter(x=>x.includes('assets/data/legislators/ca.json')).length,1);
+ assert.equal(app.requests.filter(x=>x.includes('openstates-snapshot')).length,0);
  app.choose({state:'CA',scope:'district',layer:'stateSenate',district:'038',geoid:'06038'});
  await wait();
  assert.match(app.box.innerHTML,/not evidence that the seat is vacant/);
- assert.equal(app.requests.filter(x=>x.includes('openstates-snapshot')).length,1);
+ assert.equal(app.requests.filter(x=>x.includes('assets/data/legislators/ca.json')).length,1);
+ assert.equal(app.requests.filter(x=>x.includes('openstates-snapshot')).length,0);
 });
 test('state overview renders dated governor, statewide legislative breakdown and both senators',async()=>{
  const app=mount();
