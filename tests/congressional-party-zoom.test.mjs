@@ -30,8 +30,8 @@ test('state legislature colors require a matched incumbent for that exact chambe
  assert.equal(model.stateDistrictParty(null,'stateSenate','022'),'unknown');
 });
 test('senate statewide party is labeled split when both members belong to different parties',()=>{
- const d={states:{ME:{senators:[{party:'Republican'},{party:'Independent'}]},
-  WA:{senators:[{party:'Democrat'},{party:'Democrat'}]},HI:{senators:[{party:'Democratic'}]}}};
+ const d={states:{ME:{senators:[{name:'First senator',party:'Republican'},{name:'Second senator',party:'Independent'}]},
+  WA:{senators:[{name:'First senator',party:'Democrat'},{name:'Second senator',party:'Democrat'}]},HI:{senators:[{name:'Only one record',party:'Democratic'}]}}};
  assert.equal(model.senateParty(d,'ME'),'split');
  assert.equal(model.senateParty(d,'WA'),'democratic');
  assert.equal(model.senateParty(d,'HI'),'unknown','one record must not impersonate both senators');
@@ -45,7 +45,7 @@ test('political party synonyms classify without treating unknown or missing valu
 test('zoom maintains constant 12px maximum screen font through an inverse label scale and uses compact number labels',()=>{
  const js=read('assets/js/congressional-map.js');
  assert.match(js,/function syncDistrictLabels\(/);
- assert.match(js,/scale\('\+\(1\s*\/\s*k\)\+\'\)/);
+ assert.match(js,/const inv=1\/Math\.max\(\.001,k\)/);
  assert.match(js,/on\('zoom',e=>\{/);
  assert.match(js,/\.text\(f=>partyModel\.districtMarker\(layer,currentCode\(f\)\)\)/);
  assert.equal(model.districtMarker('stateSenate','022'),'22');
