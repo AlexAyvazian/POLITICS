@@ -64,10 +64,10 @@
    <div class="recordsPanels">
     <section class="recordsPanel recordsVotesPanel" aria-label="Recorded floor votes">
      <div class="recordsSectionHead"><div><span class="recordsKicker">THE RECORD</span><h3>Recorded votes</h3></div><span class="recordsSectionMeta" id="votePeriod"></span></div>
-     <p class="recordsHelp">Captured roll calls only. Voice votes and uncollected records are not counted as missed votes. Dates and votes link to official sources.</p>
+     <p class="recordsHelp">Recorded roll calls only. Voice votes and uncollected records are not counted as missed votes. Yes/No refers to a procedural or legislative question—not whether someone supports a political party.</p>
      <div id="voteStatus" class="recordsStatus" role="status">Loading official roll calls…</div>
      <div class="recordsVoteSummary" id="voteSummary" hidden></div>
-     <div class="recordsDistribution" id="voteDistribution" aria-label="Recorded vote positions"></div>
+     <div class="recordsDistribution" id="voteDistribution" aria-label="Distribution of recorded votes, not party affiliations"></div>
      <div class="recordsVoteTools">
        <div class="recordsVotePills" role="group" aria-label="Filter by recorded vote position">
         <button id="voteFilterAll" type="button" aria-pressed="true">All votes</button>
@@ -79,12 +79,27 @@
      </div>
      <div id="memberVotes" class="recordsVoteList"></div>
     </section>
-    <aside class="recordsSidebar">
-     <section class="recordsPanel" id="financeLinks"><span class="recordsKicker">MONEY</span><h3>Campaign contributions</h3><p>Official campaign receipts and donors reported to the FEC. Campaign donations are different from personal financial assets.</p><a id="fecMemberLink" target="_blank" rel="noopener noreferrer">Search FEC filings ↗</a><small>FEC filings update over time. No dollar totals are estimated here.</small></section>
-     <section class="recordsPanel" id="travelLinks"><span class="recordsKicker">DISCLOSURES</span><h3>Travel and financial filings</h3><p>Explore privately sponsored travel, sponsor disclosures, and personal financial reports. The actual filings are the evidence.</p><div class="recordsLinkStack" id="disclosureList"></div><small>These filings are not equivalent to campaign contributions. Travel records may be scanned PDFs.</small></section>
-     <section class="recordsPanel" id="legislationLinks"><span class="recordsKicker">LEGISLATION</span><h3>Bills and sponsorships</h3><p>Review legislation sponsored or cosponsored by this member through Congress.gov.</p><a href="https://www.congress.gov/member" target="_blank" rel="noopener noreferrer" id="congressMemberLink">Search Congress.gov ↗</a></section>
-     <section class="recordsPanel recordsTransparency"><span class="recordsKicker">DATA SOURCES</span><h3>How this is verified</h3><p id="recordUpdated"></p><p>Roster: unitedstates/congress-legislators. Recorded votes: House Clerk and U.S. Senate. Financing: FEC. Travel: disclosure filings. No inferred votes or election forecasts.</p></section>
-    </aside>
+    <div class="recordsEvidence" aria-label="Congressional disclosure data">
+     <section class="recordsPanel recordsEvidencePanel" id="financeLinks">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">CAMPAIGN MONEY · FEDERAL ELECTION COMMISSION</span><h3>Where the campaign money comes from</h3></div></div>
+      <p class="recordsHelp">These are amounts raised and spent by campaign committees, not money paid personally to a lawmaker. Figures cover the 2025–2026 election cycle.</p>
+      <div id="financeVisualization" class="recordsFinanceViz" role="region" aria-label="Campaign contributions and spending data" aria-live="polite">Loading campaign financial records…</div>
+     </section>
+     <section class="recordsPanel recordsEvidencePanel" id="travelLinks">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">DISCLOSED EXPENSES</span><h3>Privately sponsored travel</h3></div></div>
+      <div id="travelVisualization" class="recordsTravelViz" role="region" aria-label="Privately funded travel amounts" aria-live="polite"></div>
+     </section>
+     <section class="recordsPanel recordsEvidencePanel" id="legislationLinks">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">LEGISLATIVE ACTIVITY</span><h3>Measures appearing on this member's voting record</h3></div></div>
+      <p class="recordsHelp">A measure may receive multiple procedural votes. The totals here count recorded votes, not laws enacted or bills sponsored.</p>
+      <div id="legislationVisualization" class="recordsMeasuresViz"></div>
+     </section>
+     <section class="recordsPanel recordsTransparency" aria-label="Data methodology">
+      <h3>Data and methodology</h3>
+      <p id="recordUpdated"></p>
+      <p>Voting positions: Voteview congressional roll calls. Campaign finances: FEC candidate filing totals. Travel: official congressional disclosures. The page never assigns a lawmaker a financial total or a trip without an identified record.</p>
+     </section>
+    </div>
    </div>
   </section>
   <section id="recordsStart" class="recordsEmpty" hidden><strong>Choose a representative to view their public record.</strong></section>
