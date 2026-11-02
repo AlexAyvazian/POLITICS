@@ -246,3 +246,30 @@ body[data-view="records"] .recordsProfile{
 .recordsVoteWhy button:hover{text-decoration:underline}
 @media(max-width:760px){#senateMembers .recordsMemberPortrait{left:15%}#senateMembers .recordsMemberPortrait img{object-fit:contain;max-width:100%;object-position:right bottom}}
 @media(max-width:520px){.recordsDistributionRow{grid-template-columns:90px minmax(0,1fr) 65px;gap:8px}.recordsDistribution{padding:12px}}
+
+/* Put campaign money, travel and legislative measurements below the votes:
+   these are content sections, not a sidebar of redirects. */
+.recordsPanels{display:block!important}
+.recordsVotesPanel{width:100%;max-width:none}
+.recordsEvidence{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin:24px 0 60px}
+.recordsEvidencePanel{min-width:0;background:linear-gradient(150deg,rgba(19,36,60,.87),rgba(7,17,33,.92));border:1px solid rgba(145,196,229,.18);padding:clamp(20px,2.8vw,33px);border-radius:24px}
+.recordsEvidencePanel h3{font-size:clamp(22px,2.6vw,32px);line-height:1.18;letter-spacing:-.04em}
+.recordsEvidence .recordsTransparency{grid-column:1/-1;background:transparent;border:0;border-top:1px solid rgba(137,191,224,.17);padding:17px 3px}
+.recordsFinanceMetrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:15px 0}
+.recordsFinanceMetric{padding:18px;border-radius:16px;background:rgba(6,21,39,.77);border:1px solid rgba(150,207,226,.13)}
+.recordsFinanceMetric span{font-size:11px;color:#b3ccdd;display:block;margin-bottom:9px}
+.recordsFinanceMetric strong{font-size:clamp(20px,2.3vw,29px);font-variant-numeric:tabular-nums;line-height:1.2;color:#e7f8fa}
+.recordsFinanceViz h4{font-size:16px;margin:24px 0 16px}
+.recordsFinanceBars{display:grid;gap:14px}
+.recordsFinanceBarRow,.recordsMeasureRow{display:grid;grid-template-columns:145px minmax(0,1fr) 90px;align-items:center;gap:12px}
+.recordsFinanceBarRow>span,.recordsMeasureRow>strong{font-size:12px;color:#c4d9e7}
+.recordsFinanceBarRow>strong,.recordsMeasureRow>span{font-size:11px;text-align:right;color:#e8f4fa;font-variant-numeric:tabular-nums}
+.recordsFinanceBarTrack{height:11px;border-radius:99px;background:#263a52;overflow:hidden}
+.recordsFinanceBarFill,.recordsMeasureFill{display:block;height:100%;border-radius:99px;background:#80cfbd}
+.recordsMeasureFill{background:#b4acc9}
+.recordsEvidenceNote{font-size:12px;line-height:1.7;color:#a6c1d4}
+.recordsTravelViz{min-height:120px;padding-top:14px}
+.recordsTravelHeadline{font-size:17px;color:#d1e6f1;line-height:1.4}
+.recordsMeasuresViz{display:grid;gap:18px;margin:24px 0}
+@media(max-width:900px){.recordsEvidence{grid-template-columns:1fr}}
+@media(max-width:520px){.recordsFinanceBarRow,.recordsMeasureRow{grid-template-columns:88px minmax(0,1fr) 80px;gap:6px}.recordsFinanceBarRow>span,.recordsMeasureRow>strong{font-size:10px}.recordsFinanceMetric{padding:13px}.recordsFinanceMetric strong{font-size:19px}}
