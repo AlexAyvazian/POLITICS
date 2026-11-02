@@ -84,3 +84,85 @@ body[data-view="records"] button,body[data-view="records"] input,body[data-view=
 .recordsLinkStack a{margin:4px 0}
 @media(max-width:1080px){.recordsPanels{grid-template-columns:1fr}.recordsNav{grid-template-columns:minmax(0,1fr) auto}.recordsNav>strong{display:none}}
 @media(max-width:650px){.recordsNav{margin:8px 8px 0;grid-template-columns:1fr;height:auto;min-height:49px;border-radius:20px;padding:8px 12px}.recordsNav nav{justify-content:flex-start;overflow-x:auto}.recordsMain{width:calc(100% - 16px)}.recordsIntro{display:block}.recordsSourceTag{display:inline-block;margin-top:12px}.recordsSearchRow{grid-template-columns:1fr}.recordsProfileHead{flex-direction:column;align-items:flex-start}.recordsVoteRow{grid-template-columns:70px 1fr;gap:8px}.recordsVoteRow>a{grid-column:2}.recordsVoteSummary{grid-template-columns:repeat(2,1fr)}.recordsExplorer,.recordsProfile{padding:11px}.recordsPanel{padding:14px}}
+
+/* Directory-first browse: choose state -> full delegation -> individual member. */
+.recordsStateDirectory[hidden],.recordsDelegationDirectory[hidden]{display:none!important}
+.recordsDirectoryHeading,.recordsDelegationTop,.recordsDirectorySubhead{
+ display:flex;justify-content:space-between;align-items:center;gap:18px;
+}
+.recordsDirectoryHeading h2,.recordsDelegationTop h2{
+ font-size:clamp(21px,3vw,30px);letter-spacing:-.035em;margin:5px 0 5px;
+}
+.recordsDirectoryHeading p,.recordsDelegationTop p{
+ color:#a9c7d7;font-size:12px;margin:3px 0 0;line-height:1.5;
+}
+.recordsDirectoryCount{
+ border:1px solid rgba(134,226,216,.25);background:rgba(134,226,216,.07);
+ border-radius:999px;padding:9px 14px;font-size:12px;color:#bafbe3;white-space:nowrap;
+}
+.recordsStateGrid{
+ display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+ gap:10px;margin-top:14px;
+}
+.recordsStateCard{
+ display:flex;align-items:center;gap:11px;text-align:left;
+ min-height:70px;width:100%;min-width:0;padding:11px;
+ border:1px solid rgba(150,190,255,.2);border-radius:16px;
+ background:linear-gradient(150deg,rgba(8,25,47,.81),rgba(5,12,28,.72));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+ color:#e3f3ff;cursor:pointer;transition:transform .16s,border-color .16s,background .16s;
+}
+.recordsStateCard:hover,.recordsStateCard:focus-visible{
+ border-color:#69dcff;background:rgba(27,74,96,.5);
+ transform:translateY(-2px);outline:none;
+ box-shadow:0 0 18px rgba(105,220,255,.11);
+}
+.recordsStateCard strong{font-size:12px;line-height:1.3;font-weight:710}
+.recordsStateAbbr{
+ flex:none;display:grid;place-items:center;width:38px;height:38px;
+ background:rgba(105,220,255,.09);border:1px solid rgba(105,220,255,.24);
+ color:#a9eafa;border-radius:11px;font-weight:850;font-size:12px;
+}
+.recordsDelegationTop{justify-content:flex-start;align-items:center;padding:4px 4px 15px;border-bottom:1px solid rgba(178,222,255,.15)}
+.recordsBack{
+ border:1px solid rgba(125,211,252,.30);background:rgba(4,8,20,.6);
+ border-radius:999px;padding:11px 14px;color:#e3f2ff;white-space:nowrap;
+ cursor:pointer;font-weight:750;font-size:12px;
+}
+.recordsBack:hover,.recordsBack:focus-visible{border-color:#69dcff;outline:none;background:rgba(105,220,255,.1)}
+.recordsDelegationSection{margin:17px 3px 8px}
+.recordsDirectorySubhead{border-bottom:1px solid rgba(160,197,226,.12);padding-bottom:10px;margin-bottom:12px}
+.recordsDirectorySubhead h3{font-size:16px;margin:0}
+.recordsDirectorySubhead span{color:#93b5c9;font-size:11px}
+.recordsMemberGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.recordsMemberCard{
+ display:flex;flex-direction:column;gap:7px;align-items:flex-start;
+ min-height:114px;text-align:left;
+ border:1px solid rgba(150,190,255,.2);border-radius:16px;
+ padding:14px;background:linear-gradient(135deg,rgba(7,22,43,.8),rgba(4,9,23,.77));
+ color:#e8f6ff;cursor:pointer;
+}
+.recordsMemberCard:hover,.recordsMemberCard:focus-visible,.recordsMemberCard[aria-current="true"]{
+ outline:none;border-color:rgba(105,220,255,.72);
+ background:linear-gradient(135deg,rgba(17,53,71,.78),rgba(7,22,43,.87));
+ box-shadow:0 0 18px rgba(105,220,255,.12);
+}
+.recordsMemberDistrict{font-size:10px;letter-spacing:.12em;color:#88e7d7;font-weight:800}
+.recordsMemberCard strong{font-size:15px;line-height:1.35}
+.recordsMemberParty{font-size:12px;color:#bbd2e0}
+.recordsProfile{scroll-margin-top:80px}
+.recordsDelegationDirectory{scroll-margin-top:75px}
+@media(max-width:650px){
+ .recordsStateGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .recordsStateCard{min-height:62px;padding:9px;gap:8px}
+ .recordsStateAbbr{width:31px;height:33px}
+ .recordsStateCard strong{font-size:11px}
+ .recordsMemberGrid{grid-template-columns:1fr 1fr;gap:7px}
+ .recordsMemberCard{padding:11px;min-height:100px}
+ .recordsMemberCard strong{font-size:12px}
+ .recordsDirectoryHeading{align-items:flex-start}
+ .recordsDirectoryCount{display:none}
+ .recordsDelegationTop{gap:9px}
+ .recordsBack{padding:9px 11px}
+}
+@media(max-width:410px){.recordsMemberGrid{grid-template-columns:1fr}}
