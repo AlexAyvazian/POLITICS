@@ -49,6 +49,19 @@ function stateDistrictParty(snapshot,layer,code){
  return combinedParty(stateMembers(snapshot,layer,code));
 }
 function senateParty(snapshot,state){return combinedParty(senators(snapshot,state),2);}
+/* A state outline represents the chamber's reported numerical seat majority,
+ * NOT the party of any individual state legislative district. */
+function chamberMajority(ns,layer){
+ const seats=layer==='stateSenate'?ns?.senate:layer==='stateHouse'?ns?.house:null;
+ if(!seats)return 'unknown';
+ const d=Number(seats.dem),r=Number(seats.rep),other=Number(seats.other),vacant=Number(seats.vacant);
+ if(![d,r,other,vacant].every(Number.isFinite))return 'unknown';
+ if(other>d&&other>r)return 'other';
+ if(d>r&&d>other)return 'democratic';
+ if(r>d&&r>other)return 'republican';
+ return 'split';
+}
 
-root.CONGRESSIONAL_POLITICAL_MODEL=Object.freeze({house,senators,stateMembers,stateCompleteness,districtMarker,partyClass,houseParty,stateDistrictParty,senateParty});
+
+root.CONGRESSIONAL_POLITICAL_MODEL=Object.freeze({house,senators,stateMembers,stateCompleteness,districtMarker,partyClass,houseParty,stateDistrictParty,senateParty,chamberMajority});
 })(typeof window!=='undefined'?window:globalThis);
