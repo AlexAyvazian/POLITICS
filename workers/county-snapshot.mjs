@@ -30,6 +30,20 @@ export async function serve(request,env){
   }catch(_){return json({status:'storage_error',count:0},503,request);}
  }
 
+ // Member-specific FEC and LobbyView research summaries are collected by the
+ // scheduled gateway and read by verified Bioguide ID. Never fetch upstream here.
+ if(path==='/api/member-finance-detail'||path==='/api/member-lobby-network'){
+  const bioguide=new URL(request.url).searchParams.get('bioguide')||'';
+  if(!/^[A-Z][0-9]{6}$/.test(bioguide))return json({error:'Invalid member identifier'},400,request);
+  if(!env?.COUNTY_DB)return json({status:'not_configured',count:0},503,request);
+  const prefix=path==='/api/member-finance-detail'?'member_finance_detail_':'member_lobby_network_';
+  try{
+   const row=await env.COUNTY_DB.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?')
+    .bind(prefix+bioguide).first();
+   return json(row?JSON.parse(row.snapshot_json):{status:'pending',bioguide,count:0},200,request,row?1800:60);
+  }catch(_){return json({status:'storage_error',count:0},503,request);}
+ }
+
  // Member-specific congressional legislation is collected by the gateway's cron.
  // This endpoint reads verified D1 snapshots and never calls Congress.gov on a click.
  if(path==='/api/member-legislation'){
