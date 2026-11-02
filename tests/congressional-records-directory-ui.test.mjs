@@ -15,7 +15,7 @@ function node(id=''){
  return el;
 }
 function build(){
- const ids=['directoryStatus','stateGrid','stateDirectory','delegationDirectory','delegationTitle','delegationIntro','senateCount','houseCount','houseHeading','senateMembers','houseMembers','backToStates','memberProfile','recordsStart','profileName','profileChamber','profileInfo','profileBio','recordUpdated','votesQuery','voteStatus','voteSummary','votePeriod','memberVotes','fecMemberLink','disclosureList','congressMemberLink'];
+ const ids=['directoryStatus','stateGrid','stateDirectory','delegationDirectory','delegationTitle','delegationIntro','senateCount','houseCount','houseHeading','senateMembers','houseMembers','backToStates','backToDelegation','memberProfile','recordsStart','profileName','profileChamber','profileInfo','profileBio','recordUpdated','votesQuery','voteStatus','voteSummary','votePeriod','memberVotes','fecMemberLink','disclosureList','congressMemberLink'];
  const el=Object.fromEntries(ids.map(id=>[id,node(id)]));
  el.stateDirectory.hidden=false;el.delegationDirectory.hidden=true;el.memberProfile.hidden=true;
  const payload={asOf:'2026-11-02',states:{
@@ -62,6 +62,9 @@ test('state tiles are the default directory, choosing Colorado exposes the deleg
  assert.match(el.voteStatus.textContent,/1 recorded votes/);
  assert.equal(el.memberVotes.children.length,1);
  assert.ok(requests.some(u=>u.includes('assets/data/records/members/H000002.json')));
+ el.backToDelegation.click();
+ assert.equal(el.memberProfile.hidden,true);
+ assert.equal(el.delegationDirectory.hidden,false);
  el.backToStates.click();
  assert.equal(el.stateDirectory.hidden,false);
  assert.equal(el.delegationDirectory.hidden,true);
