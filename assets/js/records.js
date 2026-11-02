@@ -402,6 +402,109 @@ async function loadFinance(m){
  }catch(_){}
  renderFinance(payload,m);
 }
+
+/* Confirmed FEC aggregation and researcher-coded lobbying links are stored
+ * in the same D1 cache as sponsorship. A missing response is not zero. */
+function evidenceBars(title,items,labelField){
+ const section=document.createElement('section');section.className='recordsInsightGroup';
+ const heading=document.createElement('h4');heading.textContent=title;section.append(heading);
+ if(!Array.isArray(items)){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='This source is not currently available.';section.append(p);return section;
+ }
+ if(!items.length){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='No rows were returned in the captured sample; this is not a verified zero.';
+  section.append(p);return section;
+ }
+ const valid=items.filter(x=>typeof x?.total==='number'&&Number.isFinite(x.total)&&x.total>=0)
+  .sort((a,b)=>b.total-a.total).slice(0,7);
+ const max=Math.max(1,...valid.map(x=>x.total));
+ for(const item of valid){
+  const line=document.createElement('div');line.className='recordsInsightLine';
+  const label=document.createElement('span');label.textContent=String(item[labelField]??'Not classified');
+  const track=document.createElement('div');track.className='recordsInsightTrack';
+  const fill=document.createElement('span');fill.className='recordsInsightFill';
+  fill.style.width=(100*item.total/max).toFixed(1)+'%';track.append(fill);
+  const total=document.createElement('strong');total.textContent=moneyLabel(item.total);
+  line.append(label,track,total);section.append(line);
+ }
+ return section;
+}
+async function loadFinanceDetail(m){
+ const root=$('financeDetailViz');if(!root)return;
+ root.textContent='Checking detailed FEC breakdowns…';
+ let data=null;
+ try{
+  const r=await fetch(readerBase+'/api/member-finance-detail?bioguide='+encodeURIComponent(m.bioguide),
+   {headers:{Accept:'application/json'},credentials:'omit'});
+  if(r.ok)data=await r.json();
+ }catch(_){}
+ if(state.member?.bioguide!==m.bioguide)return;
+ root.replaceChildren();
+ if(!data||data.bioguide!==m.bioguide||data.cycle!==2026||
+   !/^[HS][A-Z0-9]{8}$/.test(String(data.candidateId||''))){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='Additional itemized FEC breakdowns have not been collected for this member. The verified campaign summary above remains available.';
+  root.append(p);return;
+ }
+ const title=document.createElement('h4');title.textContent='Explore the reported money';
+ root.append(title);
+ const note=document.createElement('p');note.className='recordsEvidenceNote';
+ note.textContent='2025–2026 FEC aggregates · collected '+formatDate(data.retrievedAt)+
+  '. These are itemized reporting categories, not comprehensive funding totals or proof an employer donated.';
+ root.append(note);
+ const body=document.createElement('div');body.className='recordsInsightGrid';
+ if(Array.isArray(data.byState))body.append(evidenceBars('Reported individual donation totals by state',data.byState,'state'));
+ if(Array.isArray(data.contributionSizes))body.append(evidenceBars('Reported donation-size categories (FEC)',data.contributionSizes,'size'));
+ if(Array.isArray(data.reportedEmployers))body.append(evidenceBars('Contributors’ reported employers',data.reportedEmployers,'employer'));
+ if(Array.isArray(data.outsideSpending))body.append(evidenceBars('Independent spending: supporting vs opposing',data.outsideSpending,'side'));
+ root.append(body);
+ if(data.employerScope){
+  const caveat=document.createElement('p');caveat.className='recordsEvidenceNote';
+  caveat.textContent=data.employerScope;root.append(caveat);
+ }
+ const source=document.createElement('a');
+ source.href='https://www.fec.gov/data/candidate/'+encodeURIComponent(data.candidateId)+'/?cycle=2026';
+ source.target='_blank';source.rel='noopener noreferrer';source.textContent='View source FEC financial reports ↗';
+ root.append(source);
+}
+async function loadLobby(m){
+ const root=$('lobbyVisualization');if(!root)return;
+ root.textContent='Checking LobbyView research records…';
+ let data=null;
+ try{
+  const r=await fetch(readerBase+'/api/member-lobby-network?bioguide='+encodeURIComponent(m.bioguide),
+   {headers:{Accept:'application/json'},credentials:'omit'});
+  if(r.ok)data=await r.json();
+ }catch(_){}
+ if(state.member?.bioguide!==m.bioguide)return;
+ root.replaceChildren();
+ if(data?.bioguide!==m.bioguide||!Array.isArray(data.clients)){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='No verified LobbyView research snapshot has been cached for this member yet. This does not establish that nobody lobbied on their legislation.';
+  root.append(p);return;
+ }
+ const count=document.createElement('strong');count.className='recordsLobbyCount';
+ count.textContent=String(data.clientCount??'Unreported')+' research-coded client connections captured';
+ root.append(count);
+ const note=document.createElement('p');note.className='recordsEvidenceNote';
+ note.textContent='Source: LobbyView · '+formatDate(data.retrievedAt)+
+  '. The count covers only available network records from the first collected page in 2025–2026; no direct contact, payment or motive is implied.';
+ root.append(note);
+ for(const link of data.clients){
+  const article=document.createElement('article');article.className='recordsLobbyRow';
+  const name=document.createElement('strong');name.textContent=link.name;
+  const desc=document.createElement('span');
+  desc.textContent=String(link.reportYear)+' research network'+
+   (Number.isFinite(link.billOverlapCount)?' · '+link.billOverlapCount+' overlapping sponsored bills':'');
+  article.append(name,desc);root.append(article);
+ }
+ const source=document.createElement('a');source.href='https://www.lobbyview.org/data-download/api/';
+ source.target='_blank';source.rel='noopener noreferrer';source.textContent='LobbyView data and methodology ↗';
+ root.append(source);
+}
+
 function renderTravel(m,report=null){
  const root=$('travelVisualization');root.replaceChildren();
  if(state.member?.bioguide!==m.bioguide)return;
@@ -630,7 +733,7 @@ function select(id){
  $('travelVisualization').replaceChildren();$('legislationVisualization').replaceChildren();
  for(const [key,name] of [['all','voteFilterAll'],['yes','voteFilterYea'],['no','voteFilterNay'],['absent','voteFilterAbsent']])
   $(name).setAttribute('aria-pressed',String(key==='all'));
- loadTravel(m);loadFinance(m);loadSponsored(m);
+ loadTravel(m);loadFinance(m);loadSponsored(m);loadFinanceDetail(m);loadLobby(m);
  try{history.replaceState(null,'','#state='+encodeURIComponent(m.state)+'&member='+encodeURIComponent(id));}catch{}
  $('memberProfile').scrollIntoView?.({behavior:'smooth',block:'start'});
  loadVotes(m);
