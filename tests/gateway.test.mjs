@@ -88,3 +88,17 @@ test('Open States gateway can request state people with the existing key and kee
  assert.match(new URL(seen[0].url).pathname,/\/people$/);
  assert.equal(seen[0].options.headers['X-API-KEY'],'test-OPENSTATES_API_KEY');
 });
+
+test('Congress.gov uses validated existing cross-agency 40-character key when Congress binding is malformed',async()=>{
+ const valid='Z'.repeat(40),seen=[];
+ const fetcher=async url=>{
+  const u=new URL(url);seen.push(u);
+  return new Response(JSON.stringify({bills:[{number:'123',title:'Test bill'}]}),{status:200});
+ };
+ const res=await handle(new Request('https://example.workers.dev/api/congress?limit=1'),
+  {CONGRESS_API_KEY:'invalid-39-character-old-key',FEC_API_KEY:valid}, {},fetcher);
+ assert.equal(res.status,200);
+ assert.equal(seen.length,1);
+ assert.equal(seen[0].searchParams.get('api_key'),valid);
+ assert.equal((await res.json()).provider,'congress');
+});
