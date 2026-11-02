@@ -1,0 +1,40 @@
+name: Refresh Senate office travel disclosures
+on:
+  schedule:
+    - cron: "42 14 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/update_congressional_travel.py
+      - tests/test_congressional_travel.py
+      - .github/workflows/refresh-congressional-travel.yml
+permissions:
+  contents: write
+concurrency:
+  group: senate-office-travel-disclosures
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --quiet PyYAML
+      - name: Validate office-matching and employee attribution
+        run: python -m unittest discover -s tests -p test_congressional_travel.py -v
+      - name: Build verified Senate office-associated travel filings
+        run: python scripts/update_congressional_travel.py
+      - name: Commit only verified filing data
+        shell: bash
+        run: |
+          git add assets/data/records/travel/
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh Senate office-associated travel disclosure entries"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
