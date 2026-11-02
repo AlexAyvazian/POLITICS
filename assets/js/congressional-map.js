@@ -43,9 +43,10 @@ function selectFeature(feature){
 }
 function display(data){
  $('districtSelection').hidden=false;
- $('selectionType').textContent=data.scope==='district'?layers[layer].title.toUpperCase():'STATEWIDE GEOGRAPHY';
- $('selectionName').textContent=byCode[data.state]?.name+(data.scope==='district'?' · District '+(Number(data.district)===0?'At-large':Number(data.district)):'');
- $('selectionGeoid').textContent='GEOID: '+data.geoid;
+ const atLarge=data.scope==='district'&&layer==='house'&&data.district==='00';
+ $('selectionType').textContent=atLarge?'AT-LARGE U.S. HOUSE DISTRICT':data.scope==='district'?layers[layer].title.toUpperCase():'STATEWIDE GEOGRAPHY';
+ $('selectionName').textContent=byCode[data.state]?.name+(data.scope==='district'?' · '+model.districtDisplayName(layer,data.district):'');
+ $('selectionGeoid').textContent='GEOID: '+data.geoid+(atLarge?' · The entire state is one congressional district.':'');
  announce(data);
 }
 function hash(){try{history.replaceState(null,'','#'+[state||'US',layer,district?currentCode(district):null].filter(Boolean).join('/'));}catch{}}
@@ -69,7 +70,7 @@ function reset(){if(zoom)svg.transition().duration(200).call(zoom.transform,home
 function zoomBy(n){if(zoom)svg.transition().duration(200).call(zoom.scaleBy,n);}
 function name(f,isState){
  const s=byFips[String(isState?f.id:f.properties?.STATE).padStart(2,'0')];
- return isState?(s?.name||'State'):(s?.name||stateName())+' · '+layers[layer].title+' '+(f.properties?.BASENAME||f.properties?.GEOID);
+ return isState?(s?.name||'State'):(s?.name||stateName())+' · '+layers[layer].title+' · '+model.districtDisplayName(layer,currentCode(f));
 }
 function plot(features,path,isState){
  root.selectAll('path').data(features,f=>f.properties?.GEOID||f.id).join('path')
@@ -111,8 +112,22 @@ function polygons(data,national){
  if(!features.length){status('No districts exist for this legislative chamber in the selected state.');return;}
  const fc={type:'FeatureCollection',features};
  const projection=national?d3.geoAlbersUsa():d3.geoMercator();
- projection.fitExtent([[24,25],[w-24,h-25]],fc);
- plot(features,d3.geoPath(projection),false);
+ projection.fitExtent(national?[[24,25],[w-24,h-25]]:model.districtViewport(w,h,features.length),fc);
+ const path=d3.geoPath(projection);
+ plot(features,path,false);
+ // Label districts only in the state drilldown so the 436-region national view stays readable.
+ if(!national){
+  root.selectAll('.atlasDistrictLabel').data(features.filter(f=>path.area(f)>190)).join('text')
+   .attr('class','atlasDistrictLabel')
+   .attr('transform',f=>{const [x,y]=path.centroid(f);return 'translate('+x+','+y+')';})
+   .text(f=>model.districtDisplayName(layer,currentCode(f)));
+ }
+ if(!national&&features.length===1){
+  $('districtMapLabel').textContent=stateName()+' · 1 at-large U.S. House district';
+  $('atlasHint').textContent='No internal district boundaries — one representative district covers the entire state.';
+  selectFeature(features[0]);
+  return;
+ }
  if(!national&&(pendingCode||pendingGeoid)){
   const match=features.find(f=>currentCode(f)===pendingCode||String(f.properties.GEOID)===pendingGeoid);
   pendingCode=null;pendingGeoid=null;if(match)selectFeature(match);
