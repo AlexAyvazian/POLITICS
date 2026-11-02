@@ -68,3 +68,15 @@ test('political reader returns Open States by state and Congress.gov House vote 
  const invalid=await serve(req('/api/openstates-snapshot?state=NOTASTATE'),env);
  assert.equal(invalid.status,400);
 });
+
+test('member sponsorship is read from stored D1 by exact Bioguide ID only',async()=>{
+ const member={bioguide:'H000001',congress:119,sponsored:[{title:'Public access act'}],cosponsored:[],count:1};
+ const env={COUNTY_DB:fakeDb({member_legislation_H000001:member})};
+ const yes=await serve(req('/api/member-legislation?bioguide=H000001'),env);
+ assert.equal(yes.status,200);
+ assert.equal((await yes.json()).sponsored[0].title,'Public access act');
+ const pending=await serve(req('/api/member-legislation?bioguide=H000002'),env);
+ assert.equal((await pending.json()).status,'pending');
+ const invalid=await serve(req('/api/member-legislation?bioguide=H000001%27%20OR%201%3D1'),env);
+ assert.equal(invalid.status,400);
+});
