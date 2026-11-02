@@ -33,19 +33,21 @@ test('district mapping only uses matching current term, no county-to-district in
  assert.equal(c.federalMembers([person],'CA','house','07','2026-11-01').length,0);
  assert.equal(c.federalMembers([person],'NY','house','05','2026-11-01').length,0);
 });
-test('congressional atlas is a separate HTML entrypoint linked from existing atlas',()=>{
- const html=read('congressional.html'),home=read('index.html');
- assert.match(html,/assets\/js\/congressional\.js/);
- assert.match(html,/assets\/js\/congressional-model\.js/);
- assert.match(html,/id="districtMap"/);
- assert.match(html,/id="districtLayer"/);
+test('congressional atlas is a distinct interactive map-only page',()=>{
+ const html=read('congressional.html'),home=read('index.html'),js=read('assets/js/congressional-map.js');
+ assert.match(html,/assets\/js\/congressional-map\.js/);
+ assert.match(html,/assets\/css\/congressional-map\.css/);
+ for(const id of ['districtMap','congressState','districtSelection','districtSearch','congressZoomIn','congressZoomOut','congressZoomReset'])
+  assert.match(html,new RegExp('id="'+id+'"'));
+ for(const name of ['house','stateSenate','stateHouse','senate','governor','president'])
+  assert.match(html,new RegExp('data-atlas-layer="'+name+'"'));
  assert.match(home,/href="congressional\.html"/);
- const js=read('assets/js/congressional.js');
- assert.match(js,/CONGRESSIONAL_MODEL/);
- assert.match(js,/POLITICS_NCSL/);
- assert.match(js,/119th Congress/);
- assert.match(js,/2024/);
- assert.doesNotMatch(js,/POLITICS_COUNTY_CACHE/);
+ assert.match(js,/POLITICS_CONGRESSIONAL_ATLAS/);
+ assert.match(js,/congressional-atlas:selection/);
+ assert.match(js,/geoAlbersUsa/);
+ assert.match(js,/zoom\(/);
+ assert.doesNotMatch(html,/assets\/js\/map\.js|assets\/js\/congressional\.js|ncsl-control\.js|governors\.js/);
+ assert.doesNotMatch(js,/POLITICS_NCSL|GOVERNORS_2026/);
 });
 test('county atlas source, colors and effects remain independent',()=>{
  const html=read('index.html'),css=read('assets/css/politics.css');
@@ -63,6 +65,6 @@ test('state executive roster has all fifty verified NGA governor names with clea
  assert.equal(d.states.VA,'Abigail Spanberger');
  assert.equal(d.states.NJ,'Mikie Sherrill');
  assert.equal(d.asOf,'2026-11-01');
- assert.match(read('congressional.html'),/assets\/js\/governors\.js/);
+ assert.doesNotMatch(read('congressional.html'),/assets\/js\/governors\.js/);
  assert.match(read('assets/js/congressional.js'),/GOVERNORS_2026/);
 });
