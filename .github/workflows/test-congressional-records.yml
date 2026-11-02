@@ -1,0 +1,34 @@
+name: Test Congressional Records directory
+
+on:
+  push:
+    paths:
+      - records.html
+      - assets/js/records.js
+      - assets/js/records-model.js
+      - assets/js/states.js
+      - assets/css/records.css
+      - tests/congressional-records.test.mjs
+      - scripts/update_voteview_rollcalls.py
+      - tests/test_voteview_rollcalls.py
+      - ".github/workflows/test-congressional-records.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  records:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify state-first directory, exact member profiles, and voting joins
+        run: node --test tests/congressional-records.test.mjs
+      - name: Verify archived roll-call dataset joins and vote code meanings
+        run: python3 -m unittest discover -s tests -p test_voteview_rollcalls.py -v
