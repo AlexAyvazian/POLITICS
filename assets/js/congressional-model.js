@@ -90,6 +90,39 @@ function rewindForD3(collection){
 }
 
 
+/* Hawaii district boundaries include far-flung Northwestern Hawaiian Islands.
+ * Give those islands an honest separate inset while fitting the inhabited main
+ * islands in the primary viewport. Never discard, alter, or merge boundaries.
+ * The split is applied ONLY at rendering time to the existing cached GeoJSON.
+ */
+function splitHawaiiIslands(collection){
+ const main=[],northwest=[];
+ function append(target,feature,polygons){
+  if(!polygons.length)return;
+  target.push({...feature,geometry:polygons.length===1
+   ?{type:'Polygon',coordinates:polygons[0]}
+   :{type:'MultiPolygon',coordinates:polygons}});
+ }
+ for(const feature of collection.features||[]){
+  const geo=feature.geometry;
+  if(!geo||!['Polygon','MultiPolygon'].includes(geo.type))continue;
+  const polys=geo.type==='Polygon'?[geo.coordinates]:geo.coordinates;
+  const a=[],b=[];
+  for(const polygon of polys){
+   const outer=polygon[0];
+   if(!Array.isArray(outer)||outer.length<3)continue;
+   // Main populated island chain; Nihoa/Necker and western atolls go in inset.
+   let minLongitude=Infinity,maxLatitude=-Infinity;
+   for(const point of outer){minLongitude=Math.min(minLongitude,point[0]);maxLatitude=Math.max(maxLatitude,point[1]);}
+   (minLongitude>-161.5&&maxLatitude<23?a:b).push(polygon);
+  }
+  append(main,feature,a);
+  append(northwest,feature,b);
+ }
+ return {main:{type:'FeatureCollection',features:main},
+         northwest:{type:'FeatureCollection',features:northwest}};
+}
+
 /* Keep one at-large district visually distinct from a blank/oversized square. */
 function districtViewport(width,height,count){
  const w=Math.max(200,Number(width)||200),h=Math.max(200,Number(height)||200);
@@ -104,5 +137,5 @@ function districtDisplayName(layer,code){
  return Number.isInteger(value)&&value>=0?'District '+value:'District';
 }
 
-root.CONGRESSIONAL_MODEL=Object.freeze({LAYERS,censusUrl,districtCode,federalMembers,stateLawmakerMatches,rewindForD3,districtViewport,districtDisplayName});
+root.CONGRESSIONAL_MODEL=Object.freeze({LAYERS,censusUrl,districtCode,federalMembers,stateLawmakerMatches,rewindForD3,splitHawaiiIslands,districtViewport,districtDisplayName});
 })(typeof window!=='undefined'?window:globalThis);
