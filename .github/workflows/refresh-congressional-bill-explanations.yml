@@ -6,6 +6,7 @@ on:
   push:
     paths:
       - scripts/update_congressional_bill_summaries.py
+      - tests/test_govinfo_summaries.py
       - .github/workflows/refresh-congressional-bill-explanations.yml
 permissions:
   contents: write
@@ -21,9 +22,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Fetch verifiable legislative descriptions
-        env:
-          CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
+      - name: Validate keyless GovInfo CRS XML parsing
+        run: python -m unittest discover -s tests -p test_govinfo_summaries.py -v
+      - name: Import official CRS bill explanations from keyless GovInfo
         run: python scripts/update_congressional_bill_summaries.py
       - name: Commit new official summaries
         run: |
