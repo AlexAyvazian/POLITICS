@@ -166,3 +166,164 @@ body[data-view="records"] button,body[data-view="records"] input,body[data-view=
  .recordsBack{padding:9px 11px}
 }
 @media(max-width:410px){.recordsMemberGrid{grid-template-columns:1fr}}
+
+/* State silhouettes: clickable geography, not rectangular abbreviation cards. */
+.recordsStateDirectory{
+ background:transparent;
+ border-color:transparent;
+ box-shadow:none;
+ backdrop-filter:none;
+ padding:6px 4px 12px;
+}
+.recordsStateDirectory .recordsDirectoryHeading{padding:0 6px 10px}
+.recordsStateDirectory .recordsStatus{margin:1px 6px 10px}
+.recordsStateGrid{
+ display:grid;
+ grid-template-columns:repeat(5,minmax(0,1fr));
+ column-gap:clamp(9px,2vw,32px);
+ row-gap:clamp(16px,3vw,38px);
+ margin:10px 0 24px;
+ max-height:none;
+ overflow:visible;
+}
+.recordsStateCard{
+ position:relative;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ gap:0;
+ isolation:isolate;
+ min-height:185px;
+ width:100%;
+ padding:8px 2px 12px;
+ border:0;
+ border-radius:12px;
+ background:transparent;
+ box-shadow:none;
+ color:#e0e3f1;
+ cursor:pointer;
+ text-align:center;
+ transition:transform .24s ease;
+}
+.recordsStateCard:hover,.recordsStateCard:focus-visible{
+ border:0;
+ outline:2px solid transparent;
+ outline-offset:2px;
+ background:transparent;
+ box-shadow:none;
+ transform:translateY(-4px);
+}
+.recordsStateGlyph{
+ position:relative;
+ width:100%;height:152px;
+ display:flex;align-items:center;justify-content:center;
+}
+.recordsStateGlyph svg{width:100%;height:100%;max-width:232px;overflow:visible;filter:drop-shadow(0 13px 12px rgba(0,0,0,.12));}
+.recordsStateGlyph path{
+ fill:#313341;
+ fill-rule:evenodd;
+ stroke:#56596c;
+ stroke-width:1.45px;
+ stroke-linejoin:round;
+ vector-effect:non-scaling-stroke;
+ transition:fill .22s ease,stroke .22s ease,filter .22s ease;
+}
+.recordsStateCard:hover .recordsStateGlyph path,
+.recordsStateCard:focus-visible .recordsStateGlyph path{
+ fill:#444a63;
+ stroke:#a5d5ee;
+ filter:drop-shadow(0 0 7px rgba(105,220,255,.2));
+}
+.recordsStateAbbr{
+ position:absolute;
+ z-index:2;
+ top:46%;
+ left:50%;
+ transform:translate(-50%,-50%);
+ display:block;
+ width:auto;height:auto;
+ border:0;
+ border-radius:0;
+ background:transparent;
+ box-shadow:none;
+ font-size:clamp(16px,2vw,25px);
+ font-weight:850;
+ line-height:1;
+ letter-spacing:.01em;
+ color:#cdd0de;
+ pointer-events:none;
+ text-shadow:0 2px 5px rgba(0,0,0,.2);
+}
+.recordsStateCard:hover .recordsStateAbbr,
+.recordsStateCard:focus-visible .recordsStateAbbr{color:#fff}
+.recordsStateCard strong{
+ font-size:12px;
+ font-weight:660;
+ line-height:1.3;
+ margin-top:4px;
+ color:#a9afc1;
+ max-width:100%;
+ text-wrap:balance;
+}
+.recordsStateCard:hover strong,.recordsStateCard:focus-visible strong{color:#a9e5f7}
+.recordsStateCard:focus-visible{outline:2px solid #8ed8f6;outline-offset:1px}
+/* Voters can browse every person without identifying their own district. */
+.recordsAddressFinder{
+ display:grid;
+ grid-template-columns:minmax(0,1fr) minmax(260px,1fr);
+ gap:10px 20px;
+ padding:20px;
+ margin:16px 2px 22px;
+ border-radius:21px;
+ background:linear-gradient(125deg,rgba(25,50,81,.70),rgba(6,20,39,.79));
+ border:1px solid rgba(114,212,239,.34);
+ box-shadow:inset 0 1px rgba(255,255,255,.06);
+}
+.recordsAddressIntro h3{font-size:20px;letter-spacing:-.03em;margin:4px 0 5px}
+.recordsAddressIntro p{color:#b6cadb;font-size:12px;line-height:1.55;margin:0}
+.recordsAddressForm{align-self:center;min-width:0}
+.recordsAddressForm label{display:block;font-size:11px;font-weight:750;color:#b9dae8;margin-bottom:7px}
+.recordsAddressInputs{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.recordsAddressInputs input{
+ flex:1 1 200px;min-width:0;
+ padding:11px 13px;height:44px;
+ color:#edf8ff;
+ border-radius:13px;
+ border:1px solid rgba(133,186,220,.34);
+ background:#081528;
+}
+.recordsAddressInputs button,.recordsFoundRepresentative{
+ cursor:pointer;
+ border:1px solid rgba(134,226,216,.4);
+ border-radius:13px;
+ padding:11px 14px;
+ height:44px;
+ background:linear-gradient(115deg,rgba(81,188,179,.26),rgba(82,152,184,.22));
+ color:#caffef;
+ font-size:12px;
+ font-weight:800;
+}
+.recordsAddressInputs button:hover,.recordsFoundRepresentative:hover{background:rgba(66,165,183,.28)}
+.recordsAddressInputs button:disabled{opacity:.55;cursor:wait}
+.recordsAddressPrivacy{grid-column:1/-1;color:#879fb2;font-size:10px;margin:0}
+#districtLookupStatus,#districtLookupResult{grid-column:1/-1;font-size:12px;color:#c2e6ee}
+#districtLookupStatus:empty,#districtLookupResult:empty{display:none}
+.recordsFoundRepresentative{display:inline-flex;align-items:center;margin-top:4px}
+@media(max-width:1050px){
+ .recordsStateGrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .recordsAddressFinder{grid-template-columns:1fr}
+}
+@media(max-width:740px){
+ .recordsStateGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ .recordsStateCard{min-height:138px;padding:5px}
+ .recordsStateGlyph{height:112px}
+ .recordsStateCard strong{font-size:10px;margin-top:2px}
+ .recordsStateAbbr{font-size:17px}
+ .recordsAddressFinder{padding:14px}
+}
+@media(max-width:430px){
+ .recordsStateGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .recordsStateGlyph{height:128px}
+ .recordsStateCard{min-height:149px}
+}
