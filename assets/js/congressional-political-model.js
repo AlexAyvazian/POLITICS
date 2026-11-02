@@ -67,5 +67,21 @@ function chamberMajority(ns,layer){
 }
 
 
-root.CONGRESSIONAL_POLITICAL_MODEL=Object.freeze({house,senators,stateMembers,stateCompleteness,districtMarker,partyClass,houseParty,stateDistrictParty,senateParty,chamberMajority});
+/* Only specifically source-confirmed vacancies are marked vacant. Expire
+ * this evidence so an old note never survives a new appointment/election. */
+function verifiedVacancy(vacancies,selection,now=new Date().toISOString().slice(0,10)){
+ if(!vacancies?.records||!selection?.state||!selection?.district)return null;
+ const date=String(now).slice(0,10);
+ if(date>String(vacancies.reviewBy||'0000-00-00'))return null;
+ const wanted=Number(selection.district);
+ if(!Number.isInteger(wanted))return null;
+ return vacancies.records.find(v=>v.layer===selection.layer&&v.state===selection.state&&
+   v.status==='vacant'&&Number(v.district)===wanted)||null;
+}
+function districtPartyWithVacancies(incumbentParty,evidence){
+ const current=['democratic','republican','other','split'].includes(incumbentParty)?incumbentParty:'unknown';
+ return current!=='unknown'?current:(evidence?.status==='vacant'?'vacant':'unknown');
+}
+
+root.CONGRESSIONAL_POLITICAL_MODEL=Object.freeze({house,senators,stateMembers,stateCompleteness,districtMarker,partyClass,houseParty,stateDistrictParty,senateParty,chamberMajority,verifiedVacancy,districtPartyWithVacancies});
 })(typeof window!=='undefined'?window:globalThis);
