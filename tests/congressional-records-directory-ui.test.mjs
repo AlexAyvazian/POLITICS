@@ -28,10 +28,18 @@ function build(){
  const memberVotes={bioguide:'H000002',chamber:'House',congress:119,asOf:'2026-09-16',votes:[
   {year:2026,roll:314,question:'On Passage',subject:'A funding bill',date:'2026-09-16',cast:'Yea',url:'https://clerk.house.gov/Votes/2026314'}
  ]};
+ const finance={bioguide:'H000002',cycle:2026,raised:125000,spent:50000,cashOnHand:75000,debts:0,
+  individualContributions:75000,committeeContributions:28000,partyContributions:1000,selfContributions:5000,coverageEnd:'09/30/2026'};
+ const travel={bioguide:'H000002',filings:[
+  {reportedYear:2026,beginDate:'01/08/2026',endDate:'01/11/2026',sponsor:'Community Alliance',destination:'Albany, NY',filer:'Example Staff',filingType:'Original'}
+ ]};
  const requests=[];
  const fetch=async url=>{
   requests.push(url);
-  const data=url.includes('congress-snapshot')?payload:memberVotes;
+  const data=url.includes('congress-snapshot')?payload:
+   url.includes('assets/data/records/travel/')?travel:
+   url.includes('assets/data/records/finance/')?finance:
+   url.includes('assets/data/records/measures-119.json')?{}:memberVotes;
   return {ok:true,json:async()=>data};
  };
  const ctx={window:{GEO_STATES:[]},console,document:{getElementById:id=>el[id],createElement:()=>node()},
@@ -62,6 +70,10 @@ test('state tiles are the default directory, choosing Colorado exposes the deleg
  assert.equal(el.memberProfile.hidden,false);
  assert.equal(el.delegationDirectory.hidden,true);
  assert.match(el.voteStatus.textContent,/1 recorded votes/);
+ assert.equal(el.financeVisualization.children[0].children.length,4);
+ assert.equal(el.financeVisualization.children[0].children[0].children[1].textContent,'$125,000');
+ assert.match(el.travelVisualization.children[0].textContent,/1 published travel filing/);
+ assert.ok(el.travelVisualization.children.some(child=>child.className==='recordsTravelSponsors'));
  assert.equal(el.voteSummary.hidden,false);
  assert.equal(el.voteDistribution.children.length,3);
  assert.match(el.voteDistribution.children[0].textContent,/not Democratic vs. Republican votes/);
