@@ -102,7 +102,7 @@ function showState(code,shouldScroll=false){
  if(state.member?.state!==code){
   state.member=null;state.votes=[];state.voteData=null;
   $('memberProfile').hidden=true;
-  $('recordsStart').hidden=false;
+  $('recordsStart').hidden=true;
  }
  renderDelegation();
  if(shouldScroll){
@@ -179,7 +179,7 @@ function showAllStates(){
  $('delegationDirectory').hidden=true;
  $('stateDirectory').hidden=false;
  $('memberProfile').hidden=true;
- $('recordsStart').hidden=false;
+ $('recordsStart').hidden=true;
  try{history.replaceState(null,'',location.pathname+location.search);}catch{}
  $('stateDirectory').scrollIntoView?.({behavior:'smooth',block:'start'});
 }
@@ -341,7 +341,7 @@ $('backToDelegation').addEventListener('click',()=>{
  state.member=null;state.votes=[];state.voteData=null;
  $('memberProfile').hidden=true;
  $('delegationDirectory').hidden=false;
- $('recordsStart').hidden=false;
+ $('recordsStart').hidden=true;
  renderDelegation();
  if(state.selectedState){
   try{history.replaceState(null,'','#state='+encodeURIComponent(state.selectedState));}catch{}
