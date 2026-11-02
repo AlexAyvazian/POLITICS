@@ -73,8 +73,8 @@ function name(f,isState){
  const s=byFips[String(isState?f.id:f.properties?.STATE).padStart(2,'0')];
  return isState?(s?.name||'State'):(s?.name||stateName())+' · '+layers[layer].title+' · '+model.districtDisplayName(layer,currentCode(f));
 }
-function plot(features,path,isState){
- root.selectAll('path').data(features,f=>f.properties?.GEOID||f.id).join('path')
+function plot(features,path,isState,group=root){
+ group.selectAll('path').data(features,f=>f.properties?.GEOID||f.id).join('path')
   .attr('d',path).attr('class','atlasFeature'+(isState?' atlasState':''))
   .attr('role','button').attr('tabindex',0)
   .attr('aria-label',f=>name(f,isState))
@@ -112,13 +112,42 @@ function polygons(data,national){
  const features=data.features.filter(f=>f.geometry?.coordinates?.length&&byFips[String(f.properties?.STATE)]);
  if(!features.length){status('No districts exist for this legislative chamber in the selected state.');return;}
  const fc={type:'FeatureCollection',features};
- const projection=national?d3.geoAlbersUsa():d3.geoMercator();
- projection.fitExtent(national?[[24,25],[w-24,h-25]]:model.districtViewport(w,h,features.length),fc);
- const path=d3.geoPath(projection);
- plot(features,path,false);
- // Label districts only in the state drilldown so the 436-region national view stays readable.
+ let path,labelFeatures=features;
+ if(state==='HI'&&!national){
+  // Two geographically true viewports: the inhabited main chain at readable
+  // scale, plus an interactive inset for the remote Northwestern islands.
+  // All shapes remain the official cached polygons, with the same GEOIDs.
+  const {main,northwest}=model.splitHawaiiIslands(fc);
+  if(main.features.length&&northwest.features.length){
+   const mainProjection=d3.geoMercator().fitExtent(
+    [[Math.max(50,w*.085),Math.max(72,h*.13)],
+     [w-Math.max(50,w*.085),h-Math.max(57,h*.11)]],main);
+   path=d3.geoPath(mainProjection);
+   const mainGroup=root.append('g').attr('class','atlasHawaiiMain');
+   plot(main.features,path,false,mainGroup);
+   labelFeatures=main.features;
+   const insetWidth=Math.min(285,Math.max(92,w*.27));
+   const ix=w-insetWidth-23,iy=64,ih=Math.min(125,Math.max(74,h*.22));
+   const insetGroup=root.append('g').attr('class','atlasHawaiiInset');
+   insetGroup.append('rect').attr('class','atlasHawaiiInsetFrame')
+    .attr('x',ix-9).attr('y',iy-25).attr('width',insetWidth+18).attr('height',ih+35)
+    .attr('rx',12);
+   insetGroup.append('text').attr('class','atlasHawaiiInsetLabel')
+    .attr('x',ix).attr('y',iy-9).text('NORTHWESTERN ISLANDS');
+   const remoteProjection=d3.geoMercator().fitExtent(
+    [[ix+9,iy+9],[ix+insetWidth-9,iy+ih-9]],northwest);
+   plot(northwest.features,d3.geoPath(remoteProjection),false,insetGroup);
+  }
+ }
+ if(!path){
+  const projection=national?d3.geoAlbersUsa():d3.geoMercator();
+  projection.fitExtent(national?[[24,25],[w-24,h-25]]:model.districtViewport(w,h,features.length),fc);
+  path=d3.geoPath(projection);
+  plot(features,path,false);
+ }
+ // Label districts only in state drilldown, on the main islands in Hawaii.
  if(!national){
-  root.selectAll('.atlasDistrictLabel').data(features.filter(f=>path.area(f)>190)).join('text')
+  root.selectAll('.atlasDistrictLabel').data(labelFeatures.filter(f=>path.area(f)>190)).join('text')
    .attr('class','atlasDistrictLabel')
    .attr('transform',f=>{const [x,y]=path.centroid(f);return 'translate('+x+','+y+')';})
    .text(f=>model.districtDisplayName(layer,currentCode(f)));
