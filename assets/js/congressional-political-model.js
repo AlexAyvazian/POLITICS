@@ -46,7 +46,11 @@ function combinedParty(people,expected=1){
 }
 function houseParty(snapshot,state,code){return combinedParty(house(snapshot,state,code));}
 function stateDistrictParty(snapshot,layer,code){
- return combinedParty(stateMembers(snapshot,layer,code));
+ const members=stateMembers(snapshot,layer,code);
+ if(!members.length)return 'unknown';
+ const parties=members.map(p=>partyClass(p?.party));
+ if(parties.includes('unknown'))return 'unknown';
+ return new Set(parties).size===1?parties[0]:'split';
 }
 function senateParty(snapshot,state){return combinedParty(senators(snapshot,state),2);}
 /* A state outline represents the chamber's reported numerical seat majority,
