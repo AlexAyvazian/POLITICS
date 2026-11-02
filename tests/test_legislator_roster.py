@@ -33,6 +33,12 @@ class LegislatorRosterTests(unittest.TestCase):
   self.assertEqual(roster.csv_url('MT'),'https://data.openstates.org/people/current/mt.csv')
   with self.assertRaises(ValueError):
    roster.csv_url('FAKE')
+ def test_nebraska_unicameral_legislature_is_mapped_to_state_senate_without_party_guessing(self):
+  rows=HEADER+'ocd-person/ne1,Nebraska Senator,Nonpartisan,13,legislature,https://nebraskalegislature.gov/\\n'
+  result=roster.parse_current_csv('NE',io.StringIO(rows),min_rows=1)
+  self.assertEqual(result['people'][0]['role'],'Senator')
+  self.assertEqual(result['people'][0]['party'],'Nonpartisan')
+ 
  def test_alphanumeric_district_is_preserved_without_guessing_geoid(self):
   rows=HEADER+'ocd-person/x1,Vermont Representative,Democratic,Addison-1,lower,https://legislature.vermont.gov/\n'+'ocd-person/x2,Vermont Senator,Democratic,2,upper,https://legislature.vermont.gov/\n'
   result=roster.parse_current_csv('VT',io.StringIO(rows),min_rows=1)
