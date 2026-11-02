@@ -40,7 +40,9 @@ const person=(p,kind)=>{
  const url=kind==='federal'&&/^[A-Z][0-9]{6}$/.test(bioguide)?
   'https://bioguide.congress.gov/search/bio/'+bioguide:
   kind==='state'&&/^https:\/\/((www\.)?openstates\.org|open\.pluralpolicy\.com)\//.test(String(p.url||''))?p.url:null;
- return '<div class="atlasPoliticalPerson"><strong>'+(url?link(url,p.name):name)+'</strong><span>'+partyLabel+'</span></div>';
+ const recordLink=kind==='federal'&&/^[A-Z][0-9]{6}$/.test(bioguide)?
+   '<a class="atlasViewRecords" href="records.html#member='+encodeURIComponent(bioguide)+'">View voting record &amp; disclosures ↗</a>':'';
+ return '<div class="atlasPoliticalPerson"><strong>'+(url?link(url,p.name):name)+'</strong><span>'+partyLabel+'</span>'+recordLink+'</div>';
 };
 function fetchStored(path){
  return fetch(READER+path,{headers:{Accept:'application/json'},credentials:'omit',signal:AbortSignal.timeout(30000)})
