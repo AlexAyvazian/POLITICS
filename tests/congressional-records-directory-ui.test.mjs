@@ -15,9 +15,10 @@ function node(id=''){
  return el;
 }
 function build(){
- const ids=['directoryStatus','stateGrid','stateDirectory','delegationDirectory','delegationTitle','delegationIntro','senateCount','houseCount','houseHeading','senateMembers','houseMembers','backToStates','backToDelegation','memberProfile','recordsStart','profileName','profileChamber','profileInfo','profileBio','recordUpdated','votesQuery','voteStatus','voteSummary','votePeriod','memberVotes','fecMemberLink','disclosureList','congressMemberLink'];
+ const ids=['directoryStatus','stateGrid','stateDirectory','delegationDirectory','delegationTitle','delegationIntro','senateCount','houseCount','houseHeading','senateMembers','houseMembers','backToStates','backToDelegation','districtLookupForm','addressInput','findMyRep','districtLookupStatus','districtLookupResult','memberProfile','recordsStart','profileName','profileChamber','profileInfo','profileBio','recordUpdated','votesQuery','voteStatus','voteSummary','votePeriod','memberVotes','fecMemberLink','disclosureList','congressMemberLink'];
  const el=Object.fromEntries(ids.map(id=>[id,node(id)]));
  el.stateDirectory.hidden=false;el.delegationDirectory.hidden=true;el.memberProfile.hidden=true;
+ el.addressInput.value='';
  const payload={asOf:'2026-11-02',states:{
   CO:{house:[{bioguide:'H000001',name:'District Seven',district:7,party:'Democrat'},
              {bioguide:'H000002',name:'District Three',district:3,party:'Republican'}],
