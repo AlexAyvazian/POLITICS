@@ -41,6 +41,8 @@ def parse_current_csv(state, fileobj, min_rows=18):
   party = (row.get('current_party') or '').strip()
   district = (row.get('current_district') or '').strip()
   chamber = (row.get('current_chamber') or '').strip().lower()
+  # Nebraska's official chamber is a unicameral Legislature in Open States.
+  if state=='NE' and chamber=='legislature': chamber='upper'
   if not pid.startswith('ocd-person/') or not name or not party or not district or chamber not in ('upper','lower'):
    continue
   if pid in seen: continue
