@@ -9,6 +9,8 @@ on:
       - "congressional.html"
       - "tests/congressional*.test.mjs"
       - "tests/test_boundary_snapshot.py"
+      - "scripts/audit_congressional_geometry.mjs"
+      - "assets/data/congressional/**"
       - ".github/workflows/test-congressional-map.yml"
   workflow_dispatch:
 
@@ -28,5 +30,13 @@ jobs:
           node-version: "22"
       - name: Verify Congressional Atlas and boundary gateway regression tests
         run: node --test tests/congressional*.test.mjs
+      - name: Audit all 153 state/layer boundary maps using actual D3
+        run: node scripts/audit_congressional_geometry.mjs
+      - name: Upload full state-by-state audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: congressional-map-audit
+          path: audit-results/
       - name: Verify snapshot-generation logic offline
         run: python3 -m unittest discover -s tests -p test_boundary_snapshot.py -v
