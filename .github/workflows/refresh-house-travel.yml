@@ -1,0 +1,39 @@
+name: Refresh House sponsored travel disclosures
+on:
+  schedule:
+    - cron: "54 14 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/update_house_travel.py
+      - tests/test_house_travel.py
+      - .github/workflows/refresh-house-travel.yml
+permissions:
+  contents: write
+concurrency:
+  group: house-sponsored-travel
+  cancel-in-progress: false
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --quiet PyYAML
+      - name: Test exact House office joins and travel record interpretation
+        run: python -m unittest discover -s tests -p test_house_travel.py -v
+      - name: Download 2025 and 2026 official House Clerk travel archives
+        run: python scripts/update_house_travel.py
+      - name: Save per-member House Clerk filings
+        run: |
+          git add assets/data/records/travel/
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update House Clerk sponsored travel data"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
