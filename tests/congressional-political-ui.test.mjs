@@ -22,7 +22,8 @@ function mount(){
    senators:[{name:'Example Senator',party:'Democrat',bioguide:'E000002'}]}
  }};
  const sample={state:'CA',totalPeople:122,retrievedAt:'2026-11-01T20:44:29.109Z',people:[
-  {name:'Example State Senator',role:'Senator',party:'Democratic',district:'39',url:'https://openstates.org/person/safe/'}
+  {name:'Example State Senator',role:'Senator',party:'Democratic',district:'39',url:'https://openstates.org/person/safe/'},
+  ...Array.from({length:9},(_,i)=>({name:'Example State Representative '+i,role:'Representative',party:'Republican',district:String(i+1)}))
  ]};
  const fetch=async url=>{
   requests.push(url);
@@ -55,7 +56,7 @@ test('state legislative panel displays validated matching names and warns about 
  app.choose({state:'CA',scope:'district',layer:'stateSenate',district:'039',geoid:'06039'});
  await wait();await wait();
  assert.match(app.box.innerHTML,/Example State Senator/);
- assert.match(app.box.innerHTML,/Partial roster: 1 of 122/);
+ assert.match(app.box.innerHTML,/Partial roster: 10 of 122/);
  assert.equal(app.party({layer:'stateSenate',state:'CA',scope:'district',district:'039'}),'democratic');
  assert.equal(app.party({layer:'stateSenate',state:'CA',scope:'district',district:'038'}),'unknown');
  assert.equal(app.requests.filter(x=>x.includes('assets/data/legislators/ca.json')).length,1);
