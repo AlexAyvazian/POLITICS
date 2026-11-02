@@ -572,6 +572,58 @@ async function refreshFederalHouseVotes(env,fetchImpl=fetch,now=new Date()){
  return {votes:votes.length};
 }
 
+
+/* Reuse the existing Congress.gov key to collect member-specific sponsorship.
+ * Visitor clicks read Cloudflare D1 only. Recent 30 items of each kind are
+ * deliberately labeled a sample, NOT a complete legislative history. */
+async function refreshMemberLegislation(env,bioguide,fetchImpl=fetch,now=new Date()){
+ if(!/^[A-Z][0-9]{6}$/.test(String(bioguide||'')))throw Error('Invalid Bioguide ID');
+ const db=env?.COUNTY_DB,token=key(env,'CONGRESS_API_KEY');
+ if(!db||!token)throw Error('Missing Congress.gov key or D1 binding');
+ async function collect(kind){
+  const u=new URL('https://api.congress.gov/v3/member/'+bioguide+'/'+kind+'-legislation');
+  u.searchParams.set('api_key',token);u.searchParams.set('format','json');
+  u.searchParams.set('limit','30');u.searchParams.set('offset','0');
+  const r=await fetchImpl(u.toString(),{headers:{Accept:'application/json'}});
+  if(!r.ok)throw Error('Congress.gov '+kind+' HTTP '+r.status);
+  const json=await r.json();
+  const items=json?.[kind+'Legislation'];
+  if(!Array.isArray(items))throw Error('Congress.gov '+kind+' response missing legislation array');
+  return items.slice(0,30).filter(b=>b&&Number(b.congress)===119)
+   .map(b=>({
+    congress:119,type:safeBillText(b.type,12),number:safeBillText(String(b.number||''),12),
+    title:safeBillText(b.title||b.latestTitle,320),
+    introducedDate:safeBillText(b.introducedDate,25),
+    latestAction:safeBillText(b.latestAction?.text,210),
+    actionDate:safeBillText(b.latestAction?.actionDate,25),
+    sourceUrl:/^https:\/\/api\.congress\.gov\/v3\/bill\/119\//.test(String(b.url||''))?b.url:null
+   })).filter(b=>b.type&&b.number&&b.title);
+ }
+ const [sponsored,cosponsored]=await Promise.all([collect('sponsored'),collect('cosponsored')]);
+ const record={source:'Congress.gov',bioguide,congress:119,retrievedAt:now.toISOString(),
+  sourceUrl:'https://api.congress.gov/',
+  coverage:'Up to 30 most recent sponsored and cosponsored items per member, filtered to the 119th Congress. Not exhaustive.',
+  count:sponsored.length+cosponsored.length,sponsored,cosponsored};
+ await politicalSnapshotWrite(db,'member_legislation_'+bioguide,record,now,record.count);
+ return {bioguide,count:record.count};
+}
+async function refreshMemberLegislationBatch(env,slot,fetchImpl=fetch,now=new Date()){
+ const db=env?.COUNTY_DB;
+ if(!db||!key(env,'CONGRESS_API_KEY'))return {status:'not_configured'};
+ const row=await db.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?').bind('congress_members_current').first();
+ if(!row)return {status:'roster_pending'};
+ const roster=JSON.parse(row.snapshot_json);
+ const members=Object.values(roster.states||{}).flatMap(x=>[...(x?.house||[]),...(x?.senators||[])])
+  .map(x=>x.bioguide).filter(x=>/^[A-Z][0-9]{6}$/.test(String(x||''))).sort();
+ if(members.length<400)return {status:'incomplete_roster'};
+ const days=Math.floor(now.getTime()/86400000);
+ const start=((days*36+(slot-12))*8)%members.length;
+ const ids=Array.from({length:8},(_,i)=>members[(start+i)%members.length]);
+ const results=await Promise.allSettled(ids.map(id=>refreshMemberLegislation(env,id,fetchImpl,now)));
+ const failed=results.filter(x=>x.status==='rejected');
+ if(failed.length)console.warn('Congress.gov member legislation refresh failed for '+failed.length+' of '+ids.length+' members');
+ return {attempted:ids.length,updated:ids.length-failed.length,failed:failed.length};
+}
 /* Source: Census TIGERweb official 2025 generalized legislative boundary polygons.
  * Layer 5 = 119th U.S. House; 8 = 2024 state Senate; 9 = 2024 state House.
  * This proxy serves only public polygons; does not mix in county boundaries. */
@@ -643,6 +695,7 @@ export default {
    const index=Math.floor((slot-12)/2);
    const state=BILL_COMMONS_STATES[(days*18+index)%BILL_COMMONS_STATES.length];
    ctx.waitUntil(slot%2===0?refreshOpenStatesState(env,state):refreshBillCommonsState(env,state));
+   ctx.waitUntil(refreshMemberLegislationBatch(env,slot,fetch,when));
    return;
   }
   const task=tasks[slot];if(!task)return;
@@ -651,4 +704,4 @@ export default {
 };
 
 // Named exports for the scheduled-collection regression suite.
-export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes };
+export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes, refreshMemberLegislation, refreshMemberLegislationBatch };
