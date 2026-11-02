@@ -8,6 +8,7 @@
  <title>Congressional Records · POLITICS</title>
  <link rel="stylesheet" href="assets/css/atlas.css">
  <link rel="stylesheet" href="assets/css/records.css">
+ <link rel="stylesheet" href="assets/css/records-editorial.css">
 </head>
 <body data-view="records">
  <header class="recordsNav">
@@ -26,7 +27,16 @@
    <div id="stateGrid" class="recordsStateGrid" aria-label="Choose a state or Washington D.C."></div>
   </section>
   <section class="recordsExplorer recordsDelegationDirectory" id="delegationDirectory" hidden aria-labelledby="delegationTitle">
-   <div class="recordsDelegationTop"><button type="button" id="backToStates" class="recordsBack">← All states</button><div><span class="recordsKicker">YOUR REPRESENTATION</span><h2 id="delegationTitle"></h2><p id="delegationIntro"></p></div></div>
+   <div class="recordsDelegationHero" id="delegationHero">
+    <div class="recordsDelegationHeroText">
+     <button type="button" id="backToStates" class="recordsBack">← All states</button>
+     <span class="recordsKicker">THE PEOPLE REPRESENTING YOUR STATE</span>
+     <h2 id="delegationTitle"></h2>
+     <p id="delegationIntro"></p>
+     <div class="recordsHeroSteps"><span><b>01</b> Find your district</span><span><b>02</b> Meet your lawmakers</span><span><b>03</b> Explore how they voted</span></div>
+    </div>
+    <div id="delegationSilhouette" class="recordsDelegationSilhouette" aria-hidden="true"></div>
+   </div>
    <section class="recordsAddressFinder" id="addressFinder" aria-labelledby="addressFinderTitle">
     <div class="recordsAddressIntro"><span class="recordsKicker">DON'T KNOW YOUR DISTRICT?</span><h3 id="addressFinderTitle">Find your representative</h3><p>Not sure which district you live in? Enter your street address, city, and ZIP code. We'll identify the current U.S. House district for you.</p></div>
     <form id="districtLookupForm" class="recordsAddressForm">
@@ -41,10 +51,15 @@
    <section class="recordsDelegationSection" aria-labelledby="houseHeading"><div class="recordsDirectorySubhead"><h3 id="houseHeading">U.S. Representatives</h3><span id="houseCount"></span></div><div id="houseMembers" class="recordsMemberGrid"></div></section>
   </section>
   <section id="memberProfile" class="recordsProfile" hidden aria-labelledby="profileName">
-   <div class="recordsProfileHead">
-    <button type="button" id="backToDelegation" class="recordsBack">← Delegation</button>
-    <div><span class="recordsKicker" id="profileChamber"></span><h2 id="profileName"></h2><p id="profileInfo"></p></div>
-    <a id="profileBio" target="_blank" rel="noopener noreferrer">Congressional biography ↗</a>
+   <div class="recordsProfileHero">
+    <div id="profilePortrait" class="recordsProfilePortrait" aria-hidden="true"></div>
+    <div class="recordsProfileHead">
+     <button type="button" id="backToDelegation" class="recordsBack">← Back to delegation</button>
+     <span class="recordsKicker" id="profileChamber"></span>
+     <h2 id="profileName"></h2>
+     <p id="profileInfo"></p>
+     <div class="recordsProfileActions"><a id="profileBio" target="_blank" rel="noopener noreferrer">Official biography ↗</a><span>119th Congress · 2025–2026</span></div>
+    </div>
    </div>
    <div class="recordsPanels">
     <section class="recordsPanel recordsVotesPanel" aria-label="Recorded floor votes">
@@ -52,7 +67,16 @@
      <p class="recordsHelp">Captured roll calls only. Voice votes and uncollected records are not counted as missed votes. Dates and votes link to official sources.</p>
      <div id="voteStatus" class="recordsStatus" role="status">Loading official roll calls…</div>
      <div class="recordsVoteSummary" id="voteSummary" hidden></div>
-     <label class="recordsVoteFilter" for="votesQuery">Search recorded votes<input id="votesQuery" type="search" placeholder="Bill number, subject, vote, or date…"></label>
+     <div class="recordsDistribution" id="voteDistribution" aria-label="Recorded vote positions"></div>
+     <div class="recordsVoteTools">
+       <div class="recordsVotePills" role="group" aria-label="Filter by recorded vote position">
+        <button id="voteFilterAll" type="button" aria-pressed="true">All votes</button>
+        <button id="voteFilterYea" type="button" aria-pressed="false">Voted yes</button>
+        <button id="voteFilterNay" type="button" aria-pressed="false">Voted no</button>
+        <button id="voteFilterAbsent" type="button" aria-pressed="false">Not voting</button>
+       </div>
+       <label class="recordsVoteFilter" for="votesQuery"><span>Find a bill or issue</span><input id="votesQuery" type="search" placeholder="Search bills, issues, dates…"></label>
+     </div>
      <div id="memberVotes" class="recordsVoteList"></div>
     </section>
     <aside class="recordsSidebar">
