@@ -15,6 +15,17 @@ function members(roster){
  }
  return list.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
 }
+function states(items){
+ return (Array.isArray(items)?items:[])
+  .filter(x=>x&&typeof x.abbr==='string'&&x.name)
+  .slice().sort((a,b)=>a.name.localeCompare(b.name));
+}
+function delegation(all,state){
+ const selected=(Array.isArray(all)?all:[]).filter(p=>p.state===state);
+ const senate=selected.filter(p=>p.chamber==='Senate').sort((a,b)=>a.name.localeCompare(b.name));
+ const house=selected.filter(p=>p.chamber==='House').sort((a,b)=>Number(a.district)-Number(b.district)||a.name.localeCompare(b.name));
+ return {senate,house};
+}
 function getMember(all,id){return all.find(m=>m.bioguide===id)||null;}
 function senateCast(vote,member){
  if(!vote?.members||!member?.name||!member?.state)return null;
@@ -42,5 +53,5 @@ function filterVotes(votes,query){
  if(!q)return votes;
  return votes.filter(v=>[v.question,v.measure,v.result,v.date,String(v.roll),v.cast].join(' ').toLowerCase().includes(q));
 }
-root.POLITICS_RECORDS_MODEL=Object.freeze({members,getMember,senateCast,memberVotes,countVotes,filterVotes});
+root.POLITICS_RECORDS_MODEL=Object.freeze({members,states,delegation,getMember,senateCast,memberVotes,countVotes,filterVotes});
 })(typeof window!=='undefined'?window:globalThis);
