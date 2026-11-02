@@ -1,0 +1,138 @@
+/* Congressional Atlas political data panel: reads ALREADY-CACHED D1 snapshots.
+ * No upstream source/API-key request runs on a public click. Never colors the map.
+ */
+(function(){
+'use strict';
+const READER='https://politics-daily-snapshot.alxayvazian.workers.dev';
+const panel=document.getElementById('politicalDetails');
+const model=window.CONGRESSIONAL_POLITICAL_MODEL;
+const NCSL=window.POLITICS_NCSL,governors=window.GOVERNORS_2026;
+if(!panel||!model)return;
+const stateCache=new Map();
+let federal=null,federalStatus='loading',current=null,renderSeq=0;
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const party=x=>({D:'Democratic',R:'Republican',S:'Divided',Nonpartisan:'Nonpartisan','N/A':'Not applicable'}[x]||x||'Not reported');
+const link=(url,label)=>'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(label)+'</a>';
+const note=x=>'<p class="atlasPoliticalNote">'+x+'</p>';
+const heading=x=>'<h3 class="atlasPoliticalHeading">'+esc(x)+'</h3>';
+const row=(label,value)=>'<div class="atlasPoliticalRow"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>';
+const person=(p,kind)=>{
+ const name=esc(p.name||'Unlisted'),partyLabel=esc(p.party||'Party not reported');
+ const bioguide=String(p.bioguide||'');
+ const url=kind==='federal'&&/^[A-Z][0-9]{6}$/.test(bioguide)?
+  'https://bioguide.congress.gov/search/bio/'+bioguide:
+  kind==='state'&&/^https:\/\/((www\.)?openstates\.org|open\.pluralpolicy\.com)\//.test(String(p.url||''))?p.url:null;
+ return '<div class="atlasPoliticalPerson"><strong>'+(url?link(url,p.name):name)+'</strong><span>'+partyLabel+'</span></div>';
+};
+function fetchStored(path){
+ return fetch(READER+path,{headers:{Accept:'application/json'},credentials:'omit',signal:AbortSignal.timeout(30000)})
+  .then(r=>{if(!r.ok)throw Error('Stored data HTTP '+r.status);return r.json();});
+}
+const federalTask=fetchStored('/api/congress-snapshot').then(data=>{
+ if(!data?.states||!data?.count)throw Error('Congressional roster not collected');
+ federal=data;federalStatus='ready';
+}).catch(()=>{federalStatus='unavailable';});
+function openStates(state){
+ if(!stateCache.has(state)){
+  stateCache.set(state,fetchStored('/api/openstates-snapshot?state='+encodeURIComponent(state))
+   .then(data=>data?.state===state&&Array.isArray(data.people)?data:null).catch(()=>null));
+ }
+ return stateCache.get(state);
+}
+function render(){
+ const s=current;if(!s?.state){panel.innerHTML='';return;}
+ const state=s.state,scope=s.scope,layer=s.layer;
+ const ns=NCSL?.states?.[state],gv=governors?.states?.[state];
+ const chunks=[];
+ // Countrywide presidential incumbents are independently verified on USAGov.
+ if(layer==='president'){
+  chunks.push(heading('Federal executive branch'));
+  chunks.push(person({name:'Donald J. Trump',party:'Republican'}));
+  chunks.push(row('Vice President','JD Vance · Republican'));
+  chunks.push(note('As of 11/01/2026 · '+link('https://www.usa.gov/presidents','USAGov current officeholders')));
+ }else{
+  if(ns){
+   chunks.push(heading('State political control'));
+   chunks.push(row('Governor',party(ns.governor)));
+   chunks.push(row('State legislature',party(ns.legislature)));
+   chunks.push(row('Overall state control',party(ns.stateControl)));
+   if(layer==='stateSenate'||scope==='state'||layer==='governor'||layer==='senate')
+    chunks.push(row(state==='NE'?'Unicameral chamber':'State Senate',
+     'D '+ns.senate.dem+' · R '+ns.senate.rep+(ns.senate.other?' · Other '+ns.senate.other:'')+(ns.senate.vacant?' · Vacant '+ns.senate.vacant:'')));
+   if(state!=='NE'&&(layer==='stateHouse'||scope==='state'||layer==='governor'||layer==='senate'))
+    chunks.push(row('State House','D '+ns.house.dem+' · R '+ns.house.rep+
+     (ns.house.other?' · Other '+ns.house.other:'')+(ns.house.vacant?' · Vacant '+ns.house.vacant:'')));
+   chunks.push(note('NCSL seat counts · 10/06/2026 · '+link(NCSL.sourceUrl,'source')+
+    '. These are statewide totals, not individual-district results.'));
+  }else if(state==='DC'){
+   chunks.push(note('D.C. is not a state and has no governor or state legislature. Its elected council is not represented by these state legislative layers.'));
+  }
+  if(layer==='governor'||scope==='state'){
+   if(gv){chunks.push(heading('Governor'));chunks.push(person({name:gv,party:ns?party(ns.governor):'Party not reported'}));
+    chunks.push(note('NGA roster · '+esc(governors.asOf)+' · '+link(governors.sourceUrl,'source')));}
+  }
+  if(layer==='house'){
+   if(scope==='district'){
+    chunks.push(heading(state==='DC'?'Current U.S. delegate':'Current U.S. representative'));
+    const people=model.house(federal,state,s.district);
+    if(federalStatus==='loading')chunks.push(note('Loading the stored congressional roster…'));
+    else if(federalStatus==='unavailable')chunks.push(note('The stored congressional roster is temporarily unavailable.'));
+    else if(!people.length)chunks.push(note('No matching current member in the stored roster; this does not establish a vacancy.'));
+    else chunks.push(...people.map(p=>person(p,'federal')));
+   }else chunks.push(note('Choose a U.S. House district to see its current representative.'));
+  }
+  if(layer==='senate'||scope==='state'){
+   chunks.push(heading('U.S. senators'));
+   if(state==='DC')chunks.push(note('Washington, D.C. has no voting U.S. senators.'));
+   else if(federalStatus==='loading')chunks.push(note('Loading stored Senate records…'));
+   else if(federalStatus==='unavailable')chunks.push(note('Stored Senate roster temporarily unavailable.'));
+   else {
+    const senators=model.senators(federal,state);
+    chunks.push(...(senators.length?senators.map(p=>person(p,'federal')):[note('No matching senators in the stored roster; verify before assuming a vacancy.')]));
+   }
+  }
+  if((layer==='stateHouse'||layer==='stateSenate')&&scope==='district'){
+   chunks.push(heading(layer==='stateSenate'?'State senator':'State representative'));
+   if(s.state==='NE'&&layer==='stateSenate')chunks.push(note('Nebraska legislators serve in a nonpartisan unicameral legislature.'));
+   const data=stateData.get(state);
+   if(!data)chunks.push(note(statePending.has(state)?'Loading cached state legislative records…':'Individual state legislator records are not yet available for this state.'));
+   else{
+    const people=model.stateMembers(data,layer,s.district);
+    chunks.push(...people.map(p=>person(p,'state')));
+    if(!people.length)chunks.push(note('No matching legislator in the partial roster; this is not evidence that the seat is vacant.'));
+    if(model.stateCompleteness(data)==='partial')chunks.push(note(
+     'Partial roster: '+data.people.length+' of '+(Number.isInteger(data.totalPeople)?data.totalPeople:'unknown')+
+     ' reported records. Some districts are not yet represented here.'));
+    chunks.push(note('Open States / Plural · '+esc(data.retrievedAt?.slice(0,10)||'date unavailable')+
+     ' · '+link('https://openstates.org/','source')));
+   }
+  }
+  if(federalStatus==='ready'&&(layer==='house'||layer==='senate'||scope==='state'))
+   chunks.push(note('Federal member snapshot · '+esc(federal.asOf||federal.retrievedAt?.slice(0,10)||'date not reported')+
+    ' · '+link('https://github.com/unitedstates/congress-legislators','source')+
+    '. This is an incumbency roster, not a 2026 election forecast.'));
+ }
+ panel.innerHTML=chunks.join('');
+}
+const stateData=new Map(),statePending=new Set();
+async function onSelection(selection){
+ current=selection;const seq=++renderSeq;
+ if(!selection?.state){render();return;}
+ render();
+ if(federalStatus==='loading'){
+  federalTask.then(()=>{if(seq===renderSeq)render();});
+ }
+ if(selection.scope==='district'&&['stateSenate','stateHouse'].includes(selection.layer)&&
+    !stateData.has(selection.state)&&!statePending.has(selection.state)){
+  const key=selection.state;statePending.add(key);render();
+  const result=await openStates(key);
+  statePending.delete(key);
+  if(result)stateData.set(key,result);
+  if(seq===renderSeq)render();
+ }
+}
+window.addEventListener('congressional-atlas:selection',e=>{onSelection(e.detail);});
+const initial=window.POLITICS_CONGRESSIONAL_ATLAS?.getSelection?.();
+if(initial)onSelection(initial);
+window.POLITICS_CONGRESSIONAL_POLITICAL=Object.freeze({getFederalStatus:()=>federalStatus});
+})();
