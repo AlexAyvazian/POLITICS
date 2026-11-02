@@ -345,16 +345,20 @@ function renderTravel(m,report=null){
  if(state.member?.bioguide!==m.bioguide)return;
  const filings=Array.isArray(report?.filings)&&report.bioguide===m.bioguide?
   report.filings.filter(r=>r&&Number.isInteger(r.reportedYear)&&(r.reportedYear===2025||r.reportedYear===2026)):[];
+ const house=m.chamber==='House';
  if(!filings.length){
   const message=document.createElement('p');message.className='recordsEvidenceNote';
-  message.textContent='No individual filings have been loaded for this '+(m.chamber==='Senate'?'Senate office':'House member')+' yet. That does not mean no sponsored travel occurred.';
+  message.textContent='No travel filings have been matched to this '+(house?'House member':'Senate office')+' in the current local records. This does not establish that no sponsored travel occurred.';
   root.append(message);return;
  }
  const count=document.createElement('strong');count.className='recordsTravelHeadline';
- count.textContent=filings.length+' published filing'+(filings.length===1?'':'s')+' linked to this Senate office';
+ count.textContent=filings.length+' published travel filing'+(filings.length===1?'':'s')+
+  (house?' associated with this House member':' associated with this Senate office');
  root.append(count);
  const explanation=document.createElement('p');explanation.className='recordsEvidenceNote';
- explanation.textContent='Office-associated disclosures, including staff travel. These are filings, not confirmed trips by the senator personally. Travel expenses are not totaled because the archive does not supply verified dollar values.';
+ explanation.textContent=house?
+  'House Clerk filings include the office, named filer, destination and sponsor. A filer may be a staff member; these are NOT all trips personally taken by this representative. No dollar amount is shown because the downloaded index does not contain verified costs.':
+  'Senate office-associated filings include employee travel and do not establish that the senator personally traveled. Dollar totals are not provided by the downloaded index.';
  root.append(explanation);
  const years=new Map([[2025,0],[2026,0]]);
  for(const filing of filings)years.set(filing.reportedYear,years.get(filing.reportedYear)+1);
@@ -366,35 +370,61 @@ function renderTravel(m,report=null){
   const track=document.createElement('div');track.className='recordsFinanceBarTrack';
   const bar=document.createElement('span');bar.className='recordsTravelYearFill';
   bar.style.width=(n/max*100).toFixed(1)+'%';track.append(bar);
-  track.setAttribute('role','img');track.setAttribute('aria-label',year+': '+n+' office-associated filings');
+  track.setAttribute('role','img');track.setAttribute('aria-label',year+': '+n+' published disclosures');
   const total=document.createElement('strong');total.textContent=n+' filing'+(n===1?'':'s');
   row.append(label,track,total);comparison.append(row);
  }
  root.append(comparison);
- const heading=document.createElement('h4');heading.textContent='Recent reported travel';
+ if(house){
+  const sponsors=new Map();
+  for(const filing of filings){
+   const name=String(filing.sponsor||'').trim();
+   if(name)sponsors.set(name,(sponsors.get(name)||0)+1);
+  }
+  const top=[...sponsors.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,5);
+  if(top.length){
+   const heading=document.createElement('h4');heading.textContent='Frequently reported travel sponsors';
+   root.append(heading);
+   const chart=document.createElement('div');chart.className='recordsTravelSponsors';
+   const peak=Math.max(...top.map(row=>row[1]),1);
+   for(const [name,n] of top){
+    const row=document.createElement('div');row.className='recordsTravelSponsorRow';
+    const label=document.createElement('span');label.textContent=name;
+    const track=document.createElement('div');track.className='recordsFinanceBarTrack';
+    track.setAttribute('role','img');track.setAttribute('aria-label',name+': '+n+' filings');
+    const fill=document.createElement('span');fill.className='recordsTravelYearFill';
+    fill.style.width=(n/peak*100).toFixed(1)+'%';track.append(fill);
+    const value=document.createElement('strong');value.textContent=String(n);
+    row.append(label,track,value);chart.append(row);
+   }
+   root.append(chart);
+  }
+ }
+ const heading=document.createElement('h4');heading.textContent='Recent disclosed travel';
  root.append(heading);
  const listing=document.createElement('div');listing.className='recordsTravelList';
  for(const filing of filings.slice(0,12)){
   const item=document.createElement('div');item.className='recordsTravelItem';
   const title=document.createElement('strong');
-  title.textContent=filing.title||'Travel disclosure';
+  title.textContent=house?(filing.destination||'Destination not reported'):(filing.title||'Office travel disclosure');
   const details=document.createElement('span');details.className='recordsTravelMeta';
   details.textContent=(filing.beginDate||'Dates not listed')+
-   (filing.endDate?' – '+filing.endDate:'')+' · '+(filing.traveler||'Traveler not specified');
+   (filing.endDate?' – '+filing.endDate:'')+
+   (house?' · Sponsor: '+(filing.sponsor||'not recorded'):'')+
+   ' · Filed by: '+(filing.filer||filing.traveler||'not specified');
   const badge=document.createElement('span');badge.className='recordsTravelBadge';
-  badge.textContent=filing.travelerType==='staff'?'Staff filing':'Traveler status not established';
+  badge.textContent=house?(filing.filingType||'House filing'):(filing.travelerType==='staff'?'Staff filing':'Unclassified filing');
   item.append(title,details,badge);listing.append(item);
  }
  root.append(listing);
  if(filings.length>12){
   const more=document.createElement('p');more.className='recordsEvidenceNote';
-  more.textContent='Showing the 12 most recent of '+filings.length+' published office-associated filings.';
+  more.textContent='Showing the 12 most recent of '+filings.length+' filings.';
   root.append(more);
  }
 }
 async function loadTravel(m){
- if(m.chamber!=='Senate'){renderTravel(m);return;}
- $('travelVisualization').textContent='Loading Senate office travel filings…';
+ $('travelVisualization').textContent='Loading congressional travel disclosures…';
  let report=null;
  try{
   const response=await fetch('assets/data/records/travel/'+encodeURIComponent(m.bioguide)+'.json',{credentials:'same-origin',cache:'default'});
