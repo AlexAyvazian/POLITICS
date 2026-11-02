@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 test('state-first directory retains silhouettes but members are recognizable photographic portraits',()=>{
  const js=read('assets/js/records.js');
@@ -40,7 +41,6 @@ test('profile selection hides delegation and return restores directory without l
 });
 test('voting summaries preserve all recorded statuses and never invent missed votes',()=>{
  const ctx={window:{}};
- const vm=await import('node:vm');
  vm.runInNewContext(read('assets/js/records-model.js'),ctx);
  const m=ctx.window.POLITICS_RECORDS_MODEL;
  const types=['Yea','Paired Yea','Announced Yea','Nay','Paired Nay','Announced Nay','Present','Not Voting'];
