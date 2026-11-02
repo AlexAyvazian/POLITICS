@@ -303,3 +303,104 @@ body[data-view="records"] .recordsProfile{
 .recordsSummaryDetails summary{display:list-item;color:#a5e5e5;cursor:pointer;font-size:11px;font-weight:700}
 .recordsSummaryDetails summary:focus-visible{outline:2px solid #a5e5e5;outline-offset:3px}
 .recordsSummaryDetails p{max-width:78ch;color:#c6d9e6;white-space:pre-line;line-height:1.65;font-size:12px}
+
+
+/* Data-first member profile: a document-style briefing, not a stack of
+   individual vote cards. Long archive stays available by explicit expansion. */
+.recordsProfileHero{min-height:245px;margin-bottom:14px}
+.recordsProfileHead{padding-block:21px;gap:7px}
+.recordsProfileHead .recordsBack{margin-bottom:8px}
+.recordsDashboard{
+ margin:0 0 21px;padding:clamp(18px,3.5vw,42px);
+ border:1px solid rgba(149,201,227,.24);border-radius:24px;
+ background:radial-gradient(ellipse at 8% 0%,rgba(63,145,161,.21),transparent 58%),
+            linear-gradient(127deg,rgba(17,36,57,.97),rgba(10,19,37,.96));
+ box-shadow:0 20px 55px rgba(0,0,0,.18);
+ scroll-margin-top:90px;
+}
+.recordsDashboardHeading{display:flex;justify-content:space-between;gap:24px;align-items:end}
+.recordsDashboardHeading h3{font-size:clamp(30px,4.2vw,54px);letter-spacing:-.06em;margin:7px 0 10px;line-height:1.06}
+.recordsDashboardHeading p{color:#b7ccda;font-size:13px;line-height:1.6;max-width:630px;margin:0}
+.recordsDashboardSource{white-space:nowrap;color:#a4bed2;font-size:11px;align-self:start}
+.recordsOverviewNav{display:flex;flex-wrap:wrap;gap:8px;margin:25px 0 23px}
+.recordsOverviewNav a{
+ display:inline-flex;padding:10px 15px;border:1px solid rgba(153,210,229,.29);
+ border-radius:999px;background:rgba(6,20,37,.62);
+ color:#d2eef5;font-size:12px;font-weight:720;text-decoration:none;
+}
+.recordsOverviewNav a:hover,.recordsOverviewNav a:focus-visible{background:rgba(86,171,191,.2);color:#fff;border-color:#8addeb;outline-offset:3px}
+.recordsDashboardMetrics{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ border-block:1px solid rgba(161,200,221,.21);padding-block:23px;gap:0;
+}
+.recordsDashboardMetric{min-width:0;padding:6px clamp(8px,1.65vw,22px);border-right:1px solid rgba(161,200,221,.2)}
+.recordsDashboardMetric:first-child{padding-left:0}
+.recordsDashboardMetric:last-child{border-right:0}
+.recordsDashboardMetric span,.recordsDashboardMetric small{display:block;color:#9fbfd2;font-size:11px;line-height:1.5}
+.recordsDashboardMetric span{text-transform:uppercase;letter-spacing:.06em;font-weight:720}
+.recordsDashboardMetric strong{display:block;font-size:clamp(21px,2.6vw,38px);letter-spacing:-.05em;line-height:1.16;color:#f0f9ff;margin:11px 0 9px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.recordsDashboardMetric:first-child strong{color:#8fddce}
+.recordsDecisionsHeader{display:flex;align-items:end;justify-content:space-between;gap:15px;margin:27px 0 16px}
+.recordsDecisionsHeader h4{font-size:clamp(20px,2.5vw,29px);letter-spacing:-.045em;margin:7px 0 0}
+.recordsDecisionsHeader p{max-width:310px;color:#9bb9ce;font-size:11px;line-height:1.5;margin:0}
+.recordsRecentDecisions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.recordsDecision{border-left:2px solid rgba(114,199,203,.62);padding:3px 6px 5px 17px;min-width:0}
+.recordsDecisionTop{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:11px}
+.recordsDecisionCast{font-size:11px;font-weight:780;color:#a7ebe4}
+.recordsDecision time{font-size:10px;color:#abc3d2}
+.recordsDecision>strong{display:block;font-size:14px;line-height:1.35}
+.recordsDecision p{font-size:11px;line-height:1.55;color:#a5bfd1;margin:9px 0}
+.recordsDecision>a{font-size:11px;color:#a7e4ec;text-underline-offset:3px}
+#financeLinks,#legislationLinks,#travelLinks,#votesArchivePanel{scroll-margin-top:90px}
+.recordsEvidence{margin-top:0}
+#financeLinks{grid-column:1/-1}
+.recordsEvidencePanel{border-radius:19px}
+.recordsVoteArchive{margin-top:20px;border-top:1px solid rgba(160,207,230,.22);padding-top:18px}
+.recordsVoteArchive>summary{cursor:pointer;color:#e5f5f9;font-weight:760;font-size:15px;padding:14px 16px;border:1px solid rgba(128,192,213,.3);border-radius:13px;background:rgba(44,100,116,.18)}
+.recordsVoteArchive>summary:hover,.recordsVoteArchive>summary:focus-visible{border-color:rgba(121,225,225,.7);outline-offset:3px}
+.recordsVoteArchive>summary span{font-size:12px;color:#a5c7d1;font-weight:520;margin-left:6px}
+.recordsVoteArchiveBody{padding:17px 0}
+@media(max-width:820px){
+ .recordsDashboardMetrics{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:18px}
+ .recordsDashboardMetric:nth-child(2){border-right:0}
+ .recordsDashboardMetric:nth-child(3){padding-left:0}
+ .recordsRecentDecisions{grid-template-columns:1fr}
+ .recordsDecision{padding:4px 10px 12px 16px}
+ .recordsDashboardHeading{display:block}
+ .recordsDashboardSource{display:block;margin-top:8px}
+}
+@media(max-width:520px){
+ .recordsProfileHero{grid-template-columns:105px minmax(0,1fr);min-height:170px}
+ .recordsProfilePortrait{height:auto;min-height:170px}
+ .recordsProfileHead{padding:14px;gap:5px}
+ .recordsProfileHead h2{font-size:clamp(22px,6vw,33px)}
+ .recordsProfileHead p{font-size:11px}
+ .recordsProfileHead .recordsBack{margin:0;font-size:10px}
+ .recordsProfileActions{margin-top:4px;gap:6px}
+ .recordsProfileActions>a{padding:6px 9px;font-size:10px}
+ .recordsProfileActions span{font-size:10px}
+ .recordsDashboard{padding:18px 16px;border-radius:19px}
+ .recordsDashboardHeading h3{font-size:33px}
+ .recordsOverviewNav{gap:7px;margin:18px 0}
+ .recordsOverviewNav a{font-size:11px;padding:8px 11px}
+ .recordsDashboardMetrics{row-gap:14px;padding-block:14px}
+ .recordsDashboardMetric{padding:3px 10px}
+ .recordsDashboardMetric strong{font-size:21px}
+ .recordsDashboardMetric span,.recordsDashboardMetric small{font-size:10px}
+ .recordsDecisionsHeader{display:block}
+ .recordsDecisionsHeader p{margin-top:9px}
+}
+
+
+/* Member-specific Congress.gov sponsorship, separate from roll-call measures. */
+#sponsoredLinks{grid-column:1/-1;scroll-margin-top:90px}
+.recordsSponsorVisualization{margin-top:10px}
+.recordsSponsorColumns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(15px,3vw,42px);margin:17px 0}
+.recordsSponsorColumn{min-width:0}
+.recordsSponsorColumn h4{font-size:18px;letter-spacing:-.03em;margin:4px 0 14px;color:#e7f7ff}
+.recordsSponsorBill{padding:13px 0;border-top:1px solid rgba(137,185,207,.18)}
+.recordsSponsorBill>strong{font-size:14px;display:block;line-height:1.4;color:#ecf7ff}
+.recordsSponsorMeta{display:block;color:#a2bfd0;margin:8px 0;font-size:11px}
+.recordsSponsorBill p{color:#a2bccb;font-size:11px;line-height:1.5;margin:6px 0}
+.recordsSponsorBill a{color:#a2e5e4;font-size:11px;text-underline-offset:3px}
+@media(max-width:760px){.recordsSponsorColumns{grid-template-columns:1fr;gap:17px}}

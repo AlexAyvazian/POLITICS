@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes} from '../workers/politics-gateway.mjs';
+import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes,refreshMemberLegislation} from '../workers/politics-gateway.mjs';
 
 const specs=COUNTY_CATEGORY_CONFIG.specs;
 const expectedCategories=['housing','jobs','income','healthcare','education','families','infrastructure'];
@@ -190,4 +190,30 @@ test('Congress.gov legislative House roll-call returns actual member choices gro
  assert.equal(d.votes[0].voteNumber,256);
  assert.equal(d.chamber,'House');assert.equal(d.congress,119);assert.equal(d.session,2);
  assert.equal(JSON.stringify(d).includes('test-token'),false);
+});
+
+test('Congress.gov member sponsorship is collected by exact Bioguide ID and stored without credentials',async()=>{
+ const store=db(),seen=[];
+ const fetcher=async url=>{
+  const u=new URL(url);seen.push(u);
+  const sponsored=u.pathname.endsWith('/sponsored-legislation');
+  const body=sponsored?{sponsoredLegislation:[
+   {congress:119,type:'HR',number:'123',title:'Public access bill',introducedDate:'2026-05-10',latestAction:{text:'Referred to committee',actionDate:'2026-05-11'},url:'https://api.congress.gov/v3/bill/119/hr/123'},
+   {congress:118,type:'HR',number:'22',title:'Older Congress'}
+  ]}:{cosponsoredLegislation:[{congress:119,type:'S',number:'27',title:'Healthcare access',introducedDate:'2026-09-04',url:'https://api.congress.gov/v3/bill/119/s/27'}]};
+  return new Response(JSON.stringify(body),{status:200});
+ };
+ const out=await refreshMemberLegislation({COUNTY_DB:store,CONGRESS_API_KEY:'test-key'},'H000001',fetcher,now);
+ assert.equal(out.count,2);
+ assert.equal(seen.length,2);
+ assert.equal(seen[0].searchParams.get('api_key'),'test-key');
+ assert.equal(store.writes[0][0],'member_legislation_H000001');
+ const data=JSON.parse(store.writes[0][1]);
+ assert.equal(data.bioguide,'H000001');
+ assert.equal(data.sponsored.length,1);
+ assert.equal(data.cosponsored.length,1);
+ assert.equal(data.sponsored[0].title,'Public access bill');
+ assert.ok(!JSON.stringify(data).includes('test-key'));
+ await assert.rejects(refreshMemberLegislation({COUNTY_DB:store,CONGRESS_API_KEY:'test-key'},'INVALID',fetcher,now));
+ assert.equal(store.writes.length,1);
 });

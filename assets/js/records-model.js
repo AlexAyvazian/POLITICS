@@ -73,5 +73,24 @@ function filterVotes(votes,query){
  if(!q)return votes;
  return votes.filter(v=>[v.question,v.measure,v.result,v.date,String(v.roll),v.cast].join(' ').toLowerCase().includes(q));
 }
-root.POLITICS_RECORDS_MODEL=Object.freeze({members,states,delegation,getMember,senateCast,memberVotes,countVotes,voteDistribution,filterVotes});
+function profileEvidenceSummary({votes=[],votesAvailable=false,finance=null,travel=null}={}){
+ const observed=votesAvailable&&Array.isArray(votes)?votes:null;
+ const measures=new Set();
+ for(const v of observed||[]){
+  const key=String(v?.measure||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(key&&/[0-9]/.test(key))measures.add(key);
+ }
+ const validFinance=finance?.cycle===2026;
+ const raised=validFinance&&typeof finance.raised==='number'&&Number.isFinite(finance.raised)&&finance.raised>=0?finance.raised:null;
+ const candidateId=validFinance&&/^[HS][A-Z0-9]{8}$/.test(String(finance.candidateId||''))?finance.candidateId:null;
+ const filings=Array.isArray(travel?.filings)?travel.filings.filter(x=>x&&[2025,2026].includes(x.reportedYear)):null;
+ return {
+  voteCount:observed?observed.length:null,
+  measureCount:observed?measures.size:null,
+  campaignReceipts:raised,
+  candidateId,
+  travelFilings:filings?filings.length:null
+ };
+}
+root.POLITICS_RECORDS_MODEL=Object.freeze({profileEvidenceSummary,members,states,delegation,getMember,senateCast,memberVotes,countVotes,voteDistribution,filterVotes});
 })(typeof window!=='undefined'?window:globalThis);

@@ -6,9 +6,10 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const model=window.POLITICS_RECORDS_MODEL;
-const reader='https://politics-daily-snapshot.alxayvazian.workers.dev/api/congress-snapshot';
+const readerBase='https://politics-daily-snapshot.alxayvazian.workers.dev';
+const reader=readerBase+'/api/congress-snapshot';
 const rosterStatus=$('directoryStatus'),stateGrid=$('stateGrid');
-const state={members:[],member:null,votes:[],voteData:null,rosterDate:null,selectedState:null,activeVoteFilter:'all',measures:{}};
+const state={members:[],member:null,votes:[],voteData:null,rosterDate:null,selectedState:null,activeVoteFilter:'all',measures:{},financeData:null,travelData:null,sponsorData:null};
 const states=model.states(window.GEO_STATES||[]);
 const stateByCode=Object.fromEntries(states.map(item=>[item.abbr,item]));
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -295,6 +296,56 @@ function renderVotes(){
   list.append(p);
  }
 }
+
+/* The evidence-first dashboard never treats uncollected data as a zero.
+   Identity joins come from validated Bioguide member files and FEC crosswalks. */
+function refreshDashboard(){
+ const overview=model.profileEvidenceSummary({
+  votes:state.votes,votesAvailable:!!state.voteData,
+  finance:state.financeData,travel:state.travelData
+ });
+ const set=(id,value)=>{const el=$(id);if(el)el.textContent=value;};
+ set('statCampaign',overview.campaignReceipts===null?'Not reported':moneyLabel(overview.campaignReceipts));
+ set('statVotes',overview.voteCount===null?'Not available':overview.voteCount.toLocaleString('en-US'));
+ set('statMeasures',overview.measureCount===null?'Not available':overview.measureCount.toLocaleString('en-US'));
+ set('statTravel',overview.travelFilings===null?'Not matched':overview.travelFilings.toLocaleString('en-US'));
+ set('voteArchiveCount',overview.voteCount===null?'(not available)':'('+overview.voteCount+' captured)');
+ const origin=$('financePrimarySource');
+ if(origin){
+  origin.replaceChildren();
+  origin.hidden=!overview.candidateId;
+  if(overview.candidateId){
+   const link=document.createElement('a');
+   link.href='https://www.fec.gov/data/candidate/'+encodeURIComponent(overview.candidateId)+'/?cycle=2026';
+   link.target='_blank';link.rel='noopener noreferrer';
+   link.textContent='View the matched FEC candidate filing and underlying records ↗';
+   origin.append(link);
+  }
+ }
+}
+function renderRecentDecisions(){
+ const root=$('recentDecisions');if(!root)return;
+ root.replaceChildren();
+ if(!state.voteData){
+  const p=document.createElement('p');p.className='recordsStatus';
+  p.textContent='No validated individual roll-call snapshot is currently available for this member.';
+  root.append(p);return;
+ }
+ for(const v of state.votes.slice(0,3)){
+  const row=document.createElement('article');row.className='recordsDecision';
+  const heading=document.createElement('div');heading.className='recordsDecisionTop';
+  const cast=document.createElement('span');cast.className='recordsDecisionCast';
+  cast.textContent='Voted '+(v.cast||'status not provided');
+  const date=document.createElement('time');date.textContent=formatDate(v.date);
+  heading.append(cast,date);
+  const title=document.createElement('strong');title.textContent=(v.measure?v.measure+' · ':'')+(v.subject||v.question||'Recorded question');
+  const context=document.createElement('p');context.textContent=voteMeaning(v);
+  const source=document.createElement('a');source.textContent='Official roll call ↗';
+  source.href=sourceUrl(v);source.target='_blank';source.rel='noopener noreferrer';
+  row.append(heading,title,context,source);root.append(row);
+ }
+}
+
 const moneyLabel=n=>typeof n==='number'&&Number.isFinite(n)?
  new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n):'Not reported';
 function makeMetric(label,value){
@@ -307,10 +358,12 @@ function renderFinance(data,m){
  const root=$('financeVisualization');root.replaceChildren();
  if(state.member?.bioguide!==m.bioguide)return;
  if(!data||data.bioguide!==m.bioguide||data.cycle!==2026){
+  state.financeData=null;refreshDashboard();
   const p=document.createElement('p');p.className='recordsEvidenceNote';
   p.textContent='A current FEC financial statement has not been linked to this member in our verified cache. No amount is assumed; this does not imply zero campaign funding.';
   root.append(p);return;
  }
+ state.financeData=data;refreshDashboard();
  const grid=document.createElement('div');grid.className='recordsFinanceMetrics';
  for(const [label,key] of [['Total receipts','raised'],['Total spending','spent'],['Cash on hand','cashOnHand'],['Debts owed','debts']])
   grid.append(makeMetric(label,data[key]));
@@ -354,6 +407,8 @@ function renderTravel(m,report=null){
  if(state.member?.bioguide!==m.bioguide)return;
  const filings=Array.isArray(report?.filings)&&report.bioguide===m.bioguide?
   report.filings.filter(r=>r&&Number.isInteger(r.reportedYear)&&(r.reportedYear===2025||r.reportedYear===2026)):[];
+ state.travelData=report?.bioguide===m.bioguide&&Array.isArray(report?.filings)?report:null;
+ refreshDashboard();
  const house=m.chamber==='House';
  if(!filings.length){
   const message=document.createElement('p');message.className='recordsEvidenceNote';
@@ -441,6 +496,61 @@ async function loadTravel(m){
  }catch(_){}
  renderTravel(m,report);
 }
+
+async function loadSponsored(m){
+ const root=$('sponsorVisualization');if(!root)return;
+ root.textContent='Loading cached Congress.gov legislation…';
+ let data=null;
+ try{
+  const response=await fetch(readerBase+'/api/member-legislation?bioguide='+encodeURIComponent(m.bioguide),
+   {headers:{Accept:'application/json'},credentials:'omit'});
+  if(response.ok)data=await response.json();
+ }catch(_){}
+ if(state.member?.bioguide!==m.bioguide)return;
+ root.replaceChildren();state.sponsorData=null;
+ if(data?.bioguide!==m.bioguide||data?.congress!==119||
+  !Array.isArray(data?.sponsored)||!Array.isArray(data?.cosponsored)){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='Member-specific Congress.gov sponsorship data has not been collected into our cache yet. No bill sponsorship is assumed.';
+  root.append(p);return;
+ }
+ state.sponsorData=data;
+ const note=document.createElement('p');note.className='recordsEvidenceNote';
+ note.textContent='Congress.gov · cache updated '+formatDate(data.retrievedAt)+
+  '. Showing up to 30 recent records from each category; these are not complete session counts.';
+ root.append(note);
+ const grid=document.createElement('div');grid.className='recordsSponsorColumns';
+ for(const [key,title] of [['sponsored','Introduced as sponsor'],['cosponsored','Joined as cosponsor']]){
+  const section=document.createElement('section');section.className='recordsSponsorColumn';
+  const h=document.createElement('h4');h.textContent=title+' · '+data[key].length+' captured';
+  section.append(h);
+  for(const bill of data[key].slice(0,8)){
+   const article=document.createElement('article');article.className='recordsSponsorBill';
+   const head=document.createElement('strong');head.textContent=bill.title||'Untitled legislation';
+   const meta=document.createElement('span');meta.className='recordsSponsorMeta';
+   meta.textContent=(bill.type||'')+' '+(bill.number||'')+
+    (bill.introducedDate?' · Introduced '+formatDate(bill.introducedDate):'');
+   article.append(head,meta);
+   if(bill.latestAction){
+    const p=document.createElement('p');p.textContent=bill.latestAction;article.append(p);
+   }
+   if(typeof bill.sourceUrl==='string'&&/^https:\/\/api\.congress\.gov\/v3\/bill\/119\//.test(bill.sourceUrl)){
+    const link=document.createElement('a');link.href=bill.sourceUrl;
+    link.target='_blank';link.rel='noopener noreferrer';
+    link.textContent='Official bill record ↗';article.append(link);
+   }
+   section.append(article);
+  }
+  if(!data[key].length){
+   const none=document.createElement('p');none.className='recordsEvidenceNote';
+   none.textContent='No items from the 119th Congress in this limited, recent collection. This is not evidence the member has never '+(key==='sponsored'?'sponsored':'cosponsored')+' legislation.';
+   section.append(none);
+  }
+  grid.append(section);
+ }
+ root.append(grid);
+}
+
 function renderMeasures(){
  const root=$('legislationVisualization');root.replaceChildren();
  const totals=new Map();
@@ -480,7 +590,7 @@ async function loadVotes(m){
   $('voteStatus').textContent='Official vote data has not been published in our cache yet. Open the official '+chamberSource(m)+' roll-call archive below.';
   const link=document.createElement('a');link.href=m.chamber==='House'?'https://clerk.house.gov/Votes':'https://www.senate.gov/votes/';
   link.textContent='Browse '+chamberSource(m)+' votes ↗';link.target='_blank';link.rel='noopener noreferrer';
-  $('memberVotes').replaceChildren(link);return;
+  $('memberVotes').replaceChildren(link);refreshDashboard();renderRecentDecisions();return;
  }
  if(state.member?.bioguide!==marker)return;
  state.voteData=data;state.votes=model.memberVotes(data,m);
@@ -493,11 +603,12 @@ async function loadVotes(m){
  renderVoteDistribution();
  renderMeasures();
  renderVotes();
+ refreshDashboard();renderRecentDecisions();
 }
 function select(id){
  const m=model.getMember(state.members,id);if(!m)return;
  if(state.selectedState!==m.state)showState(m.state);
- state.member=m;state.votes=[];state.voteData=null;state.activeVoteFilter='all';
+ state.member=m;state.votes=[];state.voteData=null;state.financeData=null;state.travelData=null;state.sponsorData=null;state.activeVoteFilter='all';
  $('recordsStart').hidden=true;
  $('delegationDirectory').hidden=true;
  $('stateDirectory').hidden=true;
@@ -512,11 +623,14 @@ function select(id){
  portrait.append(photo);
  $('recordUpdated').textContent='Member roster checked '+formatDate(state.rosterDate)+' · individual vote coverage indicated alongside each captured snapshot.';
  $('votesQuery').value='';$('voteDistribution').replaceChildren();
+ const archive=$('voteArchive');if(archive)archive.open=false;
+ const recent=$('recentDecisions');if(recent)recent.textContent='Loading recorded decisions…';
+ refreshDashboard();
  $('financeVisualization').textContent='Loading official FEC totals…';
  $('travelVisualization').replaceChildren();$('legislationVisualization').replaceChildren();
  for(const [key,name] of [['all','voteFilterAll'],['yes','voteFilterYea'],['no','voteFilterNay'],['absent','voteFilterAbsent']])
   $(name).setAttribute('aria-pressed',String(key==='all'));
- loadTravel(m);loadFinance(m);
+ loadTravel(m);loadFinance(m);loadSponsored(m);
  try{history.replaceState(null,'','#state='+encodeURIComponent(m.state)+'&member='+encodeURIComponent(id));}catch{}
  $('memberProfile').scrollIntoView?.({behavior:'smooth',block:'start'});
  loadVotes(m);

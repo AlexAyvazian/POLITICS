@@ -30,6 +30,19 @@ export async function serve(request,env){
   }catch(_){return json({status:'storage_error',count:0},503,request);}
  }
 
+ // Member-specific congressional legislation is collected by the gateway's cron.
+ // This endpoint reads verified D1 snapshots and never calls Congress.gov on a click.
+ if(path==='/api/member-legislation'){
+  const bioguide=new URL(request.url).searchParams.get('bioguide')||'';
+  if(!/^[A-Z][0-9]{6}$/.test(bioguide))return json({error:'Invalid Bioguide member ID'},400,request);
+  if(!env?.COUNTY_DB)return json({status:'not_configured',count:0},503,request);
+  try{
+   const row=await env.COUNTY_DB.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?')
+    .bind('member_legislation_'+bioguide).first();
+   return json(row?JSON.parse(row.snapshot_json):{status:'pending',bioguide,count:0},200,request,row?1800:60);
+  }catch(_){return json({status:'storage_error',count:0},503,request);}
+ }
+
  // Cached Open States / official Congress.gov political snapshots, keyless for site visitors.
  if(path==='/api/openstates-snapshot'||path==='/api/house-votes-snapshot'){
   const byState=path==='/api/openstates-snapshot';

@@ -1,6 +1,18 @@
 name: Test Congressional Records directory
 
 on:
+  pull_request:
+    paths:
+      - records.html
+      - assets/js/records.js
+      - assets/js/records-model.js
+      - assets/css/records-editorial.css
+      - tests/congressional-records-editorial.test.mjs
+      - tests/scheduled-collection.test.mjs
+      - tests/category-reader.test.mjs
+      - workers/politics-gateway.mjs
+      - workers/county-snapshot.mjs
+      - ".github/workflows/test-congressional-records.yml"
   push:
     paths:
       - records.html
@@ -12,6 +24,7 @@ on:
       - tests/congressional-records-directory-ui.test.mjs
       - tests/congressional-records-silhouettes.test.mjs
       - tests/congressional-records-editorial.test.mjs
+      - tests/congressional-records-dashboard.test.mjs
       - assets/css/records-editorial.css
       - assets/js/state-silhouettes.js
       - assets/js/records-address-model.js
@@ -36,5 +49,8 @@ jobs:
           node-version: "22"
       - name: Verify state-first directory, exact member profiles, and voting joins
         run: node --test tests/congressional-records*.test.mjs
+      - name: Run full JS suite (informational; three unrelated legacy test failures)
+        continue-on-error: true
+        run: npm test
       - name: Verify archived roll-call dataset joins and vote code meanings
         run: python3 -m unittest discover -s tests -p test_voteview_rollcalls.py -v
