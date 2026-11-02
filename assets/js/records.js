@@ -246,7 +246,7 @@ function addVoteExplanation(container,v){
   const label=document.createElement('strong');label.textContent='What the proposal says: ';
   const text=document.createElement('span');
   const original=String(official.summary||official.title||'');
-  const excerpt=original.length>390?original.slice(0,390).replace(/\\s+\\S*$/,'').trim():original;
+  const excerpt=original.length>390?original.slice(0,390).replace(/\s+\S*$/,'').trim():original;
   text.textContent=excerpt+(original.length>390?'…':'');
   paragraph.append(label,text);
   if(original.length>390){
