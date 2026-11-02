@@ -47,10 +47,22 @@ const federalTask=fetchStored('/api/congress-snapshot').then(data=>{
  if(!data?.states||!data?.count)throw Error('Congressional roster not collected');
  federal=data;federalStatus='ready';repaint();
 }).catch(()=>{federalStatus='unavailable';repaint();});
+/* Read each current roster from our own nightly static cache.
+ * This is a one-time same-origin file read per visitor/state, not a provider
+ * API-key call. Older D1 samples remain a safe fallback only. */
 function openStates(state){
  if(!stateCache.has(state)){
-  stateCache.set(state,fetchStored('/api/openstates-snapshot?state='+encodeURIComponent(state))
-   .then(data=>data?.state===state&&Array.isArray(data.people)?data:null).catch(()=>null));
+  const local='assets/data/legislators/'+state.toLowerCase()+'.json';
+  const task=fetch(local,{credentials:'same-origin',cache:'default',headers:{Accept:'application/json'},
+   signal:AbortSignal.timeout(15000)})
+   .then(r=>{if(!r.ok)throw Error('Roster cache HTTP '+r.status);return r.json();})
+   .then(data=>{
+    if(data?.state!==state||!Array.isArray(data.people)||data.people.length<10)throw Error('Incomplete roster');
+    return data;
+   })
+   .catch(()=>fetchStored('/api/openstates-snapshot?state='+encodeURIComponent(state))
+    .then(data=>data?.state===state&&Array.isArray(data.people)?data:null).catch(()=>null));
+  stateCache.set(state,task);
  }
  return stateCache.get(state);
 }
@@ -118,8 +130,9 @@ function render(){
     if(model.stateCompleteness(data)==='partial')chunks.push(note(
      'Partial roster: '+data.people.length+' of '+(Number.isInteger(data.totalPeople)?data.totalPeople:'unknown')+
      ' reported records. Some districts are not yet represented here.'));
-    chunks.push(note('Open States / Plural · '+esc(data.retrievedAt?.slice(0,10)||'date unavailable')+
-     ' · '+link('https://openstates.org/','source')));
+    chunks.push(note(esc(data.source||'Open States / Plural')+' · '+esc(data.retrievedAt?.slice(0,10)||'date unavailable')+
+     ' · '+link(data.sourceUrl||'https://open.pluralpolicy.com/data/legislator-csv/','source')+
+     '. Source roster reflects current officeholder records, not an election prediction.'));
    }
   }
   if(federalStatus==='ready'&&(layer==='house'||layer==='senate'||scope==='state'))
