@@ -38,6 +38,41 @@ body[data-view="congress"] button,body[data-view="congress"] input,body[data-vie
 .atlasFeature[data-active="true"]{fill:#6ab3c1;stroke:#efffff;stroke-width:1.6;filter:drop-shadow(0 0 4px #5fd8e488)}
 .atlasFeature.atlasState{fill:#29425d;stroke:#8098b2;stroke-width:1.15}
 .atlasFeature.atlasState:hover,.atlasFeature.atlasState:focus-visible{fill:#527e9d}
+/* Chrome's native focus outline around a focusable SVG path uses its rectangular
+ * bounding box. Remove that artifact on every district (including mouse focus).
+ * Keyboard focus remains visible as a stroke/glow tracing the real geography. */
+#districtMap{outline:none!important}
+#districtMap .atlasFeature,
+#districtMap .atlasFeature:focus,
+#districtMap .atlasFeature:focus-visible,
+#districtMap .atlasFeature[data-active="true"]{
+ outline:none!important;
+ -webkit-tap-highlight-color:transparent;
+}
+#districtMap .atlasFeature:focus-visible{
+ stroke:#bffff5;
+ stroke-width:2.15;
+ filter:drop-shadow(0 0 5px rgba(116,245,246,.85));
+}
+/* The Hawaii view uses an inset; these rules never change district fills. */
+.atlasHawaiiInsetFrame{
+ fill:rgba(8,19,38,.58);
+ stroke:rgba(147,203,235,.30);
+ stroke-width:1;
+ vector-effect:non-scaling-stroke;
+ pointer-events:none;
+}
+.atlasHawaiiInsetLabel{
+ fill:#b4d5e9;
+ font-size:10px;
+ font-weight:750;
+ letter-spacing:.085em;
+ pointer-events:none;
+}
+#districtMap .atlasHawaiiInset .atlasFeature{
+ stroke-width:1.1;
+}
+
 .atlasDistrictLabel{fill:#f1f8ff;font-size:11px;font-weight:800;text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:#10233c;stroke-width:3px;stroke-linejoin:round;pointer-events:none;user-select:none}
 .atlasSelectionId{line-height:1.55}
 .atlasMessage{position:absolute;left:15px;top:63px;max-width:min(420px,calc(100% - 90px));background:#142b42ed;padding:11px 14px;color:#d3ecf6;font-size:12px;line-height:1.5;border:1px solid #4d718a;border-radius:9px}
