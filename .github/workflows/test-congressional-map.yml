@@ -1,0 +1,34 @@
+name: Test Congressional Atlas map
+
+on:
+  push:
+    paths:
+      - "assets/js/congressional-map.js"
+      - "assets/js/congressional-model.js"
+      - "assets/css/congressional-map.css"
+      - "congressional.html"
+      - "tests/congressional*.test.mjs"
+      - "tests/test_boundary_snapshot.py"
+      - ".github/workflows/test-congressional-map.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify project tests
+        run: npm test
+      - name: Verify cached district rendering and source separation
+        run: node --test tests/congressional*.test.mjs
+      - name: Verify snapshot-generation logic offline
+        run: python3 -m unittest discover -s tests -p test_boundary_snapshot.py -v
