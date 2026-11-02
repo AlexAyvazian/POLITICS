@@ -295,3 +295,11 @@ body[data-view="records"] .recordsProfile{
 .recordsTravelSponsorRow>strong{text-align:right;font-size:12px;color:#f0fafb;font-variant-numeric:tabular-nums}
 .recordsTravelSponsorRow .recordsTravelYearFill{background:#81cbb7}
 @media(max-width:560px){.recordsTravelSponsorRow{grid-template-columns:minmax(95px,1fr) minmax(55px,.7fr) 23px;gap:6px}}
+
+/* Long official CRS analysis stays on the page without overwhelming the voter. */
+.recordsOfficialSummary{margin:11px 0 5px;color:#d7e6ee;line-height:1.6;font-size:12px}
+.recordsOfficialSummary>strong{color:#f1f9fc}
+.recordsSummaryDetails{margin:9px 0 2px;border-left:2px solid rgba(121,208,208,.35);padding-left:12px}
+.recordsSummaryDetails summary{display:list-item;color:#a5e5e5;cursor:pointer;font-size:11px;font-weight:700}
+.recordsSummaryDetails summary:focus-visible{outline:2px solid #a5e5e5;outline-offset:3px}
+.recordsSummaryDetails p{max-width:78ch;color:#c6d9e6;white-space:pre-line;line-height:1.65;font-size:12px}
