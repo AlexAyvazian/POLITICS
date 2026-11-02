@@ -4,7 +4,7 @@
  <meta charset="utf-8">
  <meta name="viewport" content="width=device-width,initial-scale=1">
  <meta name="theme-color" content="#050814">
- <meta name="description" content="Search current members of Congress and inspect documented roll-call votes, campaign finance and travel disclosures.">
+ <meta name="description" content="Browse all states and Congressional delegations, then view documented voting records, campaign finance and travel disclosures.">
  <title>Congressional Records · POLITICS</title>
  <link rel="stylesheet" href="assets/css/atlas.css">
  <link rel="stylesheet" href="assets/css/records.css">
@@ -17,16 +17,18 @@
  </header>
  <main class="recordsMain">
   <section class="recordsIntro">
-   <div><p class="recordsEyebrow">DOCUMENTED CONGRESSIONAL ACTIVITY</p><h1>Congressional Records</h1><p>Find a member. Follow the recorded votes, legislation, campaign financing, and disclosed travel back to their sources.</p></div>
+   <div><p class="recordsEyebrow">DOCUMENTED CONGRESSIONAL ACTIVITY</p><h1>Congressional Records</h1><p>Choose a state. See its senators and representatives. Open a member’s voting record, legislation, campaign contributions, and travel disclosures.</p></div>
    <div class="recordsSourceTag">119th Congress · 2025–2026</div>
   </section>
-  <section class="recordsExplorer" aria-label="Search for a member of Congress">
-   <div class="recordsSearchRow">
-    <div class="recordsQueryBox"><label for="memberSearch">Search members of Congress</label><input id="memberSearch" type="search" placeholder="Name, state, or district (e.g. CO-03)" autocomplete="off" aria-controls="memberResults"></div>
-    <label class="recordsChamberField" for="memberChamber">Chamber<select id="memberChamber"><option value="all">House and Senate</option><option value="House">U.S. House</option><option value="Senate">U.S. Senate</option></select></label>
-   </div>
-   <div id="searchStatus" class="recordsStatus" role="status">Loading the current congressional roster…</div>
-   <div id="memberResults" class="recordsResults" aria-label="Matching current members"></div>
+  <section class="recordsExplorer recordsStateDirectory" id="stateDirectory" aria-labelledby="stateDirectoryTitle">
+   <div class="recordsDirectoryHeading"><div><span class="recordsKicker">START HERE</span><h2 id="stateDirectoryTitle">Choose your state</h2><p>Browse all 50 states and Washington, D.C. No name or district number needed.</p></div><span class="recordsDirectoryCount">50 states + D.C.</span></div>
+   <div id="directoryStatus" class="recordsStatus" role="status">Loading current congressional delegations…</div>
+   <div id="stateGrid" class="recordsStateGrid" aria-label="Choose a state or Washington D.C."></div>
+  </section>
+  <section class="recordsExplorer recordsDelegationDirectory" id="delegationDirectory" hidden aria-labelledby="delegationTitle">
+   <div class="recordsDelegationTop"><button type="button" id="backToStates" class="recordsBack">← All states</button><div><span class="recordsKicker">YOUR REPRESENTATION</span><h2 id="delegationTitle"></h2><p id="delegationIntro"></p></div></div>
+   <section class="recordsDelegationSection" aria-labelledby="senateHeading"><div class="recordsDirectorySubhead"><h3 id="senateHeading">U.S. Senators</h3><span id="senateCount"></span></div><div id="senateMembers" class="recordsMemberGrid"></div></section>
+   <section class="recordsDelegationSection" aria-labelledby="houseHeading"><div class="recordsDirectorySubhead"><h3 id="houseHeading">U.S. Representatives</h3><span id="houseCount"></span></div><div id="houseMembers" class="recordsMemberGrid"></div></section>
   </section>
   <section id="memberProfile" class="recordsProfile" hidden aria-labelledby="profileName">
    <div class="recordsProfileHead">
@@ -50,8 +52,9 @@
     </aside>
    </div>
   </section>
-  <section id="recordsStart" class="recordsEmpty"><strong>Select a member to explore the documented record.</strong><p>Choose a name above. The voting table will distinguish official captured rolls from records not yet imported.</p></section>
+  <section id="recordsStart" class="recordsEmpty"><strong>Select a member to explore the documented record.</strong><p>Select a state, then choose a senator or representative to open their records.</p></section>
  </main>
+ <script src="assets/js/states.js"></script>
  <script src="assets/js/records-model.js"></script>
  <script src="assets/js/records.js"></script>
 </body>
