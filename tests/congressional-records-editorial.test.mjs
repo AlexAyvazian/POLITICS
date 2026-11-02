@@ -79,3 +79,16 @@ test('member evidence aggregates only verified cached inputs with explicit missi
  assert.equal(unavailable.campaignReceipts,null);
  assert.equal(unavailable.travelFilings,null);
 });
+
+test('profile has data-first FEC and lobbying evidence, with no unverified relationship inference',()=>{
+ const html=read('records.html'),js=read('assets/js/records.js'),css=read('assets/css/records-editorial.css');
+ for(const id of ['financeDetailViz','lobbyVisualization','lobbyLinks'])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(js,/function evidenceBars/);
+ assert.match(js,/async function loadFinanceDetail/);
+ assert.match(js,/async function loadLobby/);
+ assert.match(js,/\/api\/member-finance-detail/);
+ assert.match(js,/\/api\/member-lobby-network/);
+ assert.match(css,/recordsInsightGrid/);
+ assert.ok(html.indexOf('id="financeLinks"')<html.indexOf('id="votesArchivePanel"'));
+ assert.ok(html.indexOf('id="lobbyLinks"')<html.indexOf('id="votesArchivePanel"'));
+});
