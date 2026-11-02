@@ -28,6 +28,7 @@ class CongressionalVoteviewTests(unittest.TestCase):
   first=next(p for p in profiles['H000001'] if p['roll']==314)
   second=next(p for p in profiles['H000001'] if p['roll']==315)
   self.assertEqual(first['cast'],'Yea')
+  self.assertEqual(first['subject'],'Retire through Ownership Act')
   self.assertEqual(first['url'],'https://clerk.house.gov/Votes/2026314')
   self.assertEqual(profiles['H000002'][0]['cast'],'Nay')
   self.assertEqual(second['cast'],'Not Voting')
