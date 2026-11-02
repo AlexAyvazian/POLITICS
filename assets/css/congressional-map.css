@@ -115,3 +115,39 @@ body[data-view="congress"] button,body[data-view="congress"] input,body[data-vie
 @media(max-width:600px){.atlasSelection:has(.atlasPoliticalDetails:not(:empty)){
  width:min(290px,calc(100% - 76px));max-height:57vh;right:60px;bottom:47px;
 }}
+
+
+/* Red/blue map fills follow exact, sourced incumbent party assignments.
+ * Never infer an individual district's party from a statewide seat total. */
+#districtMap .atlasFeature[data-party="democratic"]{fill:#2466d3}
+#districtMap .atlasFeature[data-party="republican"]{fill:#c43c49}
+#districtMap .atlasFeature[data-party="other"]{fill:#af84df}
+#districtMap .atlasFeature[data-party="split"]{fill:#8970c3}
+#districtMap .atlasFeature[data-party="unknown"]{fill:#344d68}
+#districtMap .atlasFeature[data-party]:hover{filter:brightness(1.19)}
+#districtMap .atlasFeature[data-party][data-active="true"]{
+ stroke:#f0fdff;stroke-width:2;filter:brightness(1.18) drop-shadow(0 0 5px rgba(151,232,255,.50));
+}
+.atlasPartyLegend{
+ position:absolute;z-index:4;left:14px;bottom:41px;max-width:min(650px,calc(100% - 105px));
+ display:flex;align-items:center;gap:8px 15px;flex-wrap:wrap;
+ padding:10px 12px;border:1px solid rgba(174,218,244,.23);
+ border-radius:11px;background:rgba(5,12,28,.83);
+ box-shadow:0 5px 26px rgba(0,0,0,.24);
+ backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+ color:#e6f3fc;font-size:11px;
+}
+.atlasLegendPair{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.atlasPartySwatch{display:inline-block;width:10px;height:10px;border-radius:3px;border:1px solid rgba(255,255,255,.22)}
+.atlasPartySwatch.dem{background:#2466d3}
+.atlasPartySwatch.rep{background:#c43c49}
+.atlasPartySwatch.other{background:#9780d5}
+.atlasPartySwatch.unknown{background:#344d68}
+.atlasPartyLegend small{font-size:10px;color:#a3b7ce;width:100%;line-height:1.35}
+@media(max-width:650px){
+ .atlasPartyLegend{left:8px;bottom:36px;padding:7px;max-width:calc(100% - 60px);gap:4px 8px;font-size:10px}
+ .atlasPartyLegend small{font-size:9px}
+}
+/* Keep the district NUMERAL at constant physical size during zoom. Geometry,
+ * not glyphs, is transformed by D3; JS applies reciprocal scale to labels. */
+#districtMap .atlasDistrictLabel{font-size:12px;stroke-width:2.5px}
