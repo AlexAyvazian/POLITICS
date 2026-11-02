@@ -61,6 +61,26 @@ test('multipolygon congressional islands rewind each exterior and hole independe
  }
 });
 
+test('single at-large House district is shown in a restrained centered viewport',()=>{
+ const c=setup();
+ const one=c.districtViewport(1300,600,1);
+ const many=c.districtViewport(1300,600,10);
+ assert.ok(one[0][0]>many[0][0],'single district has more horizontal margin than many districts');
+ assert.ok(one[0][1]>many[0][1],'single district has more vertical margin than many districts');
+ assert.ok(one[1][0]<many[1][0]&&one[1][1]<many[1][1]);
+ assert.deepEqual(Array.from(c.districtViewport(1300,600,1)[0]),Array.from(one[0]));
+ assert.equal(c.districtDisplayName('house','00'),'At-large');
+ assert.equal(c.districtDisplayName('house','05'),'District 5');
+ assert.equal(c.districtDisplayName('stateSenate','005'),'District 5');
+});
+test('at-large states auto-select their sole district with an explicit geographic explanation',()=>{
+ const script=read('assets/js/congressional-map.js');
+ assert.match(script,/districtViewport\(/);
+ assert.match(script,/features\.length===1/);
+ assert.match(script,/No internal district boundaries/);
+ assert.match(script,/selectFeature\(features\[0\]\)/);
+ assert.match(script,/atlasDistrictLabel/);
+});
 test('congressional atlas is a distinct interactive map-only page',()=>{
  const html=read('congressional.html'),home=read('index.html'),js=read('assets/js/congressional-map.js');
  assert.match(html,/assets\/js\/congressional-map\.js/);
