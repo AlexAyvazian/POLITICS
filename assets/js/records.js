@@ -210,6 +210,16 @@ async function begin(){
  }
 }
 $('backToStates').addEventListener('click',showAllStates);
+$('backToDelegation').addEventListener('click',()=>{
+ state.member=null;state.votes=[];state.voteData=null;
+ $('memberProfile').hidden=true;
+ $('recordsStart').hidden=false;
+ renderDelegation();
+ if(state.selectedState){
+  try{history.replaceState(null,'','#state='+encodeURIComponent(state.selectedState));}catch{}
+ }
+ $('delegationDirectory').scrollIntoView?.({behavior:'smooth',block:'start'});
+});
 renderStateDirectory();
 $('votesQuery').addEventListener('input',()=>{if(state.member)renderVotes();});
 begin();
