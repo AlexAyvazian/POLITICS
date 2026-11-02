@@ -22,5 +22,33 @@
   if(!snapshot||!Array.isArray(snapshot.people))return 'pending';
   return snapshot.totalPeople===null||snapshot.people.length<Number(snapshot.totalPeople)?'partial':'complete';
  }
- root.CONGRESSIONAL_POLITICAL_MODEL=Object.freeze({house,senators,stateMembers,stateCompleteness});
+ 
+/* Labels are printed on a zoomable SVG group; the SVG controller rescales them.
+ * Compact numbers avoid covering adjacent districts at ordinary zoom. */
+function districtMarker(layer,code){
+ if(layer==='house'&&String(code)==='00')return 'AL';
+ if(layer==='house'&&String(code)==='98')return 'DC';
+ const n=Number(code);
+ return Number.isInteger(n)&&n>=0?String(n):'?';
+}
+function partyClass(raw){
+ const p=String(raw||'').trim().toLowerCase();
+ if(p==='d'||p==='democrat'||p==='democratic'||p==='democratic-farmer-labor'||p==='dfl')return 'democratic';
+ if(p==='r'||p==='republican')return 'republican';
+ if(p==='independent'||p==='nonpartisan'||p==='libertarian'||p==='green'||p==='other')return 'other';
+ return 'unknown';
+}
+function combinedParty(people,expected=1){
+ if(!Array.isArray(people)||people.length!==expected)return 'unknown';
+ const parties=people.map(p=>partyClass(p?.party));
+ if(parties.includes('unknown'))return 'unknown';
+ return new Set(parties).size===1?parties[0]:'split';
+}
+function houseParty(snapshot,state,code){return combinedParty(house(snapshot,state,code));}
+function stateDistrictParty(snapshot,layer,code){
+ return combinedParty(stateMembers(snapshot,layer,code));
+}
+function senateParty(snapshot,state){return combinedParty(senators(snapshot,state),2);}
+
+root.CONGRESSIONAL_POLITICAL_MODEL=Object.freeze({house,senators,stateMembers,stateCompleteness,districtMarker,partyClass,houseParty,stateDistrictParty,senateParty});
 })(typeof window!=='undefined'?window:globalThis);
