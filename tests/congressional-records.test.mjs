@@ -73,13 +73,24 @@ test('all votes and totals describe only observed captured rolls, not full-caree
  assert.deepEqual({...x.countVotes(votes)},{Yea:1,Nay:1,Present:1,'Not Voting':1});
  const records=x.filterVotes([{question:'On Passage H.R. 123',cast:'Yea'},{question:'On Nomination',cast:'Nay'}],'H.R.');
  assert.equal(records.length,1);
- assert.match(read('records.html'),/Captured roll calls only/);
+ assert.match(read('records.html'),/Recorded roll calls only/);
 });
-test('campaign filings, privately sponsored travel, and personal financial disclosures use distinct official links',()=>{
- const s=read('assets/js/records.js');
- assert.match(s,/https:\/\/www\.fec\.gov\/data\/candidates/);
- assert.match(s,/https:\/\/disclosures-clerk\.house\.gov\/GiftTravelFilings/);
- assert.match(s,/https:\/\/disclosures-clerk\.house\.gov\/FinancialDisclosure/);
- assert.match(s,/https:\/\/www\.congress\.gov\/member/);
- assert.doesNotMatch(s,/fictional|placeholder donation|predicted vote/i);
+test('campaign, travel and legislative data are on-page visualizations, not outgoing search links',()=>{
+ const html=read('records.html'),js=read('assets/js/records.js');
+ for(const id of ['financeVisualization','travelVisualization','legislationVisualization'])
+  assert.match(html,new RegExp('id="'+id+'"'));
+ assert.doesNotMatch(html,/Search FEC filings|Search Congress\.gov|Senate ethics disclosures|id="fecMemberLink"/i);
+ assert.match(js,/renderFinance/);
+ assert.match(js,/assets\/data\/records\/finance/);
+ assert.match(js,/renderMeasures/);
+ assert.match(js,/No travel figures in the current local dataset/);
+ assert.doesNotMatch(js,/displayFinance\(/);
+});
+test('vote distribution uses neutral labeled independent tracks, not a partisan stacked bar',()=>{
+ const html=read('records.html'),js=read('assets/js/records.js'),css=read('assets/css/records-editorial.css');
+ assert.match(js,/HOW THIS PERSON VOTED/);
+ assert.match(js,/not Democratic vs\. Republican votes/);
+ assert.match(css,/\.recordsDistributionRows/);
+ assert.match(css,/\.recordsDistributionTrack/);
+ assert.match(html,/not party affiliations/);
 });
