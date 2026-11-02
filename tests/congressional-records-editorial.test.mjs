@@ -52,3 +52,30 @@ test('voting summaries preserve all recorded statuses and never invent missed vo
  assert.equal(counts.total,8);
  assert.equal(m.voteDistribution([{cast:'Unknown status'}]).total,0);
 });
+
+test('profile opens with accessible evidence overview and finance before the archived roll call list',()=>{
+ const html=read('records.html');
+ assert.match(html,/id="memberDashboard"/);
+ assert.match(html,/id="recentDecisions"/);
+ assert.match(html,/id="voteArchive"/);
+ assert.match(html,/id="profileOverviewNav"/);
+ assert.ok(html.indexOf('id="financeLinks"')<html.indexOf('id="memberVotes"'));
+ assert.match(html,/<details[^>]*id="voteArchive"/);
+});
+test('member evidence aggregates only verified cached inputs with explicit missing statuses',()=>{
+ const ctx={window:{}};
+ vm.runInNewContext(read('assets/js/records-model.js'),ctx);
+ const m=ctx.window.POLITICS_RECORDS_MODEL;
+ const votes=[{cast:'Yea',measure:'H.R. 15',roll:2},{cast:'Nay',measure:'H.R.15',roll:3},{cast:'Present',measure:'S. 2',roll:4}];
+ const out=m.profileEvidenceSummary({votes,votesAvailable:true,finance:{cycle:2026,raised:125000,candidateId:'H1CA00001'},travel:{filings:[{reportedYear:2026},{reportedYear:2025}]}});
+ assert.equal(out.voteCount,3);
+ assert.equal(out.measureCount,2);
+ assert.equal(out.campaignReceipts,125000);
+ assert.equal(out.travelFilings,2);
+ assert.equal(out.candidateId,'H1CA00001');
+ const unavailable=m.profileEvidenceSummary({votes:[],votesAvailable:false,finance:null,travel:null});
+ assert.equal(unavailable.voteCount,null);
+ assert.equal(unavailable.measureCount,null);
+ assert.equal(unavailable.campaignReceipts,null);
+ assert.equal(unavailable.travelFilings,null);
+});
