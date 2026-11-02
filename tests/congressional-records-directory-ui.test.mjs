@@ -15,7 +15,7 @@ function node(id=''){
  return el;
 }
 function build(){
- const ids=['directoryStatus','stateGrid','stateDirectory','delegationDirectory','delegationTitle','delegationIntro','delegationSilhouette','senateCount','houseCount','houseHeading','senateMembers','houseMembers','backToStates','backToDelegation','districtLookupForm','addressInput','findMyRep','districtLookupStatus','districtLookupResult','memberProfile','recordsStart','profilePortrait','profileName','profileChamber','profileInfo','profileBio','recordUpdated','votesQuery','voteStatus','voteSummary','voteDistribution','voteFilterAll','voteFilterYea','voteFilterNay','voteFilterAbsent','votePeriod','memberVotes','fecMemberLink','disclosureList','congressMemberLink'];
+ const ids=['directoryStatus','stateGrid','stateDirectory','delegationDirectory','delegationTitle','delegationIntro','delegationSilhouette','senateCount','houseCount','houseHeading','senateMembers','houseMembers','backToStates','backToDelegation','districtLookupForm','addressInput','findMyRep','districtLookupStatus','districtLookupResult','memberProfile','recordsStart','profilePortrait','profileName','profileChamber','profileInfo','profileBio','recordUpdated','votesQuery','voteStatus','voteSummary','voteDistribution','voteFilterAll','voteFilterYea','voteFilterNay','voteFilterAbsent','votePeriod','memberVotes','financeVisualization','travelVisualization','legislationVisualization'];
  const el=Object.fromEntries(ids.map(id=>[id,node(id)]));
  el.stateDirectory.hidden=false;el.delegationDirectory.hidden=true;el.memberProfile.hidden=true;
  el.addressInput.value='';
@@ -63,7 +63,8 @@ test('state tiles are the default directory, choosing Colorado exposes the deleg
  assert.equal(el.delegationDirectory.hidden,true);
  assert.match(el.voteStatus.textContent,/1 recorded votes/);
  assert.equal(el.voteSummary.hidden,false);
- assert.equal(el.voteDistribution.children.length,2);
+ assert.equal(el.voteDistribution.children.length,3);
+ assert.match(el.voteDistribution.children[0].textContent,/not Democratic vs. Republican votes/);
  el.voteFilterYea.click();
  assert.equal(el.voteFilterYea.attributes['aria-pressed'],'true');
  assert.equal(el.memberVotes.children.length,1);
