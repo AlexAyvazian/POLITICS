@@ -80,6 +80,13 @@ def select_senate_office(legislators,offices):
   # Preserve individual entries. Avoid asserting traveler identity from office name.
   for row in items:mapped.setdefault(bio,[]).append(row)
  return mapped
+def filing_date_sort(row):
+ raw=str(row.get('beginDate') or '')
+ try:return datetime.strptime(raw,'%m/%d/%Y')
+ except ValueError:
+  try:return datetime.strptime(raw,'%m/%d/%y')
+  except ValueError:return datetime(int(row.get('reportedYear') or 2025),1,1)
+
 def main():
  try:import yaml
  except ImportError:raise SystemExit('PyYAML required')
@@ -95,7 +102,7 @@ def main():
  OUT.mkdir(parents=True,exist_ok=True)
  updated=0
  for bio,rows in mapped.items():
-  rows.sort(key=lambda x:(x['reportedYear'],x['beginDate']),reverse=True)
+  rows.sort(key=lambda x:filing_date_sort(x),reverse=True)
   doc={'bioguide':bio,'officeAssociation':'Senate office',
        'source':'U.S. Senate Gift Rule Disclosure System',
        'sourceUrl':'https://giftrule-disclosure.senate.gov/',
