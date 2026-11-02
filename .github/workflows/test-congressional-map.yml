@@ -6,6 +6,10 @@ on:
       - "assets/js/congressional-map.js"
       - "assets/js/congressional-model.js"
       - "assets/css/congressional-map.css"
+      - "assets/css/healthcare-atmosphere.css"
+      - "assets/js/atlas-atmosphere.js"
+      - "index.html"
+      - "tests/atlas-atmosphere.test.mjs"
       - "congressional.html"
       - "tests/congressional*.test.mjs"
       - "tests/test_boundary_snapshot.py"
@@ -38,5 +42,7 @@ jobs:
         with:
           name: congressional-map-audit
           path: audit-results/
+      - name: Verify both Atlas pages share Healthcare styling without changing geographic colors
+        run: node --test tests/atlas-atmosphere.test.mjs
       - name: Verify snapshot-generation logic offline
         run: python3 -m unittest discover -s tests -p test_boundary_snapshot.py -v
