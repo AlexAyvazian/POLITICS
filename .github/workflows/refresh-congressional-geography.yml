@@ -36,6 +36,8 @@ jobs:
         run: node --test tests/congressional-static-cache.test.mjs tests/congressional-atlas.test.mjs
       - name: Validate and refresh official geographic boundary files
         run: python scripts/update_congressional_boundaries.py --workers 3
+      - name: Audit all generated district maps before publishing
+        run: node scripts/audit_congressional_geometry.mjs
       - name: Commit only changed static boundary files
         shell: bash
         run: |
