@@ -8,6 +8,8 @@ on:
     paths:
       - .github/workflows/refresh-legislator-rosters.yml
       - scripts/update_legislator_rosters.py
+      - scripts/update_verified_vacancies.py
+      - tests/test_verified_vacancies.py
       - tests/test_legislator_roster.py
 
 permissions:
@@ -32,17 +34,21 @@ jobs:
         run: python -m unittest discover -s tests -p test_legislator_roster.py -v
       - name: Collect all available 50 state current legislator CSV snapshots
         run: python scripts/update_legislator_rosters.py
+      - name: Test official vacancy-source parser
+        run: python -m unittest discover -s tests -p test_verified_vacancies.py -v
+      - name: Refresh current vacancy status against official legislative websites
+        run: python scripts/update_verified_vacancies.py
       - name: Publish changed cached rosters only
         shell: bash
         run: |
-          git add assets/data/legislators/
+          git add assets/data/legislators/ assets/js/verified-vacancies.js
           if git diff --cached --quiet; then
             echo "No changes to source roster. Keeping existing cache."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Refresh current Open States legislator party snapshots"
+          git commit -m "Refresh current legislator rosters and official legislative vacancies"
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
