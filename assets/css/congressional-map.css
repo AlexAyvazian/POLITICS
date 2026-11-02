@@ -123,6 +123,7 @@ body[data-view="congress"] button,body[data-view="congress"] input,body[data-vie
 #districtMap .atlasFeature[data-party="republican"]{fill:#c43c49}
 #districtMap .atlasFeature[data-party="other"]{fill:#af84df}
 #districtMap .atlasFeature[data-party="split"]{fill:#8970c3}
+#districtMap .atlasFeature[data-party="vacant"]{fill:#c58d35;stroke:#f5cf8c;stroke-width:1.25}
 #districtMap .atlasFeature[data-party="unknown"]{fill:#344d68}
 #districtMap .atlasFeature[data-party]:hover{filter:brightness(1.19)}
 #districtMap .atlasFeature[data-party][data-active="true"]{
@@ -142,6 +143,7 @@ body[data-view="congress"] button,body[data-view="congress"] input,body[data-vie
 .atlasPartySwatch.dem{background:#2466d3}
 .atlasPartySwatch.rep{background:#c43c49}
 .atlasPartySwatch.other{background:#9780d5}
+.atlasPartySwatch.vacant{background:#c58d35}
 .atlasPartySwatch.unknown{background:#344d68}
 .atlasPartyLegend small{font-size:10px;color:#a3b7ce;width:100%;line-height:1.35}
 @media(max-width:650px){
