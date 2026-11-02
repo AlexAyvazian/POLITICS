@@ -89,5 +89,19 @@ function rewindForD3(collection){
  })};
 }
 
-root.CONGRESSIONAL_MODEL=Object.freeze({LAYERS,censusUrl,districtCode,federalMembers,stateLawmakerMatches,rewindForD3});
+
+/* Keep one at-large district visually distinct from a blank/oversized square. */
+function districtViewport(width,height,count){
+ const w=Math.max(200,Number(width)||200),h=Math.max(200,Number(height)||200);
+ // Single-district states are surrounded by more context; geography is not distorted.
+ const x=count===1?.20:.075,y=count===1?.17:.085;
+ return [[Math.round(w*x),Math.round(h*y)],[Math.round(w*(1-x)),Math.round(h*(1-y))]];
+}
+function districtDisplayName(layer,code){
+ if(layer==='house'&&String(code)==='00')return 'At-large';
+ const value=Number(code);
+ return Number.isInteger(value)&&value>=0?'District '+value:'District';
+}
+
+root.CONGRESSIONAL_MODEL=Object.freeze({LAYERS,censusUrl,districtCode,federalMembers,stateLawmakerMatches,rewindForD3,districtViewport,districtDisplayName});
 })(typeof window!=='undefined'?window:globalThis);
