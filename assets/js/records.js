@@ -150,10 +150,11 @@ async function loadVotes(m){
  $('voteSummary').hidden=true;$('memberVotes').replaceChildren();
  let data;
  try{
-  const r=await fetch('assets/data/records/'+chamber+'-votes.json',{credentials:'same-origin',cache:'default'});
+  const r=await fetch('assets/data/records/members/'+encodeURIComponent(marker)+'.json',{credentials:'same-origin',cache:'default'});
   if(!r.ok)throw Error('No published '+m.chamber+' roll-call snapshot');
   data=await r.json();
-  if(!Array.isArray(data.votes)||!data.votes.length)throw Error('No validated captured votes available');
+  if(data.bioguide!==marker||data.chamber!==m.chamber||!Array.isArray(data.votes)||!data.votes.length)
+   throw Error('No validated member vote data available');
  }catch(_){
   if(state.member?.bioguide!==marker)return;
   state.voteData=null;state.votes=[];
@@ -165,8 +166,8 @@ async function loadVotes(m){
  if(state.member?.bioguide!==marker)return;
  state.voteData=data;state.votes=model.memberVotes(data,m);
  const counts=model.countVotes(state.votes);
- $('votePeriod').textContent=String(data.congress||119)+'th Congress · '+data.votes.length+' captured chamber roll calls';
- $('voteStatus').textContent=state.votes.length+' identified votes in this captured dataset · source checked '+formatDate(data.retrievedAt||data.asOf)+'. This is not a full career total.';
+ $('votePeriod').textContent=String(data.congress||119)+'th Congress · '+data.votes.length+' recorded member votes';
+ $('voteStatus').textContent=state.votes.length+' recorded votes · Voteview (UCLA), data through '+formatDate(data.asOf)+'.';
  const sum=$('voteSummary');sum.hidden=false;sum.innerHTML=Object.entries(counts).map(([label,n])=>
   '<div><strong>'+n+'</strong><span>'+esc(label)+'</span></div>').join('');
  renderVotes();
