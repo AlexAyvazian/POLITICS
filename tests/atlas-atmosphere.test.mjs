@@ -14,7 +14,7 @@ test('Healthcare atmosphere is shared by County and Congressional Atlas without 
  assert.match(css,/body\[data-view="map"\]/);
  assert.match(css,/body\[data-view="congress"\]/);
  assert.match(css,/\.orb/);
- assert.match(css,/glowPulse/);
+ assert.match(css,/atlasAmbientPulse/);
  assert.match(css,/backdrop-filter/);
  assert.match(css,/prefers-reduced-motion/);
  assert.doesNotMatch(css,/#mapSvg\s+\.state|#mapSvg\s+\.county|\.atlasFeature\s*\{|--geo-fill|--geo-hover|--geo-glow/);
