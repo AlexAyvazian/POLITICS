@@ -4,14 +4,42 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const read=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
 function model(){const context={window:{}};vm.runInNewContext(read('assets/js/records-model.js'),context);return context.window.POLITICS_RECORDS_MODEL;}
-test('new third page stays separate from both atlases and has accessibly searchable members',()=>{
+test('third page opens with a browse-by-state directory, not a member search',()=>{
  const page=read('records.html');
- for(const id of ['memberSearch','memberResults','memberProfile','memberVotes','votesQuery','voteStatus','financeLinks','travelLinks','legislationLinks']) assert.match(page,new RegExp('id="'+id+'"'));
+ for(const id of ['stateDirectory','stateGrid','delegationDirectory','delegationTitle','senateMembers','houseMembers','backToStates','memberProfile','memberVotes','voteStatus','financeLinks','travelLinks','legislationLinks']) assert.match(page,new RegExp('id="'+id+'"'));
  assert.match(page,/assets\/js\/records\.js/);
  assert.match(page,/assets\/css\/records\.css/);
+ assert.match(page,/assets\/js\/states\.js/);
  assert.match(page,/County Atlas/);
  assert.match(page,/Congressional Atlas/);
- assert.doesNotMatch(page,/id="districtMap"|id="mapSvg"|leaflet/);
+ assert.doesNotMatch(page,/id="memberSearch"|id="memberChamber"|id="districtMap"|id="mapSvg"|leaflet/);
+ assert.match(page,/Choose your state/);
+});
+test('directory lists every state and D.C., preserves House district order, and has full delegation',()=>{
+ const x=model();
+ const stateObjects=[{name:'Colorado',abbr:'CO'},{name:'California',abbr:'CA'},{name:'District of Columbia',abbr:'DC'}];
+ const roster={asOf:'2026-11-02',states:{
+  CO:{house:[{name:'District Seven',district:7,party:'Democrat',bioguide:'H000001'},{name:'District Three',district:3,party:'Republican',bioguide:'H000002'}],senators:[{name:'First Senator',party:'Democrat',bioguide:'S000001'},{name:'Second Senator',party:'Democrat',bioguide:'S000002'}]},
+  DC:{house:[{name:'Delegate',district:0,party:'Democrat',bioguide:'D000001'}],senators:[]}
+ }};
+ const members=x.members(roster);
+ const directory=x.states(stateObjects);
+ assert.deepEqual(directory.map(s=>s.abbr),['CA','CO','DC']);
+ const delegation=x.delegation(members,'CO');
+ assert.deepEqual(delegation.house.map(p=>p.district),[3,7]);
+ assert.equal(delegation.senate.length,2);
+ assert.equal(x.delegation(members,'DC').house[0].district,0);
+});
+test('directory deep links navigate by state and member without requiring text search',()=>{
+ const s=read('assets/js/records.js');
+ assert.match(s,/renderStateDirectory/);
+ assert.match(s,/renderDelegation/);
+ assert.match(s,/showState/);
+ assert.match(s,/stateGrid/);
+ assert.match(s,/delegationDirectory/);
+ assert.match(s,/backToStates/);
+ assert.match(s,/URLSearchParams/);
+ assert.doesNotMatch(s,/memberSearch|memberChamber|renderCandidates/);
 });
 test('member roster is flattened with stable verified identifiers and chamber',()=>{
  const x=model();
