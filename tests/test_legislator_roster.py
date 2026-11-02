@@ -15,13 +15,13 @@ class LegislatorRosterTests(unittest.TestCase):
   result=roster.parse_current_csv('MT', io.StringIO(HEADER+BODY), min_rows=3)
   self.assertEqual(result['state'],'MT')
   self.assertEqual(result['totalPeople'],3)
-  people=result['people']
-  self.assertEqual(people[0]['district'],'22')
-  self.assertEqual(people[0]['role'],'Senator')
-  self.assertEqual(people[0]['party'],'Republican')
-  self.assertEqual(people[1]['role'],'Representative')
-  self.assertEqual(people[1]['party'],'Democratic')
-  self.assertEqual(people[2]['district'],'27')
+  people={person['name']:person for person in result['people']}
+  self.assertEqual(people['Montana Senator']['district'],'22')
+  self.assertEqual(people['Montana Senator']['role'],'Senator')
+  self.assertEqual(people['Montana Senator']['party'],'Republican')
+  self.assertEqual(people['Montana Representative']['role'],'Representative')
+  self.assertEqual(people['Montana Representative']['party'],'Democratic')
+  self.assertEqual(people['Another Senator']['district'],'27')
   self.assertEqual(result['sourceUrl'],'https://data.openstates.org/people/current/mt.csv')
  def test_bad_schema_fails_without_overwriting_previous_snapshot(self):
   with self.assertRaises(ValueError):
@@ -34,10 +34,11 @@ class LegislatorRosterTests(unittest.TestCase):
   with self.assertRaises(ValueError):
    roster.csv_url('FAKE')
  def test_alphanumeric_district_is_preserved_without_guessing_geoid(self):
-  rows=HEADER+'ocd-person/x1,Vermont Representative,Democratic,Addison-1,lower,https://legislature.vermont.gov/\n'
+  rows=HEADER+'ocd-person/x1,Vermont Representative,Democratic,Addison-1,lower,https://legislature.vermont.gov/\n'+'ocd-person/x2,Vermont Senator,Democratic,2,upper,https://legislature.vermont.gov/\n'
   result=roster.parse_current_csv('VT',io.StringIO(rows),min_rows=1)
-  self.assertEqual(result['people'][0]['district'],'Addison-1')
-  self.assertEqual(result['people'][0]['role'],'Representative')
+  person=next(p for p in result['people'] if p['name']=='Vermont Representative')
+  self.assertEqual(person['district'],'Addison-1')
+  self.assertEqual(person['role'],'Representative')
 
 if __name__=='__main__':
  unittest.main()
