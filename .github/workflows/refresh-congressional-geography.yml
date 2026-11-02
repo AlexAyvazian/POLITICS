@@ -32,6 +32,8 @@ jobs:
           python-version: "3.12"
       - name: Validate snapshot generator
         run: python -m unittest discover -s tests -p test_boundary_snapshot.py -v
+      - name: Check public map static-cache contract
+        run: node --test tests/congressional-static-cache.test.mjs tests/congressional-atlas.test.mjs
       - name: Validate and refresh official geographic boundary files
         run: python scripts/update_congressional_boundaries.py --workers 3
       - name: Commit only changed static boundary files
@@ -45,4 +47,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Refresh cached congressional and state legislative geography"
-          git push
+          # Other commits may land during a lengthy national fetch.
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
