@@ -61,13 +61,58 @@
      <div class="recordsProfileActions"><a id="profileBio" target="_blank" rel="noopener noreferrer">Official biography ↗</a><span>119th Congress · 2025–2026</span></div>
     </div>
    </div>
+
+   <section class="recordsDashboard" id="memberDashboard" aria-labelledby="memberDashboardTitle">
+    <div class="recordsDashboardHeading">
+     <div><span class="recordsKicker">THE PUBLIC RECORD, WITHOUT THE SCAVENGER HUNT</span><h3 id="memberDashboardTitle">At a glance</h3><p>Real records from the available sources. Missing information stays marked as unavailable—not zero, and not a political rating.</p></div>
+     <span class="recordsDashboardSource">119th Congress · 2025–2026</span>
+    </div>
+    <nav class="recordsOverviewNav" id="profileOverviewNav" aria-label="Jump to representative evidence">
+     <a href="#financeLinks">Campaign finances</a>
+     <a href="#legislationLinks">Legislative activity</a>
+     <a href="#travelLinks">Travel disclosures</a>
+     <a href="#votesArchivePanel">Voting records</a>
+    </nav>
+    <div class="recordsDashboardMetrics">
+     <article class="recordsDashboardMetric"><span>Campaign receipts</span><strong id="statCampaign">Loading…</strong><small>FEC · 2025–2026 cycle, when matched</small></article>
+     <article class="recordsDashboardMetric"><span>Captured roll calls</span><strong id="statVotes">Loading…</strong><small>Published votes in our current record</small></article>
+     <article class="recordsDashboardMetric"><span>Measures on those votes</span><strong id="statMeasures">Loading…</strong><small>Distinct bill identifiers; not bills sponsored</small></article>
+     <article class="recordsDashboardMetric"><span>Travel disclosure filings</span><strong id="statTravel">Loading…</strong><small>Member or office-associated; see attribution</small></article>
+    </div>
+    <div class="recordsDecisionsHeader"><div><span class="recordsKicker">RECENT DOCUMENTED ACTIONS</span><h4>Recent recorded decisions</h4></div><p>Latest three captured roll calls, not a complete career or an ideological score.</p></div>
+    <div id="recentDecisions" class="recordsRecentDecisions" aria-live="polite"><p class="recordsStatus">Loading recorded decisions…</p></div>
+   </section>
    <div class="recordsPanels">
-    <section class="recordsPanel recordsVotesPanel" aria-label="Recorded floor votes">
+    <div class="recordsEvidence" aria-label="Congressional disclosure data">
+     <section class="recordsPanel recordsEvidencePanel" id="financeLinks">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">CAMPAIGN MONEY · FEDERAL ELECTION COMMISSION</span><h3>Where the campaign money comes from</h3></div></div>
+      <p class="recordsHelp">These are amounts raised and spent by campaign committees, not money paid personally to a lawmaker. Figures cover the 2025–2026 election cycle.</p>
+      <div id="financeVisualization" class="recordsFinanceViz" role="region" aria-label="Campaign contributions and spending data" aria-live="polite">Loading campaign financial records…</div>
+      <p id="financePrimarySource" class="recordsEvidenceNote" hidden></p>
+     </section>
+     <section class="recordsPanel recordsEvidencePanel" id="legislationLinks">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">LEGISLATIVE ACTIVITY</span><h3>Measures appearing on this member's voting record</h3></div></div>
+      <p class="recordsHelp">A measure may receive multiple procedural votes. The totals here count recorded votes, not laws enacted or bills sponsored.</p>
+      <div id="legislationVisualization" class="recordsMeasuresViz"></div>
+     </section>
+     <section class="recordsPanel recordsEvidencePanel" id="travelLinks">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">DISCLOSED EXPENSES</span><h3>Privately sponsored travel</h3></div></div>
+      <div id="travelVisualization" class="recordsTravelViz" role="region" aria-label="Privately funded travel amounts" aria-live="polite"></div>
+     </section>
+     <section class="recordsPanel recordsTransparency" aria-label="Data methodology">
+      <h3>Data and methodology</h3>
+      <p id="recordUpdated"></p>
+      <p>Voting positions: Voteview congressional roll calls. Campaign finances: FEC candidate filing totals. Travel: official congressional disclosures. The page never assigns a lawmaker a financial total or a trip without an identified record.</p>
+     </section>
+    </div>
+    <section class="recordsPanel recordsVotesPanel" id="votesArchivePanel" aria-label="Recorded floor votes">
      <div class="recordsSectionHead"><div><span class="recordsKicker">THE RECORD</span><h3>Recorded votes</h3></div><span class="recordsSectionMeta" id="votePeriod"></span></div>
      <p class="recordsHelp">Recorded roll calls only. Voice votes and uncollected records are not counted as missed votes. Yes/No refers to a procedural or legislative question—not whether someone supports a political party.</p>
      <div id="voteStatus" class="recordsStatus" role="status">Loading official roll calls…</div>
      <div class="recordsVoteSummary" id="voteSummary" hidden></div>
      <div class="recordsDistribution" id="voteDistribution" aria-label="Distribution of recorded votes, not party affiliations"></div>
+     <details class="recordsVoteArchive" id="voteArchive"><summary>Explore the individual roll-call record <span id="voteArchiveCount"></span></summary>
+     <div class="recordsVoteArchiveBody">
      <div class="recordsVoteTools">
        <div class="recordsVotePills" role="group" aria-label="Filter by recorded vote position">
         <button id="voteFilterAll" type="button" aria-pressed="true">All votes</button>
@@ -78,28 +123,9 @@
        <label class="recordsVoteFilter" for="votesQuery"><span>Find a bill or issue</span><input id="votesQuery" type="search" placeholder="Search bills, issues, dates…"></label>
      </div>
      <div id="memberVotes" class="recordsVoteList"></div>
+     </div>
+     </details>
     </section>
-    <div class="recordsEvidence" aria-label="Congressional disclosure data">
-     <section class="recordsPanel recordsEvidencePanel" id="financeLinks">
-      <div class="recordsSectionHead"><div><span class="recordsKicker">CAMPAIGN MONEY · FEDERAL ELECTION COMMISSION</span><h3>Where the campaign money comes from</h3></div></div>
-      <p class="recordsHelp">These are amounts raised and spent by campaign committees, not money paid personally to a lawmaker. Figures cover the 2025–2026 election cycle.</p>
-      <div id="financeVisualization" class="recordsFinanceViz" role="region" aria-label="Campaign contributions and spending data" aria-live="polite">Loading campaign financial records…</div>
-     </section>
-     <section class="recordsPanel recordsEvidencePanel" id="travelLinks">
-      <div class="recordsSectionHead"><div><span class="recordsKicker">DISCLOSED EXPENSES</span><h3>Privately sponsored travel</h3></div></div>
-      <div id="travelVisualization" class="recordsTravelViz" role="region" aria-label="Privately funded travel amounts" aria-live="polite"></div>
-     </section>
-     <section class="recordsPanel recordsEvidencePanel" id="legislationLinks">
-      <div class="recordsSectionHead"><div><span class="recordsKicker">LEGISLATIVE ACTIVITY</span><h3>Measures appearing on this member's voting record</h3></div></div>
-      <p class="recordsHelp">A measure may receive multiple procedural votes. The totals here count recorded votes, not laws enacted or bills sponsored.</p>
-      <div id="legislationVisualization" class="recordsMeasuresViz"></div>
-     </section>
-     <section class="recordsPanel recordsTransparency" aria-label="Data methodology">
-      <h3>Data and methodology</h3>
-      <p id="recordUpdated"></p>
-      <p>Voting positions: Voteview congressional roll calls. Campaign finances: FEC candidate filing totals. Travel: official congressional disclosures. The page never assigns a lawmaker a financial total or a trip without an identified record.</p>
-     </section>
-    </div>
    </div>
   </section>
   <section id="recordsStart" class="recordsEmpty" hidden><strong>Choose a representative to view their public record.</strong></section>
