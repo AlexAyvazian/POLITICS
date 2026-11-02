@@ -22,11 +22,15 @@ function renderStateDirectory(){
   const btn=document.createElement('button');
   btn.type='button';btn.className='recordsStateCard';
   btn.setAttribute('aria-label','Browse '+item.name+' congressional delegation');
+  const glyph=document.createElement('span');
+  glyph.className='recordsStateGlyph';glyph.setAttribute('aria-hidden','true');
+  const path=window.POLITICS_STATE_SILHOUETTES?.[item.abbr];
+  if(path)glyph.innerHTML='<svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" focusable="false"><path d="'+path+'"></path></svg>';
   const abbreviation=document.createElement('span');
   abbreviation.className='recordsStateAbbr';abbreviation.textContent=item.abbr;
   const name=document.createElement('strong');
   name.textContent=item.name;
-  btn.append(abbreviation,name);
+  btn.append(glyph,abbreviation,name);
   btn.addEventListener('click',()=>showState(item.abbr,true));
   stateGrid.append(btn);
  }
@@ -78,6 +82,8 @@ function renderDelegation(){
 function showState(code,shouldScroll=false){
  if(!stateByCode[code])return;
  state.selectedState=code;
+ $('districtLookupStatus').textContent='';$('districtLookupResult').replaceChildren();
+ $('addressInput').value='';
  $('stateDirectory').hidden=true;
  $('delegationDirectory').hidden=false;
  if(state.member?.state!==code){
@@ -89,6 +95,69 @@ function showState(code,shouldScroll=false){
  if(shouldScroll){
   try{history.replaceState(null,'','#state='+encodeURIComponent(code));}catch{}
   $('delegationDirectory').scrollIntoView?.({behavior:'smooth',block:'start'});
+ }
+}
+/* Census currently blocks cross-origin fetch; its documented public JSONP is
+ * used only after a voter submits an address. Never store user addresses. */
+function lookupCensusAddress(address,stateCode){
+ return new Promise((resolve,reject)=>{
+  const callback='politicsCensus'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+  let done=false;
+  const script=document.createElement('script');
+  const cleanup=()=>{try{delete window[callback]}catch{};script.remove?.();clearTimeout(timeout)};
+  const finish=(error,result)=>{
+   if(done)return;done=true;cleanup();error?reject(error):resolve(result);
+  };
+  const timeout=setTimeout(()=>finish(new Error('The Census lookup took too long. Please try again.')),16000);
+  window[callback]=payload=>finish(null,payload);
+  script.onerror=()=>finish(new Error('The Census lookup is temporarily unavailable. Please try again.'));
+  const fullAddress=address.trim()+', '+stateCode;
+  script.src='https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress'+
+   '?address='+encodeURIComponent(fullAddress)+
+   '&benchmark=Public_AR_Current&vintage=ACS2025_Current&format=jsonp&callback='+encodeURIComponent(callback);
+  document.head.append(script);
+ });
+}
+async function findMyRep(event){
+ event?.preventDefault?.();
+ const code=state.selectedState;
+ if(!code)return;
+ const address=$('addressInput').value.trim();
+ const status=$('districtLookupStatus'),result=$('districtLookupResult');
+ result.replaceChildren();
+ if(address.length<8){status.textContent='Enter a street address, city, and ZIP code.';return;}
+ const button=$('findMyRep');
+ button.disabled=true;button.textContent='Finding your district…';
+ status.textContent='Checking your address against 119th Congressional District boundaries…';
+ try{
+  const matched=await lookupCensusAddress(address,code);
+  if(state.selectedState!==code)return;
+  const district=window.POLITICS_ADDRESS_MODEL.district(matched,code);
+  if(district===null){
+   status.textContent='We could not confirm an exact district for that address. Include the street number, city and ZIP code.';
+   return;
+  }
+  const delegation=model.delegation(state.members,code);
+  const names=delegation.house.filter(member=>Number(member.district)===district);
+  const districtName=district===0?'at-large district':'District '+district;
+  status.textContent='Confirmed: '+stateByCode[code].name+' · '+districtName+' (119th Congress).';
+  if(names.length===1){
+   const member=names[0];
+   const action=document.createElement('button');action.type='button';
+   action.className='recordsFoundRepresentative';
+   action.textContent='View '+member.name+' · '+(member.party||'Party not reported')+' →';
+   action.addEventListener('click',()=>select(member.bioguide));
+   result.append(action);
+   select(member.bioguide);
+  }else{
+   const info=document.createElement('p');info.className='recordsStatus';
+   info.textContent='The district is confirmed, but the directory does not list a current representative for this seat.';
+   result.append(info);
+  }
+ }catch(e){if(state.selectedState===code)status.textContent=e.message||'The district lookup could not be completed.';}
+ finally{
+  button.disabled=false;button.textContent='Find my representative';
+  $('addressInput').value=''; // do not keep entered address after lookup
  }
 }
 function showAllStates(){
@@ -210,6 +279,7 @@ async function begin(){
  }
 }
 $('backToStates').addEventListener('click',showAllStates);
+$('districtLookupForm').addEventListener('submit',findMyRep);
 $('backToDelegation').addEventListener('click',()=>{
  state.member=null;state.votes=[];state.voteData=null;
  $('memberProfile').hidden=true;
