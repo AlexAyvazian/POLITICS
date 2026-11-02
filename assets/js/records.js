@@ -8,7 +8,7 @@ const $=id=>document.getElementById(id);
 const model=window.POLITICS_RECORDS_MODEL;
 const reader='https://politics-daily-snapshot.alxayvazian.workers.dev/api/congress-snapshot';
 const rosterStatus=$('directoryStatus'),stateGrid=$('stateGrid');
-const state={members:[],member:null,votes:[],voteData:null,rosterDate:null,selectedState:null};
+const state={members:[],member:null,votes:[],voteData:null,rosterDate:null,selectedState:null,activeVoteFilter:'all'};
 const states=model.states(window.GEO_STATES||[]);
 const stateByCode=Object.fromEntries(states.map(item=>[item.abbr,item]));
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -16,6 +16,17 @@ const cleanName=n=>String(n||'').replace(/[^\p{L}\p{N} .'-]/gu,' ').trim();
 const external=(url,label)=>'<a target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">'+esc(label)+' ↗</a>';
 const formatDate=d=>{if(!d)return 'Date not supplied';const dt=new Date(d);return Number.isNaN(dt.valueOf())?String(d):dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});};
 const chamberSource=member=>member.chamber==='House'?'U.S. House Clerk':'U.S. Senate';
+function recordsProfilePortrait(member,compact=false){
+ const wrapper=document.createElement('span');wrapper.className='recordsMemberPortrait';
+ const fallback=document.createElement('span');fallback.className='recordsMemberFallback';
+ fallback.textContent=cleanName(member.name).split(/\s+/).filter(Boolean).slice(-2).map(s=>s[0]).join('').toUpperCase();
+ const img=document.createElement('img');
+ img.alt='';img.loading=compact?'eager':'lazy';img.decoding='async';
+ img.src='https://unitedstates.github.io/images/congress/225x275/'+encodeURIComponent(member.bioguide)+'.jpg';
+ img.onerror=()=>{img.hidden=true;};
+ wrapper.append(fallback,img);
+ return wrapper;
+}
 function renderStateDirectory(){
  stateGrid.replaceChildren();
  for(const item of states){
@@ -46,10 +57,10 @@ function memberCard(m){
  district.textContent=m.chamber==='Senate'?'U.S. SENATE':
   m.state==='DC'?'AT-LARGE DELEGATE':
   Number(m.district)===0?'AT-LARGE DISTRICT':'DISTRICT '+m.district;
- const name=document.createElement('strong');name.textContent=m.name;
+ const name=document.createElement('strong');name.className='recordsMemberName';name.textContent=m.name;
  const party=document.createElement('span');party.className='recordsMemberParty';
  party.textContent=m.party||'Party not reported';
- btn.append(district,name,party);
+ btn.append(recordsProfilePortrait(m,m.chamber==='Senate'),district,name,party);
  btn.addEventListener('click',()=>select(m.bioguide));
  return btn;
 }
@@ -59,6 +70,8 @@ function renderDelegation(){
  if(!item)return;
  const delegation=model.delegation(state.members,abbr);
  $('delegationTitle').textContent=item.name;
+ const path=window.POLITICS_STATE_SILHOUETTES?.[abbr];
+ $('delegationSilhouette').innerHTML=path?'<svg viewBox="0 0 200 160" aria-hidden="true"><path d="'+path+'"></path></svg>':'';
  $('delegationIntro').textContent=delegation.house.length+' House member'+(delegation.house.length===1?'':'s')+
   (abbr==='DC'?' or delegate':'')+' · '+delegation.senate.length+' senator'+(delegation.senate.length===1?'':'s');
  $('senateCount').textContent=String(delegation.senate.length)+' listed';
@@ -176,8 +189,39 @@ function sourceUrl(v){
   return 'https://clerk.house.gov/Votes/'+v.year+v.roll;
  return 'https://www.senate.gov/legislative/LIS/roll_call_votes/vote1192/vote_119_2_'+String(v.roll).padStart(5,'0')+'.htm';
 }
+function voteGroup(cast){
+ if(['Yea','Aye','Paired Yea','Announced Yea'].includes(cast))return 'yes';
+ if(['Nay','No','Paired Nay','Announced Nay'].includes(cast))return 'no';
+ if(cast==='Not Voting')return 'absent';
+ return 'other';
+}
+function renderVoteDistribution(){
+ const counts=model.voteDistribution(state.votes);
+ const container=$('voteDistribution');
+ container.replaceChildren();
+ if(!counts.total)return;
+ const graphic=document.createElement('div');graphic.className='recordsDistributionBar';
+ graphic.setAttribute('role','img');
+ graphic.setAttribute('aria-label',counts.yes+' yes, '+counts.no+' no, '+counts.other+' present, '+counts.absent+' not voting out of '+counts.total+' recorded votes');
+ const legend=document.createElement('div');legend.className='recordsDistributionLegend';
+ for(const [key,label] of [['yes','Voted yes'],['no','Voted no'],['other','Present'],['absent','Not voting']]){
+  const count=counts[key];
+  if(count){
+   const seg=document.createElement('span');seg.className=key;
+   seg.style.width=(count*100/counts.total).toFixed(2)+'%';
+   graphic.append(seg);
+  }
+  const item=document.createElement('span');item.className=key;
+  const swatch=document.createElement('i');swatch.setAttribute('aria-hidden','true');
+  const name=document.createElement('span');name.textContent=label+' · '+count;
+  item.append(swatch,name);legend.append(item);
+ }
+ container.append(graphic,legend);
+}
 function renderVotes(){
- const filtered=model.filterVotes(state.votes,$('votesQuery').value);
+ let filtered=model.filterVotes(state.votes,$('votesQuery').value);
+ if(state.activeVoteFilter!=='all')
+  filtered=filtered.filter(v=>voteGroup(v.cast)===state.activeVoteFilter);
  const list=$('memberVotes');list.replaceChildren();
  for(const v of filtered.slice(0,160)){
   const card=document.createElement('div');card.className='recordsVoteRow';
@@ -238,24 +282,36 @@ async function loadVotes(m){
  }
  if(state.member?.bioguide!==marker)return;
  state.voteData=data;state.votes=model.memberVotes(data,m);
- const counts=model.countVotes(state.votes);
+ const counts=model.voteDistribution(state.votes);
  $('votePeriod').textContent=String(data.congress||119)+'th Congress · '+data.votes.length+' recorded member votes';
  $('voteStatus').textContent=state.votes.length+' recorded votes · Voteview (UCLA), data through '+formatDate(data.asOf)+'.';
- const sum=$('voteSummary');sum.hidden=false;sum.innerHTML=Object.entries(counts).map(([label,n])=>
-  '<div><strong>'+n+'</strong><span>'+esc(label)+'</span></div>').join('');
+ const sum=$('voteSummary');sum.hidden=false;
+ sum.innerHTML=[['yes','Voted yes'],['no','Voted no'],['other','Present'],['absent','Not voting']]
+  .map(([key,label])=>'<div><strong>'+counts[key]+'</strong><span>'+esc(label)+'</span></div>').join('');
+ renderVoteDistribution();
  renderVotes();
 }
 function select(id){
  const m=model.getMember(state.members,id);if(!m)return;
- state.member=m;state.votes=[];state.voteData=null;
- $('recordsStart').hidden=true;$('memberProfile').hidden=false;
+ if(state.selectedState!==m.state)showState(m.state);
+ state.member=m;state.votes=[];state.voteData=null;state.activeVoteFilter='all';
+ $('recordsStart').hidden=true;
+ $('delegationDirectory').hidden=true;
+ $('stateDirectory').hidden=true;
+ $('memberProfile').hidden=false;
  $('profileName').textContent=m.name;
  $('profileChamber').textContent=m.chamber==='House'?'U.S. House of Representatives':'U.S. Senate';
- $('profileInfo').textContent=(m.chamber==='House'?m.state+' · District '+(m.district===0?'At-large':m.district):m.state+' · U.S. Senate')+' · '+m.party;
+ $('profileInfo').textContent=(m.chamber==='House'?stateByCode[m.state]?.name+' · '+(Number(m.district)===0?'At-large district':'Congressional District '+m.district):stateByCode[m.state]?.name+' · U.S. Senate')+' · '+(m.party||'Party not reported');
  $('profileBio').href='https://bioguide.congress.gov/search/bio/'+m.bioguide;
+ const portrait=$('profilePortrait');portrait.replaceChildren();
+ const photo=recordsProfilePortrait(m,true);
+ photo.className='recordsMemberPortrait recordsProfilePortraitImage';
+ portrait.append(photo);
  $('recordUpdated').textContent='Member roster checked '+formatDate(state.rosterDate)+' · individual vote coverage indicated alongside each captured snapshot.';
- $('votesQuery').value='';displayFinance(m);renderDelegation();
- if(state.selectedState!==m.state)showState(m.state);
+ $('votesQuery').value='';$('voteDistribution').replaceChildren();
+ for(const [key,name] of [['all','voteFilterAll'],['yes','voteFilterYea'],['no','voteFilterNay'],['absent','voteFilterAbsent']])
+  $(name).setAttribute('aria-pressed',String(key==='all'));
+ displayFinance(m);
  try{history.replaceState(null,'','#state='+encodeURIComponent(m.state)+'&member='+encodeURIComponent(id));}catch{}
  $('memberProfile').scrollIntoView?.({behavior:'smooth',block:'start'});
  loadVotes(m);
@@ -284,6 +340,7 @@ $('districtLookupForm').addEventListener('submit',findMyRep);
 $('backToDelegation').addEventListener('click',()=>{
  state.member=null;state.votes=[];state.voteData=null;
  $('memberProfile').hidden=true;
+ $('delegationDirectory').hidden=false;
  $('recordsStart').hidden=false;
  renderDelegation();
  if(state.selectedState){
@@ -292,6 +349,14 @@ $('backToDelegation').addEventListener('click',()=>{
  $('delegationDirectory').scrollIntoView?.({behavior:'smooth',block:'start'});
 });
 renderStateDirectory();
+for(const [name,key] of [['voteFilterAll','all'],['voteFilterYea','yes'],['voteFilterNay','no'],['voteFilterAbsent','absent']]){
+ $(name).addEventListener('click',()=>{
+  state.activeVoteFilter=key;
+  for(const [id,mode] of [['voteFilterAll','all'],['voteFilterYea','yes'],['voteFilterNay','no'],['voteFilterAbsent','absent']])
+   $(id).setAttribute('aria-pressed',String(mode===key));
+  renderVotes();
+ });
+}
 $('votesQuery').addEventListener('input',()=>{if(state.member)renderVotes();});
 begin();
 })();
