@@ -14,6 +14,10 @@ on:
       - "tests/congressional*.test.mjs"
       - "tests/test_boundary_snapshot.py"
       - "scripts/audit_congressional_geometry.mjs"
+      - "scripts/audit_party_coverage.mjs"
+      - "assets/data/legislators/**"
+      - "assets/js/congressional-political.js"
+      - "assets/js/congressional-political-model.js"
       - "assets/data/congressional/**"
       - ".github/workflows/test-congressional-map.yml"
   workflow_dispatch:
@@ -36,6 +40,8 @@ jobs:
         run: node --test tests/congressional*.test.mjs
       - name: Audit all 153 state/layer boundary maps using actual D3
         run: node scripts/audit_congressional_geometry.mjs
+      - name: Verify political incumbent joins against all 50 states
+        run: node scripts/audit_party_coverage.mjs
       - name: Upload full state-by-state audit results
         if: always()
         uses: actions/upload-artifact@v4
