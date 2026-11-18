@@ -134,8 +134,9 @@ async function ingestOneFeed(db,token,feedRow,fetchImpl,now){
  }
  const doc=await fetchFec(fetchImpl,token,'schedules/'+feed+'/',params);
  const items=doc.results.map(x=>normalizeFecMoneyRow(feed,x)).filter(Boolean);
+ const statements=[],discovered=new Set();
  for(const record of items){
-  await db.prepare(`INSERT INTO political_money_transactions(
+  statements.push(db.prepare(`INSERT INTO political_money_transactions(
     record_id,source_feed,source_committee_id,recipient_committee_id,source_name,recipient_name,
     amount_cents,date,cycle,memo,memo_code,original_sub_id,amendment,transaction_id,source_url,
     description,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
@@ -146,9 +147,21 @@ async function ingestOneFeed(db,token,feedRow,fetchImpl,now){
    .bind(record.recordId,record.sourceFeed,record.sourceCommitteeId,record.recipientCommitteeId,
     record.sourceName,record.recipientName,record.amountCents,record.date,record.cycle,
     record.memo?1:0,record.memoCode,record.originalSubId,record.amendment,
-    record.transactionId,record.sourceUrl,record.description,now.toISOString()).run();
+    record.transactionId,record.sourceUrl,record.description,now.toISOString()));
   const other=inbound?record.sourceCommitteeId:record.recipientCommitteeId;
-  if(other!==id)await addCommittee(db,other,now);
+  if(other!==id)discovered.add(other);
+ }
+ for(const other of discovered){
+  for(const targetFeed of ['schedule_a','schedule_b']){
+   statements.push(db.prepare('INSERT OR IGNORE INTO political_money_ingest_cursor(committee_id,feed,updated_at) VALUES(?,?,?)')
+    .bind(other,targetFeed,now.toISOString()));
+  }
+ }
+ // D1 batch commits a page and its discovered PACs together; on error the
+ // previous cursor stays unchanged and the page is safe to retry.
+ if(statements.length){
+  if(typeof db.batch==='function')await db.batch(statements);
+  else for(const stmt of statements)await stmt.run();
  }
  const next=doc.pagination?.last_indexes||{};
  const cursorIndex=String(next.last_index||'');
