@@ -166,16 +166,24 @@ async function ingestOneFeed(db,token,feedRow,fetchImpl,now){
  const next=doc.pagination?.last_indexes||{};
  const cursorIndex=String(next.last_index||'');
  const cursorDate=String(next[dateKey]||'');
- const hasNext=Boolean(doc.pagination?.pages&&doc.pagination.page<doc.pagination.pages)&&
-  /^[0-9]{1,30}$/.test(cursorIndex)&&validDate(cursorDate);
+ const hasMore=Number(doc.pagination?.pages)>Number(doc.pagination?.page);
+ const hasNext=hasMore&&/^[0-9]{1,30}$/.test(cursorIndex)&&validDate(cursorDate);
+ // complete=2 means the provider says more data exists but did not supply
+ // a valid cursor; this is explicitly NOT a fully collected feed.
+ const completion=hasNext?0:hasMore?2:1;
  await db.prepare('UPDATE political_money_ingest_cursor SET cursor_index=?,cursor_date=?,complete=?,updated_at=? WHERE committee_id=? AND feed=?')
-  .bind(hasNext?cursorIndex:null,hasNext?cursorDate:null,hasNext?0:1,now.toISOString(),id,feed).run();
+  .bind(hasNext?cursorIndex:null,hasNext?cursorDate:null,completion,now.toISOString(),id,feed).run();
  return {written:items.length,raw:doc.results.length,hasNext};
 }
 export async function refreshFecMoneyNetwork(env,fetchImpl=fetch,now=new Date()){
  const db=env?.COUNTY_DB,token=typeof env?.FEC_API_KEY==='string'&&env.FEC_API_KEY.trim()?env.FEC_API_KEY.trim():null;
  if(!db||!token)return {status:'not_configured'};
  await ensureMoneyGraphSchema(db);
+ // Periodically revisit finished feeds to pick up newly filed transactions.
+ // Original rows remain deduplicated by their FEC record IDs.
+ const cutoff=new Date(now.getTime()-7*86400000).toISOString();
+ await db.prepare('UPDATE political_money_ingest_cursor SET complete=0,cursor_index=NULL,cursor_date=NULL,updated_at=? WHERE complete IN (1,2) AND updated_at<?')
+  .bind(now.toISOString(),cutoff).run();
  const rosterRow=await db.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?').bind('congress_members_current').first();
  if(!rosterRow)return {status:'roster_pending'};
  const roster=JSON.parse(rosterRow.snapshot_json);
@@ -186,6 +194,18 @@ export async function refreshFecMoneyNetwork(env,fetchImpl=fetch,now=new Date())
   try{results.push(await ingestOneFeed(db,token,item,fetchImpl,now));}
   catch(error){results.push({error:String(error?.message||error).slice(0,120),written:0});}
  }
- return {status:'processed',discovered,feeds:results.length,rows:results.reduce((s,x)=>s+x.written,0),
+ const summary={source:'Federal Election Commission',asOf:now.toISOString(),
+  collection:'Automatic national FEC committee/PAC graph; raw receipts and disbursements are not additive',
+  discovered,feeds:results.length,rows:results.reduce((s,x)=>s+x.written,0),
   failures:results.filter(x=>x.error).map(x=>x.error)};
+ const counts=await Promise.all([
+  db.prepare("SELECT COUNT(*) AS n FROM political_money_member_map WHERE status='matched'").first(),
+  db.prepare('SELECT COUNT(*) AS n FROM political_money_ingest_cursor').first(),
+  db.prepare('SELECT COUNT(*) AS n FROM political_money_transactions').first()]);
+ summary.verifiedMembers=counts[0]?.n??null;
+ summary.queuedFeeds=counts[1]?.n??null;
+ summary.uniqueFecRecords=counts[2]?.n??null;
+ await db.prepare('INSERT INTO county_snapshots(source,snapshot_json,refreshed_at,record_count) VALUES(?,?,?,?) ON CONFLICT(source) DO UPDATE SET snapshot_json=excluded.snapshot_json,refreshed_at=excluded.refreshed_at,record_count=excluded.record_count')
+  .bind('political_money_collection_health',JSON.stringify(summary),now.toISOString(),summary.uniqueFecRecords||0).run();
+ return {status:'processed',...summary};
 }
