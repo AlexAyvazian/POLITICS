@@ -511,7 +511,7 @@ async function loadMoneyNetwork(m,committeeId=null,trail=[]){
     /^https:\/\/(?:docquery\.fec\.gov|www\.fec\.gov)\//.test(row.sourceUrl)){
     const source=document.createElement('a');
     source.href=row.sourceUrl;source.target='_blank';source.rel='noopener noreferrer';
-    source.textContent='Original FEC record ↗';entry.append(source);
+    source.textContent=row.sourceUrl.startsWith('https://docquery.fec.gov/')?'Original FEC filing ↗':'FEC committee records ↗';entry.append(source);
    }
    section.append(entry);
   }
