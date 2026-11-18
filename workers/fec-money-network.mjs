@@ -47,6 +47,16 @@ export function selectBatchMembers(roster,processed,limit=4){
  return [...new Set(members.map(x=>x.bioguide).filter(x=>MEMBER.test(String(x||''))))]
   .sort().filter(id=>!processed.has(id)).slice(0,Math.max(0,Math.min(12,limit)));
 }
+export function normalizeFecCommittee(info){
+ if(!COMMITTEE.test(String(info?.committee_id||'')))return null;
+ return {id:info.committee_id,name:limited(info.name,180),
+  designation:limited(info.designation,4),committeeType:limited(info.committee_type,4),
+  organizationType:limited(info.organization_type,4),
+  connectedOrganization:limited(info.connected_organization_name,180)||null,
+  relationshipType:'FEC connected organization',
+  sourceUrl:'https://www.fec.gov/data/committee/'+info.committee_id+'/?cycle='+CYCLE};
+}
+
 export function graphEvidence(committeeId,records){
  const safe=(Array.isArray(records)?records:[]).filter(x=>
   x&&(x.sourceCommitteeId===committeeId||x.recipientCommitteeId===committeeId));
@@ -63,6 +73,10 @@ const DDL=[
  committee_id TEXT NOT NULL, feed TEXT NOT NULL,cursor_index TEXT,cursor_date TEXT,
  complete INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL,
  PRIMARY KEY(committee_id,feed))`,
+ `CREATE TABLE IF NOT EXISTS political_money_committee_metadata(
+ committee_id TEXT PRIMARY KEY,committee_name TEXT,designation TEXT,committee_type TEXT,
+ organization_type TEXT,connected_organization TEXT,relationship_type TEXT,
+ source_url TEXT NOT NULL,updated_at TEXT NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS political_money_transactions(
  record_id TEXT PRIMARY KEY,source_feed TEXT NOT NULL,source_committee_id TEXT NOT NULL,
  recipient_committee_id TEXT NOT NULL,source_name TEXT,recipient_name TEXT,
@@ -175,6 +189,31 @@ async function ingestOneFeed(db,token,feedRow,fetchImpl,now){
   .bind(hasNext?cursorIndex:null,hasNext?cursorDate:null,completion,now.toISOString(),id,feed).run();
  return {written:items.length,raw:doc.results.length,hasNext};
 }
+async function enrichCommitteeMetadata(db,token,fetchImpl,now){
+ const outstanding=await db.prepare(`SELECT DISTINCT q.committee_id FROM political_money_ingest_cursor q
+ LEFT JOIN political_money_committee_metadata m ON m.committee_id=q.committee_id
+ WHERE m.committee_id IS NULL ORDER BY q.committee_id LIMIT 2`).all();
+ let stored=0;
+ for(const row of outstanding?.results||[]){
+  try{
+   const data=await fetchFec(fetchImpl,token,'committee/'+row.committee_id+'/',{});
+   const match=data.results.map(normalizeFecCommittee).find(x=>x?.id===row.committee_id);
+   if(!match)continue;
+   await db.prepare(`INSERT INTO political_money_committee_metadata
+    (committee_id,committee_name,designation,committee_type,organization_type,connected_organization,relationship_type,source_url,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(committee_id) DO UPDATE SET committee_name=excluded.committee_name,
+    designation=excluded.designation,committee_type=excluded.committee_type,
+    organization_type=excluded.organization_type,connected_organization=excluded.connected_organization,
+    relationship_type=excluded.relationship_type,updated_at=excluded.updated_at`)
+    .bind(match.id,match.name,match.designation,match.committeeType,match.organizationType,
+     match.connectedOrganization,match.relationshipType,match.sourceUrl,now.toISOString()).run();
+   stored++;
+  }catch(_){/* transient provider error; preserve candidate for next batch */}
+ }
+ return stored;
+}
+
 export async function refreshFecMoneyNetwork(env,fetchImpl=fetch,now=new Date()){
  const db=env?.COUNTY_DB,token=typeof env?.FEC_API_KEY==='string'&&env.FEC_API_KEY.trim()?env.FEC_API_KEY.trim():null;
  if(!db||!token)return {status:'not_configured'};
@@ -194,9 +233,10 @@ export async function refreshFecMoneyNetwork(env,fetchImpl=fetch,now=new Date())
   try{results.push(await ingestOneFeed(db,token,item,fetchImpl,now));}
   catch(error){results.push({error:String(error?.message||error).slice(0,120),written:0});}
  }
+ const enrichedCommittees=await enrichCommitteeMetadata(db,token,fetchImpl,now);
  const summary={source:'Federal Election Commission',asOf:now.toISOString(),
   collection:'Automatic national FEC committee/PAC graph; raw receipts and disbursements are not additive',
-  discovered,feeds:results.length,rows:results.reduce((s,x)=>s+x.written,0),
+  discovered,enrichedCommittees,feeds:results.length,rows:results.reduce((s,x)=>s+x.written,0),
   failures:results.filter(x=>x.error).map(x=>x.error)};
  const counts=await Promise.all([
   db.prepare("SELECT COUNT(*) AS n FROM political_money_member_map WHERE status='matched'").first(),
