@@ -51,14 +51,21 @@ export async function serve(request,env){
     id=match?.status==='matched'?match.principal_committee_id:null;
    }
    if(!id)return json({status:'pending',bioguide,reason:'verified_committee_mapping_pending',records:[]},200,request,60);
-   const rows=await env.COUNTY_DB.prepare(`SELECT record_id AS recordId,source_feed AS sourceFeed,
-      source_committee_id AS sourceCommitteeId,recipient_committee_id AS recipientCommitteeId,
-      source_name AS sourceName,recipient_name AS recipientName,amount_cents AS amountCents,
-      date,cycle,memo,memo_code AS memoCode,original_sub_id AS originalSubId,
-      amendment,transaction_id AS transactionId,source_url AS sourceUrl,description
-      FROM political_money_transactions
-      WHERE (source_committee_id=? OR recipient_committee_id=?) AND cycle=2026
-      ORDER BY date DESC,record_id DESC LIMIT 100`).bind(id,id).all();
+   const rows=await env.COUNTY_DB.prepare(`SELECT t.record_id AS recordId,t.source_feed AS sourceFeed,
+      t.source_committee_id AS sourceCommitteeId,t.recipient_committee_id AS recipientCommitteeId,
+      COALESCE(NULLIF(t.source_name,''),s.committee_name) AS sourceName,
+      COALESCE(NULLIF(t.recipient_name,''),r.committee_name) AS recipientName,
+      s.connected_organization AS sourceConnectedOrganization,
+      r.connected_organization AS recipientConnectedOrganization,
+      s.designation AS sourceDesignation,r.designation AS recipientDesignation,
+      t.amount_cents AS amountCents,t.date,t.cycle,t.memo,t.memo_code AS memoCode,
+      t.original_sub_id AS originalSubId,t.amendment,t.transaction_id AS transactionId,
+      t.source_url AS sourceUrl,t.description
+      FROM political_money_transactions t
+      LEFT JOIN political_money_committee_metadata s ON s.committee_id=t.source_committee_id
+      LEFT JOIN political_money_committee_metadata r ON r.committee_id=t.recipient_committee_id
+      WHERE (t.source_committee_id=? OR t.recipient_committee_id=?) AND t.cycle=2026
+      ORDER BY t.date DESC,t.record_id DESC LIMIT 100`).bind(id,id).all();
    const feeds=await env.COUNTY_DB.prepare('SELECT feed,complete,updated_at FROM political_money_ingest_cursor WHERE committee_id=?')
     .bind(id).all();
    return json({status:'partial',source:'Federal Election Commission itemized committee filings',cycle:2026,
