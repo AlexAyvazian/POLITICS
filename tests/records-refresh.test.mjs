@@ -11,7 +11,9 @@ test('dedicated political-records collector uses a separate 15-minute cron and e
 });
 test('separate Worker dispatches one source family per quarter hour',()=>{
  const s=read('workers/records-refresh.mjs');
- assert.match(s,/quarter%3/);
+ assert.match(s,/quarter%4/);
+ assert.match(s,/refreshFecMoneyNetwork/);
+ assert.match(s,/fec-money-network\.mjs/);
  assert.match(s,/refreshMemberLegislationBatch/);
  assert.match(s,/refreshMemberExtraBatch/);
  assert.match(s,/scheduled:recordsRefreshScheduled/);

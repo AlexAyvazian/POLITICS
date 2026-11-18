@@ -431,6 +431,103 @@ function evidenceBars(title,items,labelField){
  }
  return section;
 }
+
+/* One shared FEC committee graph, discovered by the backend for every member.
+ * Distinct Schedule A and Schedule B filing entries are never added together
+ * as a claim about original funding or a recipient's loyalty. */
+let moneyNetworkRequest=0;
+async function loadMoneyNetwork(m,committeeId=null,trail=[]){
+ const root=$('moneyNetworkVisualization');if(!root)return;
+ const requestId=++moneyNetworkRequest;
+ root.textContent='Checking recorded committee transactions…';
+ let data=null;
+ try{
+  const param=committeeId?'committee_id='+encodeURIComponent(committeeId):
+   'bioguide='+encodeURIComponent(m.bioguide);
+  const response=await fetch(readerBase+'/api/political-money-network?'+param,
+   {headers:{Accept:'application/json'},credentials:'omit'});
+  if(response.ok)data=await response.json();
+ }catch(_){}
+ if(state.member?.bioguide!==m.bioguide||moneyNetworkRequest!==requestId)return;
+ root.replaceChildren();
+ if(!data||data.status!=='partial'||!/^C[0-9]{8}$/.test(String(data.committeeId||''))){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='This committee’s transaction links have not been collected in the shared network yet. That does not mean no contributions or transfers occurred. The campaign totals below are maintained separately.';
+  root.append(p);return;
+ }
+ const header=document.createElement('div');header.className='recordsNetworkTop';
+ const heading=document.createElement('strong');heading.textContent=committeeId?'Committee '+data.committeeId:m.name+' · linked campaign committee';
+ const id=document.createElement('span');id.textContent='FEC '+data.committeeId+' · 2025–2026';
+ header.append(heading,id);
+ root.append(header);
+ if(committeeId){
+  const back=document.createElement('button');back.type='button';back.className='recordsNetworkBack';
+  back.textContent=trail.length?'← Previous committee':'← Back to representative';
+  back.addEventListener('click',()=>{
+   const prev=trail[trail.length-1];
+   loadMoneyNetwork(m,prev||null,trail.slice(0,-1));
+  });
+  root.append(back);
+ }
+ const documents=Array.isArray(data.records)?data.records.filter(x=>
+  (x.sourceFeed==='schedule_a'||x.sourceFeed==='schedule_b')&&
+  /^C[0-9]{8}$/.test(x.sourceCommitteeId)&&/^C[0-9]{8}$/.test(x.recipientCommitteeId)): [];
+ const incoming=documents.filter(x=>x.recipientCommitteeId===data.committeeId);
+ const outgoing=documents.filter(x=>x.sourceCommitteeId===data.committeeId);
+ const grid=document.createElement('div');grid.className='recordsNetworkGrid';
+ function column(title,rows,direction){
+  const section=document.createElement('section');section.className='recordsNetworkColumn';
+  const h=document.createElement('h4');h.textContent=title;section.append(h);
+  if(!rows.length){
+   const message=document.createElement('p');message.className='recordsEvidenceNote';
+   message.textContent='No validated committee-to-committee filing rows in the collected sample yet.';
+   section.append(message);
+  }
+  for(const row of rows.slice(0,14)){
+   const from=direction==='in',nextId=from?row.sourceCommitteeId:row.recipientCommitteeId;
+   const name=from?row.sourceName:row.recipientName;
+   const entry=document.createElement('article');entry.className='recordsNetworkEdge';
+   const button=document.createElement('button');button.type='button';
+   button.className='recordsNetworkNode';
+   button.textContent=name||nextId;
+   button.setAttribute('aria-label','Explore other transactions involving '+(name||nextId));
+   button.addEventListener('click',()=>loadMoneyNetwork(m,nextId,[...trail,committeeId||null]));
+   const amount=document.createElement('strong');
+   amount.textContent=typeof row.amountCents==='number'&&Number.isFinite(row.amountCents)?
+    moneyLabel(row.amountCents/100):'Amount unavailable';
+   const context=document.createElement('span');context.className='recordsNetworkContext';
+   context.textContent=(row.sourceFeed==='schedule_a'?'Reported receipt':'Reported disbursement')+
+    (row.date?' · '+formatDate(row.date):'')+
+    (row.memo?' · Memo entry':'')+
+    (row.amendment?' · Filing '+row.amendment:'');
+   entry.append(button,amount,context);
+   const connected=from?row.sourceConnectedOrganization:row.recipientConnectedOrganization;
+   if(typeof connected==='string'&&connected.trim()){
+    const affiliate=document.createElement('span');affiliate.className='recordsNetworkAffiliation';
+    affiliate.textContent='FEC-reported connected organization: '+connected;
+    entry.append(affiliate);
+   }
+   if(typeof row.sourceUrl==='string'&&
+    /^https:\/\/(?:docquery\.fec\.gov|www\.fec\.gov)\//.test(row.sourceUrl)){
+    const source=document.createElement('a');
+    source.href=row.sourceUrl;source.target='_blank';source.rel='noopener noreferrer';
+    source.textContent=row.sourceUrl.startsWith('https://docquery.fec.gov/')?'Original FEC filing ↗':'FEC committee records ↗';entry.append(source);
+   }
+   section.append(entry);
+  }
+  return section;
+ }
+ grid.append(column('Reported money into this committee',incoming,'in'));
+ grid.append(column('Reported money sent to other committees',outgoing,'out'));
+ root.append(grid);
+ const note=document.createElement('p');note.className='recordsEvidenceNote recordsNetworkDisclaimer';
+ note.textContent=data.methodology||'Receipts and disbursements can describe the same money movement. Do not add them together, or assume a downstream committee payment came from a particular upstream donor.';
+ root.append(note);
+ const collection=document.createElement('p');collection.className='recordsEvidenceNote';
+ collection.textContent=documents.length+' documented rows currently available for this committee. This is an automatically collected partial record, not a complete funding history.';
+ root.append(collection);
+}
+
 async function loadFinanceDetail(m){
  const root=$('financeDetailViz');if(!root)return;
  root.textContent='Checking detailed FEC breakdowns…';
@@ -733,7 +830,7 @@ function select(id){
  $('travelVisualization').replaceChildren();$('legislationVisualization').replaceChildren();
  for(const [key,name] of [['all','voteFilterAll'],['yes','voteFilterYea'],['no','voteFilterNay'],['absent','voteFilterAbsent']])
   $(name).setAttribute('aria-pressed',String(key==='all'));
- loadTravel(m);loadFinance(m);loadSponsored(m);loadFinanceDetail(m);loadLobby(m);
+ loadTravel(m);loadFinance(m);loadSponsored(m);loadFinanceDetail(m);loadLobby(m);loadMoneyNetwork(m);
  try{history.replaceState(null,'','#state='+encodeURIComponent(m.state)+'&member='+encodeURIComponent(id));}catch{}
  $('memberProfile').scrollIntoView?.({behavior:'smooth',block:'start'});
  loadVotes(m);

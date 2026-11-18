@@ -94,3 +94,27 @@ test('member finance and lobbying reads use precise validated D1 keys and return
  const bad=await serve(req('/api/member-lobby-network?bioguide=INVALID_ID'),env);
  assert.equal(bad.status,400);
 });
+
+test('one shared money graph reads transactions for any member, with distinct evidence feeds',async()=>{
+ const calls=[];
+ const env={COUNTY_DB:{prepare(sql){
+  calls.push(sql);
+  return {bind:(...args)=>({
+   first:async()=>({bioguide:'H000001',candidate_id:'H1CA00001',principal_committee_id:'C00000002',status:'matched'}),
+   all:async()=>sql.includes('FROM political_money_transactions')?{results:[
+    {recordId:'schedule_a:111',sourceFeed:'schedule_a',sourceCommitteeId:'C00000001',recipientCommitteeId:'C00000002',amountCents:1000000},
+    {recordId:'schedule_b:222',sourceFeed:'schedule_b',sourceCommitteeId:'C00000001',recipientCommitteeId:'C00000002',amountCents:1000000}
+   ]}:{results:[{feed:'schedule_a',complete:0}]}
+  })};
+ }}};
+ const result=await serve(req('/api/political-money-network?bioguide=H000001'),env);
+ assert.equal(result.status,200);
+ const body=await result.json();
+ assert.equal(body.committeeId,'C00000002');
+ assert.equal(body.records.length,2);
+ assert.equal(body.completeForCycle,false);
+ assert.match(body.methodology,/not additive|not additive|separate/i);
+ assert.ok(calls.some(x=>x.includes('FROM political_money_transactions')));
+ const bad=await serve(req('/api/political-money-network?committee_id=INVALID'),env);
+ assert.equal(bad.status,400);
+});
