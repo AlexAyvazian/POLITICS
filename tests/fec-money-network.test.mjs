@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeFecMoneyRow,graphEvidence,selectBatchMembers} from '../workers/fec-money-network.mjs';
+import {normalizeFecMoneyRow,graphEvidence,selectBatchMembers,normalizeFecCommittee} from '../workers/fec-money-network.mjs';
 
 test('Schedule A receipts link only identified committees, not employer name guesses',()=>{
  const row={sub_id:'100001',committee_id:'C00000002',committee_name:'Recipient Campaign',
@@ -44,4 +44,14 @@ test('every roster member is eligible for automatic ingestion without a named po
  const roster={states:{CA:{house:[{bioguide:'A000001'},{bioguide:'B000001'}],senators:[{bioguide:'C000001'}]},NY:{house:[{bioguide:'D000001'}],senators:[]}}};
  const selected=selectBatchMembers(roster,new Set(['A000001','C000001']),2);
  assert.deepEqual(selected,['B000001','D000001']);
+});
+
+test('FEC-reported connected organization is an affiliation, never presumed donor',()=>{
+ const out=normalizeFecCommittee({committee_id:'C00000001',name:'Example Employees PAC',designation:'B',
+  committee_type:'Q',organization_type:'C',connected_organization_name:'Example Industries Inc.'});
+ assert.equal(out.id,'C00000001');
+ assert.equal(out.connectedOrganization,'Example Industries Inc.');
+ assert.equal(out.designation,'B');
+ assert.equal(out.relationshipType,'FEC connected organization');
+ assert.equal(normalizeFecCommittee({committee_id:'INVALID',name:'Example'}),null);
 });
