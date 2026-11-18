@@ -501,6 +501,12 @@ async function loadMoneyNetwork(m,committeeId=null,trail=[]){
     (row.memo?' · Memo entry':'')+
     (row.amendment?' · Filing '+row.amendment:'');
    entry.append(button,amount,context);
+   const connected=from?row.sourceConnectedOrganization:row.recipientConnectedOrganization;
+   if(typeof connected==='string'&&connected.trim()){
+    const affiliate=document.createElement('span');affiliate.className='recordsNetworkAffiliation';
+    affiliate.textContent='FEC-reported connected organization: '+connected;
+    entry.append(affiliate);
+   }
    if(typeof row.sourceUrl==='string'&&
     /^https:\/\/(?:docquery\.fec\.gov|www\.fec\.gov)\//.test(row.sourceUrl)){
     const source=document.createElement('a');
