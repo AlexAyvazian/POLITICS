@@ -423,3 +423,22 @@ body[data-view="records"] .recordsProfile{
 .recordsLobbyRow strong{font-size:13px;color:#e4f5ff}
 .recordsLobbyRow span{color:#a0c3cf;font-size:11px}
 @media(max-width:760px){.recordsInsightGrid{grid-template-columns:1fr}.recordsInsightLine{grid-template-columns:minmax(70px,1fr) minmax(50px,1fr) 80px;gap:8px}.recordsInsightLine>strong{font-size:11px}.recordsLobbyRow{display:block}.recordsLobbyRow span{display:block;margin-top:5px}}
+
+/* Source-linked committee-to-committee transaction network for all lawmakers. */
+#moneyNetwork{grid-column:1/-1;scroll-margin-top:90px}
+.recordsMoneyNetwork{margin-top:21px}
+.recordsNetworkTop{display:flex;align-items:baseline;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:18px}
+.recordsNetworkTop strong{font-size:clamp(18px,2.4vw,26px);letter-spacing:-.04em;color:#e9f7fa}
+.recordsNetworkTop span{font-size:11px;color:#95bfcc}
+.recordsNetworkBack{cursor:pointer;padding:9px 15px;border-radius:999px;background:rgba(44,102,118,.24);border:1px solid rgba(113,179,201,.4);color:#d2f3f4;margin-bottom:19px}
+.recordsNetworkGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;position:relative}
+.recordsNetworkColumn{min-width:0;padding:18px clamp(12px,2vw,26px);border:1px solid rgba(137,185,209,.19);background:rgba(9,26,46,.6);border-radius:16px}
+.recordsNetworkColumn h4{font-size:15px;color:#e5f3f7;letter-spacing:-.02em;margin:0 0 17px}
+.recordsNetworkEdge{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;align-items:center;padding:11px 0;border-top:1px solid rgba(161,202,218,.15)}
+.recordsNetworkNode{cursor:pointer;text-align:left;min-width:0;background:none;border:0;color:#abdfdf;font-size:13px;line-height:1.35;font-weight:700;padding:4px 0;overflow-wrap:anywhere}
+.recordsNetworkNode:hover,.recordsNetworkNode:focus-visible{text-decoration:underline;text-underline-offset:3px;color:#fff}
+.recordsNetworkEdge>strong{font-size:13px;color:#ecf6fa;font-variant-numeric:tabular-nums}
+.recordsNetworkContext{color:#a7c6d4;font-size:10px;line-height:1.4;grid-column:1/-1}
+.recordsNetworkEdge>a{font-size:10px;color:#9fdadd;grid-column:1/-1}
+.recordsNetworkDisclaimer{margin-top:18px;max-width:860px}
+@media(max-width:760px){.recordsNetworkGrid{grid-template-columns:1fr;gap:12px}.recordsNetworkColumn{padding:16px}.recordsNetworkEdge{grid-template-columns:minmax(0,1fr) auto}}
