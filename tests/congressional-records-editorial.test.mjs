@@ -92,3 +92,14 @@ test('profile has data-first FEC and lobbying evidence, with no unverified relat
  assert.ok(html.indexOf('id="financeLinks"')<html.indexOf('id="votesArchivePanel"'));
  assert.ok(html.indexOf('id="lobbyLinks"')<html.indexOf('id="votesArchivePanel"'));
 });
+
+test('every member receives a common source-linked committee-network panel',()=>{
+ const html=read('records.html'),js=read('assets/js/records.js');
+ assert.match(html,/id="moneyNetwork"/);
+ assert.match(html,/id="moneyNetworkVisualization"/);
+ assert.ok(html.indexOf('id="moneyNetwork"')<html.indexOf('id="financeLinks"'));
+ assert.match(js,/async function loadMoneyNetwork\(m,committeeId=null,trail=\[\]\)/);
+ assert.match(js,/\/api\/political-money-network/);
+ assert.match(js,/loadMoneyNetwork\(m\);/);
+ assert.doesNotMatch(js,/JEFF PAC|Jeffries for Congress/);
+});
