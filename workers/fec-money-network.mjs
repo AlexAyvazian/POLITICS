@@ -91,28 +91,37 @@ async function fetchFec(fetchImpl,token,path,fields){
  return data;
 }
 async function discoverMemberCommittees(db,roster,token,fetchImpl,now){
- const rows=await db.prepare('SELECT bioguide FROM political_money_member_map').all();
- const existing=new Set((rows?.results||[]).map(x=>x.bioguide));
- const selected=selectBatchMembers(roster,existing,4);
- const found=[];
+ const rows=await db.prepare('SELECT bioguide,status,verified_at FROM political_money_member_map').all();
+ const recent=new Set((rows?.results||[]).filter(x=>{
+  const elapsed=now.getTime()-Date.parse(x.verified_at||'');
+  if(x.status==='matched')return true;
+  if(!Number.isFinite(elapsed))return false;
+  return elapsed<(x.status==='retry'?3600000:86400000);
+ }).map(x=>x.bioguide));
+ const selected=selectBatchMembers(roster,recent,4);
+ let matched=0;
  for(const bioguide of selected){
+  let candidateId=null,principalId=null,status='retry';
   try{
    const base='https://politics-e5yt.onrender.com/assets/data/records/finance/';
    const response=await fetchImpl(base+bioguide+'.json',{headers:{Accept:'application/json'}});
-   if(!response.ok)continue;
-   const doc=await response.json();
-   if(doc?.bioguide!==bioguide||doc?.cycle!==CYCLE||!CANDIDATE.test(String(doc?.candidateId||'')))continue;
-   const candidateId=doc.candidateId;
-   const data=await fetchFec(fetchImpl,token,'candidate/'+candidateId+'/committees/',
-    {cycle:CYCLE,designation:'P',per_page:20});
-   const matched=[...new Set(data.results.filter(x=>x?.designation==='P'&&COMMITTEE.test(String(x.committee_id||''))).map(x=>x.committee_id))];
-   const valid=matched.length===1?matched[0]:null;
-   await db.prepare('INSERT INTO political_money_member_map(bioguide,candidate_id,principal_committee_id,status,verified_at) VALUES(?,?,?,?,?) ON CONFLICT(bioguide) DO UPDATE SET candidate_id=excluded.candidate_id,principal_committee_id=excluded.principal_committee_id,status=excluded.status,verified_at=excluded.verified_at')
-    .bind(bioguide,candidateId,valid,valid?'matched':'ambiguous',now.toISOString()).run();
-   if(valid){await addCommittee(db,valid,now);found.push(valid);}
-  }catch(_){/* Retry this unprocessed member on a later schedule. */}
+   if(response.ok){
+    const doc=await response.json();
+    if(doc?.bioguide===bioguide&&doc?.cycle===CYCLE&&CANDIDATE.test(String(doc?.candidateId||''))){
+     candidateId=doc.candidateId;
+     const data=await fetchFec(fetchImpl,token,'candidate/'+candidateId+'/committees/',
+      {cycle:CYCLE,designation:'P',per_page:20});
+     const committees=[...new Set(data.results.filter(x=>x?.designation==='P'&&COMMITTEE.test(String(x.committee_id||''))).map(x=>x.committee_id))];
+     principalId=committees.length===1?committees[0]:null;
+     status=principalId?'matched':'ambiguous';
+    }else status='missing_match';
+   }else if(response.status===404)status='missing_match';
+  }catch(_){status='retry';}
+  await db.prepare('INSERT INTO political_money_member_map(bioguide,candidate_id,principal_committee_id,status,verified_at) VALUES(?,?,?,?,?) ON CONFLICT(bioguide) DO UPDATE SET candidate_id=excluded.candidate_id,principal_committee_id=excluded.principal_committee_id,status=excluded.status,verified_at=excluded.verified_at')
+   .bind(bioguide,candidateId,principalId,status,now.toISOString()).run();
+  if(principalId){await addCommittee(db,principalId,now);matched++;}
  }
- return {attempted:selected.length,matched:found.length};
+ return {attempted:selected.length,matched};
 }
 async function ingestOneFeed(db,token,feedRow,fetchImpl,now){
  const id=feedRow.committee_id,feed=feedRow.feed;
