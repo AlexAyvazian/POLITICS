@@ -8,11 +8,11 @@ export function recordsRefreshScheduled(event,env,ctx){
  const quarter=now.getUTCHours()*4+Math.floor(now.getUTCMinutes()/15);
  const group=quarter%4;
  const slot=12+(Math.floor(quarter/4)%36);
- const job=group===0?refreshMemberLegislationBatch(env,slot,fetch,now):
-  group===3?refreshFecMoneyNetwork(env,fetch,now):
-  refreshMemberExtraBatch(env,group===1?'finance':'lobby',slot,fetch,now);
+ const job=group===0?refreshFecMoneyNetwork(env,fetch,now):
+  group===1?refreshMemberLegislationBatch(env,slot,fetch,now):
+  refreshMemberExtraBatch(env,group===2?'finance':'lobby',slot,fetch,now);
  ctx.waitUntil(job.catch(e=>{
-  console.warn('Records collection '+['legislation','finance','lobby','money-network'][group]+' failed: '+String(e?.message||e).slice(0,200));
+  console.warn('Records collection '+['money-network','legislation','finance','lobby'][group]+' failed: '+String(e?.message||e).slice(0,200));
  }));
 }
 export default {
