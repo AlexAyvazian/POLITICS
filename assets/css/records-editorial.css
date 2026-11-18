@@ -442,3 +442,5 @@ body[data-view="records"] .recordsProfile{
 .recordsNetworkEdge>a{font-size:10px;color:#9fdadd;grid-column:1/-1}
 .recordsNetworkDisclaimer{margin-top:18px;max-width:860px}
 @media(max-width:760px){.recordsNetworkGrid{grid-template-columns:1fr;gap:12px}.recordsNetworkColumn{padding:16px}.recordsNetworkEdge{grid-template-columns:minmax(0,1fr) auto}}
+
+.recordsNetworkAffiliation{grid-column:1/-1;color:#c1d8df;font-size:10px;line-height:1.45;font-weight:580}
