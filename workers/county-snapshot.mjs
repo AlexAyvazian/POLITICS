@@ -30,6 +30,49 @@ export async function serve(request,env){
   }catch(_){return json({status:'storage_error',count:0},503,request);}
  }
 
+
+ // Universal committee graph: exact Bioguide member mapping or direct committee
+ // drilldown. Same D1 transactions power all members; nothing is person-specific.
+ if(path==='/api/political-money-network'){
+  const params=new URL(request.url).searchParams;
+  const bioguide=params.get('bioguide'),requestedCommittee=params.get('committee_id');
+  if((bioguide&&requestedCommittee)||(!bioguide&&!requestedCommittee))
+   return json({error:'Provide exactly one member or FEC committee ID'},400,request);
+  if(bioguide&&!/^[A-Z][0-9]{6}$/.test(bioguide))
+   return json({error:'Invalid Bioguide ID'},400,request);
+  if(requestedCommittee&&!/^C[0-9]{8}$/.test(requestedCommittee))
+   return json({error:'Invalid FEC committee ID'},400,request);
+  if(!env?.COUNTY_DB)return json({status:'not_configured'},503,request);
+  try{
+   let id=requestedCommittee,match=null;
+   if(bioguide){
+    match=await env.COUNTY_DB.prepare('SELECT bioguide,candidate_id,principal_committee_id,status FROM political_money_member_map WHERE bioguide=?')
+     .bind(bioguide).first();
+    id=match?.status==='matched'?match.principal_committee_id:null;
+   }
+   if(!id)return json({status:'pending',bioguide,reason:'verified_committee_mapping_pending',records:[]},200,request,60);
+   const rows=await env.COUNTY_DB.prepare(`SELECT record_id AS recordId,source_feed AS sourceFeed,
+      source_committee_id AS sourceCommitteeId,recipient_committee_id AS recipientCommitteeId,
+      source_name AS sourceName,recipient_name AS recipientName,amount_cents AS amountCents,
+      date,cycle,memo,memo_code AS memoCode,original_sub_id AS originalSubId,
+      amendment,transaction_id AS transactionId,source_url AS sourceUrl,description
+      FROM political_money_transactions
+      WHERE (source_committee_id=? OR recipient_committee_id=?) AND cycle=2026
+      ORDER BY date DESC,record_id DESC LIMIT 100`).bind(id,id).all();
+   const feeds=await env.COUNTY_DB.prepare('SELECT feed,complete,updated_at FROM political_money_ingest_cursor WHERE committee_id=?')
+    .bind(id).all();
+   return json({status:'partial',source:'Federal Election Commission itemized committee filings',cycle:2026,
+    bioguide:bioguide||null,candidateId:match?.candidate_id||null,committeeId:id,
+    records:rows?.results||[],collection:feeds?.results||[],
+    completeForCycle:false,
+    methodology:'Receipts and disbursements are separate source observations, not additive amounts. Paths through PACs do not trace the same dollars, and name or employer matches alone are not treated as financial transfers.',
+    coverage:'Up to 100 verified committee-linked records for this node, refreshed by a shared cursor-based collector.'},200,request,300);
+  }catch(e){
+   if(/no such table/i.test(String(e?.message||'')))return json({status:'pending',reason:'graph_not_initialized',records:[]},200,request,60);
+   return json({status:'storage_error',records:[]},503,request);
+  }
+ }
+
  // Member-specific FEC and LobbyView research summaries are collected by the
  // scheduled gateway and read by verified Bioguide ID. Never fetch upstream here.
  if(path==='/api/member-finance-detail'||path==='/api/member-lobby-network'){
