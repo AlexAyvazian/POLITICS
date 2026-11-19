@@ -6,7 +6,9 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - server.py
       - scripts/update_fara_world.py
+      - tests/test_fara_runtime_server.py
       - tests/test_fara_world.py
       - tests/test_fara_filing_explanations.py
       - scripts/update_fara_explanations.py
@@ -16,8 +18,10 @@ on:
   push:
     branches: [main]
     paths:
+      - server.py
       - scripts/update_fara_world.py
       - scripts/update_fara_explanations.py
+      - tests/test_fara_runtime_server.py
       - tests/test_fara_world.py
       - tests/test_fara_filing_explanations.py
       - assets/js/foreign-world-catalog.js
@@ -42,6 +46,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Verify dynamic FARA runtime API and cache
+        run: python -m unittest discover -s tests -p test_fara_runtime_server.py -v
       - name: Verify FARA country, financial-claim and source-document handling
         run: python -m unittest discover -s tests -p test_fara_world.py -v
       - name: Verify original-document evidence and placeholder safeguards
