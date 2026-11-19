@@ -106,10 +106,7 @@ function partyForFeature(feature){
  const fips=isState?String(feature.id).padStart(2,'0'):String(props.STATE||'').padStart(2,'0');
  const code=byFips[fips]?.abbr;
  if(!code)return 'unknown';
- if(layers[layer].type==='countyElection'&&isState){
-  const party=electionFor(layer,code)?.statewideParty;
-  return ['democratic','republican','other','split'].includes(party)?party:'unknown';
- }
+ if(layers[layer].type==='countyElection'&&isState)return 'unknown';
  if(typeof partyResolver!=='function')return 'unknown';
  const result=partyResolver({layer,state:code,scope:isState?'state':'district',district:isState?null:currentCode(feature)});
  return ['democratic','republican','other','split','vacant'].includes(result)?result:'unknown';
