@@ -39,8 +39,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: congressional-atlas-boundary-snapshot
-  cancel-in-progress: false
+  group: congressional-atlas-boundary-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   refresh:
