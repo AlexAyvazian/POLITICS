@@ -229,9 +229,17 @@ def publish():
     if summary['registeredPrincipals']<1000:
         raise ValueError('Too few country-joined foreign principals; not overwriting prior good snapshot')
     doc_index=join_documents(docs)
+    # Group once. Calling build_country_snapshot with the full historical
+    # principal dataset separately for every country makes each daily refresh
+    # O(countries * principal-records) and can stall on a large DOJ archive.
+    by_country=defaultdict(list)
+    for row in principals:
+        iso=normalize_country(pick(row,'Country_Location','Country_Name',
+                                       'Country_Location_Represented'),index)
+        if iso:by_country[iso].append(row)
     reports={}
-    for iso in summary['countries']:
-        reports[iso]=build_country_snapshot(iso,principals,doc_index,index,now,countries)
+    for iso,rows in by_country.items():
+        reports[iso]=build_country_snapshot(iso,rows,doc_index,index,now,countries)
     target=OUTPUT/'countries'
     target.mkdir(parents=True,exist_ok=True)
     for iso,report in reports.items():
