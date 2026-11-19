@@ -151,8 +151,8 @@ test('statewide county maps use election winners rather than current officeholde
  assert.match(js,/county winner/i);
  assert.doesNotMatch(political,/else if\(layer==='president'\)incumbentParty=model\.partyClass\('Republican'\)/);
  assert.doesNotMatch(political,/else if\(layer==='governor'\)incumbentParty=model\.partyClass\(NCSL/);
- assert.match(political,/scope==='county'/);
- assert.match(political,/County result/);
+ assert.match(political,/scope==='county'\|\|scope==='electionDistrict'/);
+ assert.match(political,/unit=scope==='electionDistrict'\?'House district':'County'/);
 });
 
 test('California statewide election cache distinguishes certified historical results from live 2026 canvass',()=>{
@@ -186,8 +186,68 @@ test('statewide election map labels the election and county-result source instea
 
 test('statewide county-result layers use an election-result legend instead of a vacancy legend',()=>{
  const js=read('assets/js/congressional-map.js');
- assert.match(js,/Democratic county winner/);
- assert.match(js,/Republican county winner/);
+ assert.match(js,/Democratic '\+unit\+' winner/);
+ assert.match(js,/Republican '\+unit\+' winner/);
+ assert.match(js,/state==='AK'\?'House district':'county'/);
  assert.match(js,/Result unavailable/);
  assert.match(js,/function updateLegend/);
+});
+
+
+test('Alaska State Senate preserves letter districts A through T',()=>{
+ const ctx={window:{}};
+ vm.runInNewContext(read('assets/js/congressional-model.js'),ctx);
+ vm.runInNewContext(read('assets/js/congressional-political-model.js'),ctx);
+ const geo=JSON.parse(read('assets/data/congressional/stateSenate/02.geojson'));
+ const model=ctx.window.CONGRESSIONAL_MODEL;
+ const political=ctx.window.CONGRESSIONAL_POLITICAL_MODEL;
+ const codes=new Set(geo.features.map(f=>model.districtCode(f.properties,'stateSenate')));
+ assert.equal(codes.size,20);
+ assert.ok(codes.has('A')&&codes.has('T'));
+ assert.equal(model.districtDisplayName('stateSenate','A'),'District A');
+ assert.equal(political.districtMarker('stateSenate','A'),'A');
+});
+
+test('Alaska letter districts join to current senator roster instead of coercing to zero',()=>{
+ const ctx={window:{}};
+ vm.runInNewContext(read('assets/js/congressional-political-model.js'),ctx);
+ const model=ctx.window.CONGRESSIONAL_POLITICAL_MODEL;
+ const snapshot={people:[
+  {name:'Bert Stedman',party:'Republican',role:'Senator',district:'A'},
+  {name:'Jesse Kiehl',party:'Democratic',role:'Senator',district:'B'}
+ ]};
+ assert.equal(model.stateMembers(snapshot,'stateSenate','A')[0].name,'Bert Stedman');
+ assert.equal(model.stateDistrictParty(snapshot,'stateSenate','A'),'republican');
+ assert.equal(model.stateDistrictParty(snapshot,'stateSenate','B'),'democratic');
+});
+
+test('Alaska legislative districts use an Alaska-centered projection instead of generic Mercator',()=>{
+ const js=read('assets/js/congressional-map.js');
+ assert.match(js,/function alaskaProjection/);
+ assert.match(js,/state==='AK'\?alaskaProjection/);
+ assert.match(js,/geoConicEqualArea/);
+});
+
+test('Alaska statewide election layers use House districts, not borough county-equivalents',()=>{
+ const js=read('assets/js/congressional-map.js');
+ assert.match(js,/function alaskaStatewideElectionMap/);
+ assert.match(js,/state==='AK'/);
+ assert.match(js,/stateHouse\/02\.geojson/);
+ assert.match(js,/House district results/i);
+ assert.doesNotMatch(js,/Alaska.*county results unavailable/i);
+});
+
+
+test('Alaska statewide election cache has all 40 House districts for Governor Senate and President',()=>{
+ const ctx={window:{}};
+ vm.runInNewContext(read('assets/data/elections/ak-statewide.js'),ctx);
+ const ak=ctx.window.AK_STATEWIDE_ELECTION_RESULTS;
+ assert.equal(Object.keys(ak.governor.districts).length,40);
+ assert.equal(Object.keys(ak.senate.districts).length,40);
+ assert.equal(Object.keys(ak.president.districts).length,40);
+ assert.equal(ak.governor.geography,'stateHouseDistrict');
+ assert.equal(ak.senate.geography,'stateHouseDistrict');
+ assert.equal(ak.president.geography,'stateHouseDistrict');
+ assert.equal(Object.values(ak.governor.districts).filter(x=>x.party==='democratic').length,32);
+ assert.equal(Object.values(ak.senate.districts).filter(x=>x.party==='democratic').length,24);
 });

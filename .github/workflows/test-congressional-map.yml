@@ -26,6 +26,9 @@ on:
       - "assets/data/elections/**"
       - "scripts/update_ca_statewide_results.py"
       - "tests/test_ca_statewide_results.py"
+      - "assets/data/elections/ak-statewide.js"
+      - "scripts/update_ak_statewide_results.py"
+      - "tests/test_ak_statewide_results.py"
       - ".github/workflows/test-congressional-map.yml"
   workflow_dispatch:
 
@@ -65,3 +68,5 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_boundary_snapshot.py -v
       - name: Verify California statewide county-result parser
         run: python3 -m unittest discover -s tests -p test_ca_statewide_results.py -v
+      - name: Verify Alaska statewide House-district result parser
+        run: python3 -m unittest discover -s tests -p test_ak_statewide_results.py -v

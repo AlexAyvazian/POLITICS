@@ -178,3 +178,28 @@ body[data-view="congress"] button,body[data-view="congress"] input,body[data-vie
  fill:#435269;
  opacity:.82
 }
+
+
+/* Alaska statewide elections are reported by State House district rather than
+   county-equivalent geography. They share the election-result interaction style. */
+#districtMap .atlasElectionDistrict{
+ stroke:#7da0bb;
+ stroke-width:.65px;
+ vector-effect:non-scaling-stroke;
+ cursor:pointer
+}
+#districtMap .atlasElectionDistrict:hover,
+#districtMap .atlasElectionDistrict:focus-visible{
+ stroke:#d9f4ff;
+ stroke-width:1.25px;
+ filter:brightness(1.12)
+}
+#districtMap .atlasElectionDistrict[data-active="true"]{
+ stroke:#f2fbff;
+ stroke-width:1.7px;
+ filter:drop-shadow(0 0 5px rgba(186,232,255,.55))
+}
+#districtMap .atlasElectionDistrict[data-party="unknown"]{
+ fill:#435269;
+ opacity:.82
+}

@@ -1,7 +1,7 @@
 /* Congressional Atlas political data: read-only cached federal D1 and public
  * static nightly state rosters. Legislative district fills mean verified current
- * incumbency; President/Governor/U.S. Senate county fills are sourced election
- * outcomes handled by congressional-map.js. No provider API-key call on a map click.
+ * incumbency; President/Governor/U.S. Senate geographic fills are sourced election
+ * outcomes handled by congressional-map.js. Alaska statewide races use House districts. No provider API-key call on a map click.
  */
 (function(){
 'use strict';
@@ -78,18 +78,22 @@ function render(){
  const verifiedVacancyNote=()=>note('<strong>Vacant — no current officeholder.</strong> '+esc(vacancy.detail)+' Verified vacancy · '+esc(vacancies.asOf)+' · '+link(vacancy.sourceUrl,vacancy.sourceName)+'.');
  const ns=NCSL?.states?.[state],gv=governors?.states?.[state];
  const chunks=[];
- if(scope==='county'){
-  chunks.push(heading('County result'));
+ if(scope==='county'||scope==='electionDistrict'){
+  const unit=scope==='electionDistrict'?'House district':'County';
+  chunks.push(heading(unit+' result'));
   const result=s.electionResult;
   if(result){
    chunks.push(row('Winner',(result.winner||'Unreported')+' · '+party(result.party==='democratic'?'D':result.party==='republican'?'R':result.party)));
+   if(Number.isFinite(result.winnerPct))chunks.push(row(result.winner,result.winnerPct.toFixed(1)+'%'));
+   if(result.runner&&Number.isFinite(result.runnerPct))chunks.push(row(result.runner,result.runnerPct.toFixed(1)+'%'));
    if(result.demName)chunks.push(row(result.demName,Number.isFinite(result.demPct)?result.demPct.toFixed(1)+'%':'Democratic'));
    if(result.repName)chunks.push(row(result.repName,Number.isFinite(result.repPct)?result.repPct.toFixed(1)+'%':'Republican'));
+   if(Number.isFinite(result.marginPts)&&!Number.isFinite(result.winnerPct))chunks.push(row('Winning margin',result.marginPts.toFixed(1)+' points'));
    const statusLabel=s.electionStatus==='certified'?'Certified result':s.electionStatus==='unofficial'?'Current unofficial result':'Result status unavailable';
    chunks.push(note(statusLabel+' · '+esc(s.electionDate||'date unavailable')+
     (s.sourceUrl?' · '+link(s.sourceUrl,'election source'):'')+'.'));
   }else{
-   chunks.push(note('County result is not available in the loaded election dataset for this state.'));
+   chunks.push(note(unit+' result is not available in the loaded election dataset for this state.'));
   }
  }
  // Countrywide presidential incumbents are independently verified on USAGov.
