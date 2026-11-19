@@ -61,3 +61,35 @@
 .foreignInfluence .foreignFilters{grid-template-columns:repeat(2,minmax(0,1fr))}
 .foreignInfluence .foreignFilters label:last-child{grid-column:1/-1}
 @media(max-width:430px){.foreignInfluence .foreignFilters{grid-template-columns:1fr}.foreignInfluence .foreignFilters label:last-child{grid-column:auto}}
+
+
+/* Country selections stay on the WORLD map. Evidence, not navigation, owns the
+   sidebar. Optional country search and methodology are collapsed below it. */
+.foreignInfluence .app{grid-template-columns:minmax(360px,1fr) minmax(425px,470px)}
+.foreignInfluence .sidePanel{gap:9px;padding:16px}
+.foreignInfluence .selectedCard{padding:10px 13px;border-radius:16px}
+.foreignInfluence .faraSectionLabel{font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;color:#9bcfe5}
+.foreignInfluence .faraCountryMetrics{margin:8px 0 6px;gap:6px}
+.foreignInfluence .faraMetric{padding:7px}
+.foreignInfluence .faraMetric strong{font-size:17px;margin-top:2px}
+.foreignInfluence .faraMoney{margin:5px 0 0;font-size:11px}
+.foreignInfluence .facilitySection{flex:1 1 auto;min-height:125px}
+.foreignInfluence .facilityList{flex:1 1 auto;min-height:110px;overflow-y:auto;scrollbar-width:thin}
+.foreignInfluence .facilityList .faraPrincipal{padding:11px 13px}
+.foreignInfluence .faraPrincipal .faraDocumentLink{margin-top:4px}
+.foreignInfluence .foreignCountryChooser,.foreignInfluence .foreignSourceDetails{flex:0 0 auto;min-height:0}
+.foreignInfluence .foreignCountryChooser summary,.foreignInfluence .foreignSourceDetails summary{
+ cursor:pointer;color:#bfdde8;font-size:11px;font-weight:750;line-height:1.4;padding:6px 9px;
+ border:1px solid rgba(154,197,226,.2);border-radius:10px;
+ background:rgba(5,12,29,.55)
+}
+.foreignInfluence .foreignCountryChooser[open]{flex:0 1 auto;max-height:40%;overflow:auto}
+.foreignInfluence .foreignCountryChooser .regionSection{margin:8px 0 0}
+.foreignInfluence .foreignCountryChooser .regionGrid{max-height:155px;overflow-y:auto}
+.foreignInfluence .foreignSourceDetails .attribution{font-size:10px;margin:7px 0 0;padding:5px 2px;line-height:1.5}
+.foreignInfluence .foreignSourceDetails[open]{max-height:30%;overflow-y:auto}
+@media(max-width:960px){
+ .foreignInfluence .app{grid-template-columns:1fr}
+ .foreignInfluence .facilityList{min-height:220px}
+ .foreignInfluence .foreignCountryChooser[open]{max-height:240px}
+}
