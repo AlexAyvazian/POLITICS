@@ -270,7 +270,7 @@ test('national statewide maps color states instead of forcing every state unknow
  assert.doesNotMatch(js,/if\(layers\[layer\]\.type==='countyElection'&&isState\)return 'unknown'/);
  assert.match(political,/layer==='governor'&&scope==='state'/);
  assert.match(political,/layer==='senate'&&scope==='state'/);
- assert.match(political,/currentSenateParty\(state\)/);
+ assert.match(political,/incomingSenateParty\(state\)/);
 });
 
 test('national statewide legends describe state-level meaning while drilldowns keep local winner legend',()=>{
@@ -301,8 +301,8 @@ test('certified 2024 presidential state winner cache covers fifty states and DC'
 
 test('national statewide map labels describe current control or statewide election winner',()=>{
  const js=read('assets/js/congressional-map.js');
- assert.match(js,/Current U\.S\. Senate delegation/);
- assert.match(js,/Current governor party/);
+ assert.match(js,/Incoming U\.S\. Senate after 2026 election/);
+ assert.match(js,/Governor after 2026 election/);
  assert.match(js,/2024 presidential statewide winner/);
  assert.match(js,/Select a state to drill into election results/);
 });
@@ -323,8 +323,9 @@ test('post-election House atlas uses 120th Congress geography and 2026 election 
 test('2026 national Senate and governor maps use election winners while preserving non-up states',()=>{
  const js=read('assets/js/congressional-map.js');
  const political=read('assets/js/congressional-political.js');
- assert.match(js,/US_2026_ELECTION_RESULTS\?\.senate/);
- assert.match(js,/US_2026_ELECTION_RESULTS\?\.governor/);
+ assert.match(js,/US_2026_ELECTION_RESULTS\?\.\[which\]/);
+ assert.match(political,/ELECTION\?\.senate/);
+ assert.match(political,/ELECTION\?\.governor/);
  assert.match(political,/incomingSenators/);
  assert.match(political,/2026 election · 120th Congress/);
  assert.match(political,/Takes office Jan\. 3, 2027/);
