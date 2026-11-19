@@ -5,6 +5,22 @@ on:
   schedule:
     - cron: "17 9 * * *"
   workflow_dispatch:
+  pull_request:
+    paths:
+      - congressional.html
+      - assets/js/congressional-map.js
+      - assets/js/congressional-model.js
+      - assets/js/congressional-political.js
+      - assets/css/congressional-map.css
+      - assets/data/elections/**
+      - scripts/update_congressional_boundaries.py
+      - scripts/update_us_2026_election_results.py
+      - tests/congressional-atlas.test.mjs
+      - tests/congressional-static-cache.test.mjs
+      - tests/congressional-2026-election.test.mjs
+      - tests/test_boundary_snapshot.py
+      - tests/test_us_2026_election_results.py
+      - .github/workflows/refresh-congressional-geography.yml
   # Bootstrap the first map snapshot when this workflow is introduced.
   push:
     paths:
@@ -32,13 +48,16 @@ jobs:
           python-version: "3.12"
       - name: Validate snapshot generator
         run: python -m unittest discover -s tests -p test_boundary_snapshot.py -v
+      - name: Validate 2026 election-result cache
+        run: python -m unittest discover -s tests -p test_us_2026_election_results.py -v
       - name: Check public map static-cache contract
-        run: node --test tests/congressional-static-cache.test.mjs tests/congressional-atlas.test.mjs
+        run: node --test tests/congressional-static-cache.test.mjs tests/congressional-atlas.test.mjs tests/congressional-2026-election.test.mjs
       - name: Validate and refresh official geographic boundary files
         run: python scripts/update_congressional_boundaries.py --workers 3
       - name: Audit all generated district maps before publishing
         run: node scripts/audit_congressional_geometry.mjs
       - name: Commit only changed static boundary files
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           git add assets/data/congressional/
