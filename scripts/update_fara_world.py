@@ -127,6 +127,14 @@ def extract_principal(row):
         'terminatedAt':text(pick(row,'Foreign_Principal_Termination_Date','Principal_Termination_Date','Termination_Date'),30)
     }
 
+def filing_date_order(raw):
+    """Compare DOJ MM/DD/YYYY and ISO dates chronologically, not alphabetically."""
+    raw=text(raw,30)
+    for fmt in ('%m/%d/%Y','%Y-%m-%d','%Y-%m-%dT%H:%M:%S'):
+        try:return datetime.strptime(raw,fmt).date().isoformat()
+        except ValueError:pass
+    return ''
+
 def build_country_snapshot(iso,principals,docs,index,now,catalog=None):
     names={c['iso2']:c['name'] for c in (catalog or [])}
     index_docs=docs if isinstance(docs,dict) else join_documents(docs)
@@ -146,10 +154,20 @@ def build_country_snapshot(iso,principals,docs,index,now,catalog=None):
             # to concern any individual principal within that registrant.
             scoped=normalize(d['principal'])==normalize(p['principalName']) if d['principal'] else False
             scoped_country=normalize_country(d['country'],index)==iso if d['country'] else False
-            if not scoped and not scoped_country and d['principal']:continue
+            # A document naming a DIFFERENT principal must not be presented
+            # against this principal, even if both share the same country.
+            if d['principal'] and not scoped:continue
+            if d['country'] and not scoped_country:continue
             related.append({'url':d['url'],'type':d['type'],'filed':d['filed'],
                             'appliesTo':'named principal' if scoped else 'registrant filing'})
-        related=sorted(related,key=lambda x:x['filed'],reverse=True)[:6]
+        # Financial supplements and foreign-principal exhibits are prioritized
+        # over unrelated short forms; the original complete filing index is
+        # always one click away for additional documents.
+        def document_priority(doc):
+            kind=doc['type'].casefold()
+            return 0 if 'supplemental' in kind else 1 if 'exhibit' in kind else 2 if 'informational' in kind else 3
+        related=sorted(related,key=lambda x:filing_date_order(x['filed']),reverse=True)
+        related=sorted(related,key=document_priority)[:10]
         items.append({
             'registrationNumber':registration,'principalName':p['principalName'],
             'registrantName':p['registrantName'],
@@ -229,9 +247,17 @@ def publish():
     if summary['registeredPrincipals']<1000:
         raise ValueError('Too few country-joined foreign principals; not overwriting prior good snapshot')
     doc_index=join_documents(docs)
+    # Group once. Calling build_country_snapshot with the full historical
+    # principal dataset separately for every country makes each daily refresh
+    # O(countries * principal-records) and can stall on a large DOJ archive.
+    by_country=defaultdict(list)
+    for row in principals:
+        iso=normalize_country(pick(row,'Country_Location','Country_Name',
+                                       'Country_Location_Represented'),index)
+        if iso:by_country[iso].append(row)
     reports={}
-    for iso in summary['countries']:
-        reports[iso]=build_country_snapshot(iso,principals,doc_index,index,now,countries)
+    for iso,rows in by_country.items():
+        reports[iso]=build_country_snapshot(iso,rows,doc_index,index,now,countries)
     target=OUTPUT/'countries'
     target.mkdir(parents=True,exist_ok=True)
     for iso,report in reports.items():
