@@ -24,6 +24,15 @@ on:
   # Bootstrap the first map snapshot when this workflow is introduced.
   push:
     paths:
+      - scripts/update_congressional_boundaries.py
+      - assets/js/congressional-map.js
+      - assets/js/congressional-model.js
+      - assets/js/congressional-political.js
+      - assets/css/congressional-map.css
+      - congressional.html
+      - tests/congressional-atlas.test.mjs
+      - tests/congressional-2026-election.test.mjs
+      - tests/test_boundary_snapshot.py
       - .github/workflows/refresh-congressional-geography.yml
 
 permissions:
@@ -51,7 +60,11 @@ jobs:
       - name: Validate 2026 election-result cache
         run: python -m unittest discover -s tests -p test_us_2026_election_results.py -v
       - name: Check public map static-cache contract
-        run: node --test tests/congressional-static-cache.test.mjs tests/congressional-atlas.test.mjs tests/congressional-2026-election.test.mjs
+        run: |
+          node --check assets/js/congressional-map.js
+          node --check assets/js/congressional-model.js
+          node --check assets/js/congressional-political.js
+          node --test tests/congressional-static-cache.test.mjs tests/congressional-atlas.test.mjs tests/congressional-2026-election.test.mjs
       - name: Validate and refresh official geographic boundary files
         run: python scripts/update_congressional_boundaries.py --workers 3
       - name: Audit all generated district maps before publishing
