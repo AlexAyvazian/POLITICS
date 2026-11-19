@@ -187,7 +187,7 @@ def refresh(limit=60):
             entry=futures[future]
             try:
                 reg,record=future.result()
-                (OUTPUT/(reg+'.json')).write_text(json.dumps(record,ensure_ascii=False,separators=(',',':'))+'\\n')
+                (OUTPUT/(reg+'.json')).write_text(json.dumps(record,ensure_ascii=False,separators=(',',':'))+'\n')
                 failures.pop(reg,None)
                 count+=1
             except Exception as error:
@@ -197,7 +197,7 @@ def refresh(limit=60):
                 failures[entry['reg']]={'sourceUrl':entry['doc']['url'],
                      'attemptedAt':now.isoformat(),'reason':str(error)[:100]}
                 print('Original PDF needs another extraction method: '+str(error)[:100])
-    FAILED.write_text(json.dumps(failures,ensure_ascii=False,sort_keys=True,separators=(',',':'))+'\\n')
+    FAILED.write_text(json.dumps(failures,ensure_ascii=False,sort_keys=True,separators=(',',':'))+'\n')
     print('Processed',count,'of',len(queue),'eligible supplemental statements; '
           'unreadable originals postponed for seven days')
 
