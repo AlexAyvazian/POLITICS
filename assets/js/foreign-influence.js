@@ -288,6 +288,13 @@ function principalMatches(summary,group){
  const names=new Set((Array.isArray(summary?.namedPrincipals)?summary.namedPrincipals:[]).map(n=>String(n).trim().toLowerCase()));
  return [...group.principals].filter(n=>names.has(String(n).trim().toLowerCase()));
 }
+function filingFinancialRows(summary,principals){
+ const allowed=new Set(principals.map(x=>String(x).trim().toLowerCase()));
+ return (Array.isArray(summary?.financialRows)?summary.financialRows:[])
+  .filter(row=>allowed.has(String(row.principal||'').trim().toLowerCase())&&
+   Number.isFinite(row.amountUsd)&&row.date&&row.counterparty&&row.purpose)
+  .sort((a,b)=>usDateValue(b.date)-usDateValue(a.date)||b.amountUsd-a.amountUsd);
+}
 function renderMoneyEvidence(results,query){
  const list=$('moneyEvidenceList');list.replaceChildren();
  const needle=String(query||'').trim().toLowerCase();
@@ -295,7 +302,10 @@ function renderMoneyEvidence(results,query){
   if(summary.moneyStatus!=='verified_filing_totals')return false;
   if(!Number.isFinite(summary.totalReceivedUsd)&&!Number.isFinite(summary.totalDisbursedUsd))return false;
   if(!needle)return true;
-  return [group.registrantName,...principals,summary.moneyExplanation].some(x=>String(x||'').toLowerCase().includes(needle));
+  const details=filingFinancialRows(summary,principals);
+  return [group.registrantName,...principals,summary.moneyExplanation,
+   ...details.flatMap(row=>[row.counterparty,row.purpose,row.date,row.direction])]
+   .some(x=>String(x||'').toLowerCase().includes(needle));
  });
  if(!rows.length){
   const excluded=results.filter(x=>x.summary?.moneyStatus==='placeholder_not_actual').length;
@@ -312,7 +322,26 @@ function renderMoneyEvidence(results,query){
   const add=(label,value)=>{const box=el('div','filingMoneyMetric');box.append(el('span','',label),el('b','',Number.isFinite(value)?moneyExact(value):'Not reported'));totals.append(box);};
   add('Total receipts',summary.totalReceivedUsd);add('Total disbursements',summary.totalDisbursedUsd);
   item.append(totals);
-  item.append(el('p','filingScopeNote','Registrant-level total for this supplemental filing; not automatically a principal-specific payment.'));
+  const details=filingFinancialRows(summary,principals);
+  if(details.length){
+   const breakdown=el('div','moneyBreakdown');
+   breakdown.append(el('strong','moneyBreakdownTitle','What the filing says the money was for'));
+   for(const row of details.slice(0,10)){
+    const line=el('div','moneyBreakdownRow');
+    const top=el('div','moneyBreakdownTop');
+    top.append(el('span','moneyDirection',row.direction==='receipt'?'RECEIVED':'SPENT'),
+               el('strong','moneyPurpose',row.purpose),
+               el('b','moneyAmount',moneyExact(row.amountUsd)));
+    line.append(top);
+    line.append(el('p','moneyBreakdownMeta',row.date+' · '+row.counterparty+' · '+row.principal));
+    breakdown.append(line);
+   }
+   if(details.length>10)breakdown.append(el('p','intelFoot',displayNumber(details.length-10)+' additional itemized financial rows in this filing.'));
+   item.append(breakdown);
+  }else{
+   item.append(el('p','filingScopeNote','The filing total is verified, but no principal-specific dated financial rows have been safely extracted from this statement yet.'));
+  }
+  item.append(el('p','filingScopeNote','Registrant-level totals are not automatically principal-specific. Itemized rows above are shown only when the filing names the principal, date, counterparty, purpose and amount.'));
   const footer=el('div','purposeFooter');
   if(summary.periodEnd)footer.append(el('span','','Period ending '+summary.periodEnd));
   footer.append(sourceAnchor(summary.sourceUrl,'Reviewed DOJ filing ↗'));item.append(footer);
