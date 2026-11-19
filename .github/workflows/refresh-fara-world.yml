@@ -17,7 +17,9 @@ on:
     branches: [main]
     paths:
       - scripts/update_fara_world.py
+      - scripts/update_fara_explanations.py
       - tests/test_fara_world.py
+      - tests/test_fara_filing_explanations.py
       - assets/js/foreign-world-catalog.js
       - .github/workflows/refresh-fara-world.yml
 
@@ -62,7 +64,7 @@ jobs:
       - name: Install machine-readable PDF text extractor
         run: python -m pip install 'pypdf>=5,<7'
       - name: Explain next batch of official DOJ supplemental statements
-        run: python scripts/update_fara_explanations.py --limit 60
+        run: python scripts/update_fara_explanations.py --limit 120
       - name: Publish only verified daily FARA country snapshots
         shell: bash
         run: |
