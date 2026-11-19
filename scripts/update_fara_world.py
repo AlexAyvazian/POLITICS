@@ -212,8 +212,19 @@ def publish():
     if len(principals)<1000 or len(registrants)<1000 or len(docs)<1000:
         raise ValueError('FARA DOJ bulk response too small; refusing incomplete publish')
     # Require the expected DOJ fields before touching published files.
-    if not all(pick(row,'Foreign_Principal','FP_NAME') and pick(row,'Country_Location','Country_Name') for row in principals[:8]):
-        raise ValueError('Foreign principals data schema changed; refusing publish')
+    # Registrations may legitimately omit a country or principal name.
+    # Validate column presence rather than incorrectly requiring each
+    # of the first eight records to have every field populated.
+    source_keys={normalize(k) for k in principals[0].keys() if k}
+    required=[
+        ('Foreign_Principal','FP_NAME','Foreign_Principal_Name'),
+        ('Country_Location','Country_Name','Country_Location_Represented'),
+        ('Registrant_Name','REGISTRANT_NAME'),
+        ('Registration_Number','REG_NUMBER')
+    ]
+    missing=[group for group in required if not any(normalize(k) in source_keys for k in group)]
+    if missing:
+        raise ValueError('Unrecognized FARA columns '+str(sorted(source_keys))+'; missing '+str(missing))
     summary=build_summary(principals,index,now,countries)
     if summary['registeredPrincipals']<1000:
         raise ValueError('Too few country-joined foreign principals; not overwriting prior good snapshot')
