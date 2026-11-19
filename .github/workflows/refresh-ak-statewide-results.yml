@@ -1,0 +1,47 @@
+name: Refresh Alaska statewide House-district election results
+
+on:
+  schedule:
+    - cron: "21 */6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/update_ak_statewide_results.py"
+      - "assets/data/elections/ak-statewide.js"
+      - ".github/workflows/refresh-ak-statewide-results.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ak-statewide-election-results
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify Alaska result parser
+        run: python -m unittest discover -s tests -p test_ak_statewide_results.py -v
+      - name: Fetch current Alaska Governor and U.S. Senate House-district results
+        run: python scripts/update_ak_statewide_results.py
+      - name: Publish changed Alaska election cache
+        shell: bash
+        run: |
+          git add assets/data/elections/ak-statewide.js
+          if git diff --cached --quiet; then
+            echo "No Alaska statewide result changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh Alaska statewide House-district results"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
