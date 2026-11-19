@@ -53,7 +53,7 @@ test('selected country records appear before collapsed country navigation and lo
  const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
  const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
  assert.ok(html.indexOf('class="facilitySection"')<html.indexOf('id="countryChooser"'));
- assert.match(html,/<details id="countryChooser"/);
+ assert.match(html,/<details[^>]*id="countryChooser"/);
  assert.match(js,/\$\('countryChooser'\)\.open=false/);
  assert.match(js,/\$\('countryChooser'\)\.open=true/);
  assert.match(css,/\.foreignInfluence \.facilityList\{/);
