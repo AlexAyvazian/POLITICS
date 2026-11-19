@@ -151,8 +151,8 @@ test('statewide county maps use election winners rather than current officeholde
  assert.match(js,/county winner/i);
  assert.doesNotMatch(political,/else if\(layer==='president'\)incumbentParty=model\.partyClass\('Republican'\)/);
  assert.doesNotMatch(political,/else if\(layer==='governor'\)incumbentParty=model\.partyClass\(NCSL/);
- assert.match(political,/scope==='county'/);
- assert.match(political,/County result/);
+ assert.match(political,/scope==='county'\|\|scope==='electionDistrict'/);
+ assert.match(political,/unit=scope==='electionDistrict'\?'House district':'County'/);
 });
 
 test('California statewide election cache distinguishes certified historical results from live 2026 canvass',()=>{
@@ -186,8 +186,9 @@ test('statewide election map labels the election and county-result source instea
 
 test('statewide county-result layers use an election-result legend instead of a vacancy legend',()=>{
  const js=read('assets/js/congressional-map.js');
- assert.match(js,/Democratic county winner/);
- assert.match(js,/Republican county winner/);
+ assert.match(js,/Democratic '\+unit\+' winner/);
+ assert.match(js,/Republican '\+unit\+' winner/);
+ assert.match(js,/state==='AK'\?'House district':'county'/);
  assert.match(js,/Result unavailable/);
  assert.match(js,/function updateLegend/);
 });
