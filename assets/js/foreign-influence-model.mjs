@@ -76,3 +76,26 @@ export function classifyInfluenceText(text){
  if(!value)return [];
  return INFLUENCE_THEMES.filter(theme=>theme.patterns.some(pattern=>pattern.test(value))).map(theme=>theme.id);
 }
+
+
+export function evidenceCoverage(index,records){
+ const ids=new Set((Array.isArray(records)?records:[])
+  .map(row=>String(row?.registrationNumber||'')).filter(id=>/^\d{1,6}$/.test(id)));
+ const byId=new Map((Array.isArray(index?.registrations)?index.registrations:[])
+  .map(row=>[String(row?.registrationNumber||''),row]).filter(([id])=>ids.has(id)));
+ let purposeRegistrations=0,verifiedMoneyRegistrations=0,politicalContacts=0,itemizedFinancialRows=0;
+ for(const row of byId.values()){
+  if(row?.hasServices===true)purposeRegistrations++;
+  if(row?.moneyStatus==='verified_filing_totals')verifiedMoneyRegistrations++;
+  politicalContacts+=Number.isFinite(Number(row?.politicalContactCount))?Number(row.politicalContactCount):0;
+  itemizedFinancialRows+=Number.isFinite(Number(row?.financialRowCount))?Number(row.financialRowCount):0;
+ }
+ return {
+  totalRegistrations:ids.size,
+  reviewedRegistrations:byId.size,
+  purposeRegistrations,
+  verifiedMoneyRegistrations,
+  politicalContacts,
+  itemizedFinancialRows
+ };
+}
