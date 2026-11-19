@@ -1,5 +1,6 @@
 import unittest
-from scripts.update_fara_explanations import explain_supplemental, clean_activity
+from datetime import datetime, timezone, timedelta
+from scripts.update_fara_explanations import explain_supplemental, clean_activity, should_attempt
 
 FILING = """
 For 6 Month Period Ending 04/30/2026
@@ -50,6 +51,15 @@ class TestFaraEvidence(unittest.TestCase):
  def test_mismatched_registration_is_rejected(self):
   with self.assertRaises(ValueError):
    explain_supplemental(FILING,'9999','https://efile.fara.gov/docs/6604-Supplemental-Statement-20260603-15.pdf')
+ def test_an_unreadable_pdf_does_not_block_tomorrows_new_filing(self):
+  now=datetime(2026,11,19,tzinfo=timezone.utc)
+  failure={'sourceUrl':'https://efile.fara.gov/docs/999-Supplemental-Statement-20261119.pdf',
+           'attemptedAt':now.isoformat(),'reason':'no_text'}
+  self.assertFalse(should_attempt(failure,failure['sourceUrl'],now+timedelta(days=1)))
+  self.assertTrue(should_attempt(failure,failure['sourceUrl'],now+timedelta(days=8)))
+  self.assertTrue(should_attempt(failure,'https://efile.fara.gov/docs/999-Supplemental-Statement-20261120.pdf',now))
+  self.assertTrue(should_attempt(None,failure['sourceUrl'],now))
+ 
  def test_document_without_real_activity_or_money_is_uncertain(self):
   text='1. (a) Name of Registrant\nSome Firm\n(b) Registration Number\n1234\n## III - ACTIVITIES\n## IV - FINANCIAL INFORMATION\n'
   doc=explain_supplemental(text,'1234','https://efile.fara.gov/docs/1234-Supplemental-Statement-20260603.pdf')
