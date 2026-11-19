@@ -17,6 +17,9 @@ test('a daily automated workflow prebuilds country and state legislative distric
  assert.match(workflow,/workflow_dispatch:/);
  assert.match(workflow,/update_congressional_boundaries\.py/);
  assert.match(workflow,/contents: write/);
+ assert.match(workflow,/github\.head_ref \|\| github\.ref_name/);
+ assert.match(workflow,/GITHUB_HEAD_REF:-\$GITHUB_REF_NAME/);
+ assert.match(workflow,/git push origin "HEAD:\$\{TARGET_BRANCH\}"/);
  const script=read('scripts/update_congressional_boundaries.py');
  for(const id of ['house','stateSenate','stateHouse'])assert.ok(script.includes(id));
  assert.match(script,/returnCountOnly/);
