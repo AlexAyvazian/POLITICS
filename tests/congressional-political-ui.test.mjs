@@ -11,7 +11,12 @@ function mount(){
  const names={politicalDetails:box};
  const window={
   addEventListener(name,fn){listeners[name]=fn},
-  POLITICS_CONGRESSIONAL_ATLAS:{getSelection(){return null},setPartyResolver(fn){partyResolver=fn;}}
+  POLITICS_CONGRESSIONAL_ATLAS:{getSelection(){return null},setPartyResolver(fn){partyResolver=fn;}},
+  US_2026_ELECTION_RESULTS:{
+   sourceUrl:'https://www.callthemap.com/results',
+   house:{CA:{'05':{winner:'Ada Blue',party:'democratic',winnerPct:61.2,runner:'Rex Red',runnerPct:38.8,resultState:'won',status:'unofficial',pageUrl:'https://www.callthemap.com/results/house/ca-05'}}},
+   senate:{},governor:{}
+  }
  };
  for(const path of ['assets/js/ncsl-control.js','assets/js/governors.js','assets/js/congressional-political-model.js']){
   vm.runInNewContext(read(path),{window});
@@ -39,17 +44,18 @@ function mount(){
  const choose=selection=>listeners['congressional-atlas:selection']({detail:selection});
  return {choose,requests,box,party:value=>partyResolver?.(value)};
 }
-test('clicking a real House GEOID reveals only the verified matching representative',async()=>{
+test('clicking a 120th House district reveals the 2026 winner without mis-mapping the sitting 119th representative',async()=>{
  const app=mount();
  app.choose({state:'CA',scope:'district',layer:'house',district:'05',geoid:'0605'});
  await wait();await wait();
- assert.match(app.box.innerHTML,/Example District Five/);
- assert.match(app.box.innerHTML,/Republican/);
- assert.match(app.box.innerHTML,/Current U\.S\. representative/);
+ assert.match(app.box.innerHTML,/Ada Blue/);
+ assert.match(app.box.innerHTML,/Democratic/);
+ assert.match(app.box.innerHTML,/2026 election · 120th Congress/);
+ assert.match(app.box.innerHTML,/Takes office Jan\. 3, 2027/);
+ assert.doesNotMatch(app.box.innerHTML,/Example District Five/);
  assert.match(app.box.innerHTML,/NCSL seat counts/);
- assert.match(app.box.innerHTML,/2026-11-02/);
  assert.equal(app.requests.filter(x=>x.includes('congress-snapshot')).length,1);
- assert.equal(app.party({layer:'house',state:'CA',scope:'district',district:'05'}),'republican');
+ assert.equal(app.party({layer:'house',state:'CA',scope:'district',district:'05'}),'democratic');
  assert.equal(app.party({layer:'house',state:'CA',scope:'district',district:'06'}),'unknown');
  assert.equal(app.requests.filter(x=>x.includes('openstates-snapshot')).length,0);
 });
