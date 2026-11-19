@@ -5,7 +5,7 @@ import zipfile
 
 from scripts.update_fara_world import (
     parse_zip_csv, country_index, build_country_snapshot, build_summary,
-    normalize_country, safe_fara_url,
+    normalize_country, safe_fara_url, filing_date_order,
 )
 
 
@@ -76,6 +76,11 @@ class FaraWorldTests(unittest.TestCase):
         self.assertEqual(len(a['documents']),1)
         self.assertEqual(a['documents'][0]['type'],'Supplemental Statement')
         self.assertEqual(len(b['documents']),2)
+
+    def test_doj_dates_are_ordered_by_year_not_alphabetic_month(self):
+        self.assertGreater(filing_date_order('11/16/2026'),filing_date_order('12/31/2021'))
+        self.assertEqual(filing_date_order('11/16/2026'),'2026-11-16')
+        self.assertEqual(filing_date_order('not a date'),'')
 
     def test_malformed_documents_and_urls_are_excluded(self):
         self.assertIsNone(safe_fara_url('javascript:alert(1)'))
