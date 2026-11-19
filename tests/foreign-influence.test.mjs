@@ -59,3 +59,12 @@ test('selected country records appear before collapsed country navigation and lo
  assert.match(css,/\.foreignInfluence \.facilityList\{/);
  assert.match(html,/<details class="foreignSourceDetails"/);
 });
+
+test('selected country remains legible at world zoom with accessible map callout',()=>{
+ const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
+ const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
+ assert.match(js,/const selectionLayer=svg\.append\('g'\)\.attr\('class','foreignMapSelection'\)/);
+ assert.match(js,/geoPath\.centroid\(feature\)/);
+ assert.match(js,/marker\.append\('text'\)/);
+ assert.match(css,/\.foreignInfluence \.foreignSelectedMarker/);
+});
