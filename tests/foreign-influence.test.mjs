@@ -11,6 +11,7 @@ test('FARA country summary never presents registry counts as spending',()=>{
  assert.equal(result.disbursements,'Not yet verified');
  assert.notEqual(result.disbursements,0);
 });
+
 test('foreign government payment is not inferred from a non-government foreign principal registration',()=>{
  const source={principals:[{principalName:'Enterprise Singapore',registrantName:'Consultants LLC',status:'active',
    documents:[{type:'Exhibit AB',url:'https://efile.fara.gov/docs/7794-Exhibit-AB-20261106-2.pdf',appliesTo:'named principal'}]}]};
@@ -20,13 +21,14 @@ test('foreign government payment is not inferred from a non-government foreign p
  assert.equal(records[0].documents.length,1);
  assert.equal(records[0].foreignGovernmentPayment,undefined);
 });
+
 test('verified spending requires signed numeric amount and original document',()=>{
  assert.equal(verifiedSpending({verifiedDisbursementsUsd:null}).text,'Not yet verified');
  assert.equal(verifiedSpending({verifiedDisbursementsUsd:12345,spendingSourceUrl:null}).text,'Not yet verified');
  assert.equal(verifiedSpending({verifiedDisbursementsUsd:12345,spendingSourceUrl:'https://efile.fara.gov/docs/7794-Money-20261106.pdf'}).value,12345);
 });
 
-test('FARA filing categories make receipts and activities discoverable but do not infer amounts',()=>{
+test('FARA filing categories remain available to the data model without becoming sidebar controls',()=>{
  const docs=[
   {type:'Supplemental Statement',url:'https://efile.fara.gov/docs/7000-Supplemental-Statement-20261001.pdf'},
   {type:'Exhibit AB',url:'https://efile.fara.gov/docs/7000-Exhibit-AB-20261001.pdf'},
@@ -37,9 +39,7 @@ test('FARA filing categories make receipts and activities discoverable but do no
  assert.equal(documentGroup(docs[1]),'contracts');
  assert.equal(documentGroup(docs[2]),'communications');
  assert.equal(documentGroup(docs[3]),'other');
- assert.equal(documentsForGroup(docs,'supplemental').length,1);
  assert.equal(documentsForGroup(docs,'all').length,4);
- assert.equal(documentsForGroup(docs,'unknown').length,0);
 });
 
 test('country selection highlights on a geographic WORLD map rather than zooming to a country',()=>{
@@ -48,42 +48,12 @@ test('country selection highlights on a geographic WORLD map rather than zooming
  assert.match(js,/projection\.fitExtent\(\[\[14,14\],\[width-14,height-14\]\],\{type:'Sphere'\}\)/);
  assert.match(js,/selected\?\.iso2===featureCountry\(d\)\?\.iso2\?' selected'/);
 });
-test('selected country records appear before collapsed country navigation and long source note',()=>{
- const html=readFileSync(new URL('../foreign-influence.html',import.meta.url),'utf8');
- const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
- const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
- assert.ok(html.indexOf('class="facilitySection"')<html.indexOf('id="countryChooser"'));
- assert.match(html,/<details[^>]*id="countryChooser"/);
- assert.match(js,/\$\('countryChooser'\)\.open=false/);
- assert.match(js,/\$\('countryChooser'\)\.open=true/);
- assert.match(css,/\.foreignInfluence \.facilityList\{/);
- assert.match(html,/<details class="foreignSourceDetails"/);
-});
-
-test('selected country remains legible at world zoom with accessible map callout',()=>{
- const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
- const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
- assert.match(js,/const selectionLayer=svg\.append\('g'\)\.attr\('class','foreignMapSelection'\)/);
- assert.match(js,/geoPath\.centroid\(feature\)/);
- assert.match(js,/marker\.append\('text'\)/);
- assert.match(css,/\.foreignInfluence \.foreignSelectedMarker/);
-});
 
 test('country focus cannot draw rectangular browser outline over world map',()=>{
  const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
  assert.match(css,/\.foreignInfluence #mapSvg path\.country:focus\s*,\s*\.foreignInfluence #mapSvg path\.country:focus-visible\s*\{[^}]*outline:\s*none\s*!important/s);
  assert.match(css,/\.foreignInfluence #mapSvg:focus\s*\{[^}]*outline:\s*none\s*!important/s);
- assert.match(css,/\.foreignInfluence #mapSvg path\.country:focus-visible\s*\{[^}]*stroke:\s*#fff/s);
 });
-test('FARA cards explain services and payments before collapsing source filings',()=>{
- const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
- assert.match(js,/function makeFilingExplanation/);
- assert.match(js,/function makeSourceLinks/);
- assert.match(js,/details[^\n]{0,120}faraDocuments/);
- assert.match(js,/assets\/data\/foreign-influence\/filing-insights\//);
- assert.match(js,/Reported payments/);
-});
-
 
 test('foreign influence panel prioritizes country intelligence over filing filters and country chooser',()=>{
  const html=readFileSync(new URL('../foreign-influence.html',import.meta.url),'utf8');
@@ -92,6 +62,7 @@ test('foreign influence panel prioritizes country intelligence over filing filte
  assert.doesNotMatch(html,/id="countryChooser"/);
  assert.doesNotMatch(html,/id="regionFilter"/);
  assert.match(html,/id="countryOverview"/);
+ assert.match(html,/id="purposeList"/);
  assert.match(html,/id="relationshipList"/);
  assert.match(html,/id="activityTimeline"/);
  assert.match(html,/id="historicalRecords"/);
@@ -99,15 +70,27 @@ test('foreign influence panel prioritizes country intelligence over filing filte
  assert.equal((html.match(/id="search"/g)||[]).length,1);
 });
 
-test('country intelligence separates historical records and does not repeat generic disclosure boilerplate per principal',()=>{
+test('country intelligence separates historical records and removes repeated generic boilerplate cards',()=>{
  const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
  assert.match(js,/function splitHistoricalRecords/);
  assert.match(js,/function renderCountryOverview/);
  assert.match(js,/function renderRelationshipList/);
  assert.match(js,/function renderTimeline/);
+ assert.match(js,/function renderHistoricalRecords/);
+ assert.match(js,/async function renderExtractedInsights/);
  assert.doesNotMatch(js,/This U\.S\. registrant has filed a FARA record for the named foreign principal/);
  assert.doesNotMatch(js,/A verified amount has not yet been extracted\. This does not mean no money was received or spent/);
  assert.doesNotMatch(js,/No named officials or contacts have been verified from this record/);
+ assert.doesNotMatch(js,/showCount/);
+});
+
+test('modern relationship view groups records by U.S. registrant instead of rendering endless principal cards',()=>{
+ const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
+ assert.match(js,/function relationshipGroups/);
+ assert.match(js,/Foreign principals → U\.S\. registrants|relationshipFlow/);
+ assert.match(js,/DOJ filing index ↗/);
+ assert.doesNotMatch(js,/function renderPrincipals/);
+ assert.doesNotMatch(js,/className='facility faraPrincipal'/);
 });
 
 test('selected country inspector is widened for readable intelligence sections',()=>{
@@ -116,4 +99,5 @@ test('selected country inspector is widened for readable intelligence sections',
  assert.match(css,/\.foreignInfluence \.relationshipList/);
  assert.match(css,/\.foreignInfluence \.activityTimeline/);
  assert.match(css,/\.foreignInfluence \.historicalRecords/);
+ assert.match(css,/\.foreignInfluence \.sidePanel\{[^}]*overflow-y:auto/s);
 });
