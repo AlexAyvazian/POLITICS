@@ -84,13 +84,48 @@ def _financial_section_rows(section,direction,known_principals):
     principals=[compact(x,180) for x in (known_principals or []) if compact(x,180)]
     if not section or not principals:return []
     principal_pattern='|'.join(re.escape(x) for x in sorted(set(principals),key=len,reverse=True))
-    separator=r'(?:\s*\|\s*|\s{2,})'
+    separator=r'(?:\\s*\\|\\s*|\\s{2,})'
     row_pattern=re.compile(
-        rf'^\s*(?P<principal>{principal_pattern}){separator}'
-        rf'(?P<date>[01]?\d/[0-3]?\d/20\d{{2}}){separator}'
+        rf'^\\s*(?P<principal>{principal_pattern}){separator}'
+        rf'(?P<date>[01]?\\d/[0-3]?\\d/20\\d{{2}}){separator}'
         rf'(?P<counterparty>.+?){separator}'
         rf'(?P<purpose>.+?){separator}'
-        rf'\x24\s*(?P<amount>[0-9][0-9,]*\.\d{{2}})\s*
+        rf'\\x24\\s*(?P<amount>[0-9][0-9,]*\\.\\d{{2}})\\s*$',
+        re.I)
+    rows=[];seen=set()
+    for raw_line in section.splitlines():
+        line=raw_line.replace('\\u00a0',' ').strip()
+        if not line:continue
+        match=row_pattern.match(line)
+        if not match:continue
+        amount=parse_usd(match.group('amount'))
+        if amount is None:continue
+        row={
+            'direction':direction,
+            'principal':compact(match.group('principal'),180),
+            'date':match.group('date'),
+            'counterparty':compact(match.group('counterparty'),180).strip(' |,-'),
+            'purpose':compact(match.group('purpose'),180).strip(' |,-'),
+            'amountUsd':amount
+        }
+        if not row['counterparty'] or not row['purpose']:continue
+        key=(row['direction'],row['principal'].casefold(),row['date'],
+             row['counterparty'].casefold(),row['purpose'].casefold(),row['amountUsd'])
+        if key in seen:continue
+        seen.add(key);rows.append(row)
+        if len(rows)>=500:break
+    return rows
+
+def extract_financial_rows(text,known_principals=None,placeholder=False):
+    if placeholder:return []
+    receipts=_section(text,
+        r'14\\.\\s*\\(?a\\)?\\s*RECEIPTS\\s*[-–]?\\s*MONIES',
+        r'(?:14\\.\\s*\\(?b\\)?|RECEIPTS\\s*[-–]\\s*FUNDRAISING)')
+    disbursements=_section(text,
+        r'15\\.\\s*\\(?a\\)?\\s*DISBURSEMENTS\\s*[-–]?\\s*MONIES',
+        r'(?:15\\.\\s*\\(?b\\)?|DISBURSEMENTS\\s*[-–]\\s*THINGS)')
+    return (_financial_section_rows(receipts,'receipt',known_principals)+
+            _financial_section_rows(disbursements,'disbursement',known_principals))
 _US_GOV_CONTACT=re.compile(
     r'(?:\bRep(?:resentative)?\.?|\bCongress(?:man|woman)?\b|\bSen(?:ator)?\.?|'
     r'\bHouse(?:\s+[A-Za-z& -]+)?\s+Committee\b|\bSenate(?:\s+[A-Za-z& -]+)?\s+Committee\b|'
