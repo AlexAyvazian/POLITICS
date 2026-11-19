@@ -48,10 +48,6 @@
     <strong>Choose a country</strong>
     <p class="muted">The sidebar will show registered foreign principals, U.S. agents and links to original filings.</p>
    </section>
-   <section class="regionSection" aria-labelledby="countryListTitle">
-    <div class="regionHead"><span class="muted" id="countryListTitle">Countries</span><input id="regionFilter" type="search" placeholder="Find a country…" aria-label="Find a country"></div>
-    <div class="regionGrid" id="regionList" role="list"></div>
-   </section>
    <section class="facilitySection" aria-labelledby="listLabel">
     <div class="foreignFilters">
      <label><span>Status</span><select id="statusFilter"><option value="all">All reported principals</option><option value="active">Active</option><option value="terminated">Terminated</option></select></label>
@@ -62,7 +58,16 @@
     <div class="facilityList" id="facilityList" tabindex="0"></div>
     <button id="loadMore" type="button" hidden>Show additional records</button>
    </section>
+   <details class="foreignCountryChooser" id="countryChooser">
+    <summary>Choose another country</summary>
+   <section class="regionSection" aria-labelledby="countryListTitle">
+    <div class="regionHead"><span class="muted" id="countryListTitle">Countries</span><input id="regionFilter" type="search" placeholder="Find a country…" aria-label="Find a country"></div>
+    <div class="regionGrid" id="regionList" role="list"></div>
+   </section>
+   </details>
+   <details class="foreignSourceDetails"><summary>Source and interpretation</summary>
    <p class="attribution" id="sourceNote">Official source: <a href="https://efile.fara.gov/ords/fara/f?p=107:21:::NO::" target="_blank" rel="noopener noreferrer">DOJ FARA bulk data</a>. Country colors and glass frame reuse the existing Healthcare Directory. FARA registration is not evidence of an illegal donation or a direct payment to any U.S. official.</p>
+   </details>
   </aside>
  </div>
  <script src="assets/vendor/foreign-d3.min.js"></script>
