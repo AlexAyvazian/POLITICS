@@ -16,6 +16,13 @@ class GeographySnapshotTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             source.endpoint("invalid", "53")
 
+    def test_targeted_refresh_can_limit_network_work_to_house_without_dropping_other_cached_layers(self):
+        house_jobs = source.build_jobs(["house"])
+        self.assertEqual(len(house_jobs), len(source.FIPS))
+        self.assertTrue(all(layer == "house" for layer, _ in house_jobs))
+        all_jobs = source.build_jobs(list(source.LAYERS))
+        self.assertEqual(len(all_jobs), len(source.FIPS) * len(source.LAYERS))
+
     def test_no_unicameral_or_dc_nonexistent_chambers(self):
         self.assertIn(("stateHouse", "31"), source.NO_CHAMBER)
         self.assertIn(("stateHouse", "11"), source.NO_CHAMBER)
