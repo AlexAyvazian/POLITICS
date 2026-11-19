@@ -27,6 +27,7 @@ const meta=(feature,fips)=>{
   district:code,geoid:code===null?id:String(p.GEOID),vintage:layers[layer].vintage};
 };
 function electionFor(which,stateCode){
+ if(stateCode==='AK')return window.AK_STATEWIDE_ELECTION_RESULTS?.[which]||null;
  if(stateCode!=='CA')return null;
  if(which==='governor')return window.CA_GOVERNOR_2026_RESULTS||null;
  return window.STATEWIDE_ELECTION_RESULTS?.states?.CA?.[which]||null;
@@ -64,21 +65,44 @@ function selectCounty(feature,result,race){
  root.selectAll('.atlasFeature').attr('data-active',f=>String(f.id).padStart(5,'0')===id?'true':null);
  display(countyMeta(feature,result,race));hash();
 }
+function electionDistrictMeta(feature,result,race){
+ const code=model.districtCode(feature.properties,'stateHouse');
+ return {
+  scope:'electionDistrict',layer,state,stateFips:byCode[state]?.fips||null,
+  district:code,geoid:String(feature.properties?.GEOID||''),
+  electionDate:race?.electionDate||null,electionStatus:race?.status||'unavailable',
+  sourceUrl:race?.sourceUrl||null,electionTitle:race?.title||layers[layer].title,
+  electionResult:result||null,vintage:'Alaska State House district election geography'
+ };
+}
+function selectElectionDistrict(feature,result,race){
+ selectedCounty=null;district=null;
+ const id=String(feature.properties?.GEOID||'');
+ root.selectAll('.atlasFeature').attr('data-active',f=>String(f.properties?.GEOID||'')===id?'true':null);
+ display(electionDistrictMeta(feature,result,race));hash();
+}
 function display(data){
  $('districtSelection').hidden=false;
  const delegate=data.scope==='district'&&layer==='house'&&data.state==='DC'&&data.district==='98';
  const atLarge=data.scope==='district'&&layer==='house'&&(data.district==='00'||delegate);
  const county=data.scope==='county';
- $('selectionType').textContent=county?
+ const electionDistrict=data.scope==='electionDistrict';
+ $('selectionType').textContent=electionDistrict?
+  ('HOUSE DISTRICT RESULT · '+String(data.electionTitle||layers[layer].title).toUpperCase()):
+  county?
   ('COUNTY RESULT · '+String(data.electionTitle||layers[layer].title).toUpperCase()):
   delegate?'AT-LARGE D.C. DELEGATE DISTRICT':
   atLarge?'AT-LARGE U.S. HOUSE DISTRICT':
   data.scope==='district'?layers[layer].title.toUpperCase():'STATEWIDE GEOGRAPHY';
- $('selectionName').textContent=county?
+ $('selectionName').textContent=electionDistrict?
+  (byCode[data.state]?.name+' · House District '+data.district):
+  county?
   (byCode[data.state]?.name+' · '+data.countyName+' County'):
   byCode[data.state]?.name+(data.scope==='district'?' · '+model.districtDisplayName(layer,data.district):'');
  const result=data.electionResult;
- $('selectionGeoid').textContent=county?
+ $('selectionGeoid').textContent=electionDistrict?
+  ('House District '+data.district+(result?.winner?' · '+result.winner+' won this district':' · Result unavailable')):
+  county?
   ('County FIPS: '+data.countyFips+(result?.winner?' · '+result.winner+' won this county':' · County result unavailable')):
   'GEOID: '+data.geoid+(delegate?' · D.C. elects a non-voting delegate.':atLarge?' · The entire state is one congressional district.':'');
  announce(data);
@@ -88,10 +112,11 @@ function updateLegend(){
  const legend=$('atlasPartyLegend');
  if(!legend)return;
  if(layers[layer].type==='countyElection'){
-  legend.setAttribute('aria-label','County election winner color key');
+  const unit=state==='AK'?'House district':'county';
+  legend.setAttribute('aria-label',unit+' election winner color key');
   legend.innerHTML=
-   '<span class="atlasLegendPair"><i class="atlasPartySwatch dem" aria-hidden="true"></i> Democratic county winner</span>'+
-   '<span class="atlasLegendPair"><i class="atlasPartySwatch rep" aria-hidden="true"></i> Republican county winner</span>'+
+   '<span class="atlasLegendPair"><i class="atlasPartySwatch dem" aria-hidden="true"></i> Democratic '+unit+' winner</span>'+
+   '<span class="atlasLegendPair"><i class="atlasPartySwatch rep" aria-hidden="true"></i> Republican '+unit+' winner</span>'+
    '<span class="atlasLegendPair"><i class="atlasPartySwatch vacant" aria-hidden="true"></i> Result unavailable</span>';
  }else{
   legend.setAttribute('aria-label','Current political party color key');
@@ -108,7 +133,7 @@ function ui(){
  $('districtMapLabel').textContent=stateName()+' · '+layers[layer].title;
  $('districtVintage').textContent=layers[layer].vintage;
  $('atlasHint').textContent=state?
-  (layers[layer].type==='countyElection'?'Select a county · Scroll to zoom · Drag to move':'Select a district · Scroll to zoom · Drag to move'):
+  (layers[layer].type==='countyElection'?(state==='AK'?'Select a House district · Scroll to zoom · Drag to move':'Select a county · Scroll to zoom · Drag to move'):'Select a district · Scroll to zoom · Drag to move'):
   'Select a state · Scroll to zoom · Drag to move';
  document.querySelectorAll('[data-atlas-layer]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.atlasLayer===layer)));
 }
@@ -131,7 +156,7 @@ function partyForFeature(feature){
 }
 function paintPartyColors(){
  if(!root)return;
- root.selectAll('.atlasFeature:not(.atlasCounty)').attr('data-party',partyForFeature);
+ root.selectAll('.atlasFeature:not(.atlasCounty):not(.atlasElectionDistrict)').attr('data-party',partyForFeature);
 }
 function canvas(){
  const el=$('atlasViewport'),w=Math.max(250,el.clientWidth),h=Math.max(240,el.clientHeight);
@@ -222,6 +247,78 @@ function countyElectionMap(){
  }
  display(meta(null,stateRecord.fips));
 }
+function alaskaProjection(w,h,fc,count){
+ return d3.geoConicEqualArea()
+  .parallels([55,65])
+  .rotate([154,0])
+  .center([0,58.5])
+  .fitExtent(model.districtViewport(w,h,count),fc);
+}
+async function alaskaStatewideElectionMap(turn){
+ const race=electionFor(layer,'AK');
+ const key='stateHouse|AK-election';
+ try{
+  let data=cache.get(key);
+  if(!data){
+   data=await geojson(BOUNDARY_ASSETS+'/stateHouse/02.geojson');
+   const valid=data.features.filter(f=>f.geometry?.coordinates?.length&&String(f.properties?.STATE)==='02');
+   data=model.rewindForD3({type:'FeatureCollection',features:valid});
+   cache.set(key,data);
+  }
+  if(turn!==seq)return;
+  const features=data.features;
+  const {w,h}=canvas();
+  const fc={type:'FeatureCollection',features};
+  const projection=alaskaProjection(w,h,fc,features.length);
+  const path=d3.geoPath(projection);
+  root.selectAll('path.atlasElectionDistrict').data(features,f=>String(f.properties?.GEOID||'')).join('path')
+   .attr('d',path)
+   .attr('class','atlasFeature atlasElectionDistrict')
+   .attr('data-party',f=>race?.districts?.[String(model.districtCode(f.properties,'stateHouse'))]?.party||'unknown')
+   .attr('data-election-party',f=>race?.districts?.[String(model.districtCode(f.properties,'stateHouse'))]?.party||'unknown')
+   .attr('role','button').attr('tabindex',0)
+   .attr('aria-label',f=>{
+    const code=model.districtCode(f.properties,'stateHouse');
+    const result=race?.districts?.[String(code)];
+    return 'House District '+code+(result?.winner?' · '+result.winner+' won':' · result unavailable');
+   })
+   .on('mousemove',(e,f)=>{
+    const code=model.districtCode(f.properties,'stateHouse');
+    const result=race?.districts?.[String(code)];
+    tipOn(e,'House District '+code+(result?.winner?' · '+result.winner+' won':' · result unavailable'));
+   })
+   .on('mouseleave',tipOff)
+   .on('click',(e,f)=>{
+    const code=model.districtCode(f.properties,'stateHouse');
+    selectElectionDistrict(f,race?.districts?.[String(code)],race);
+   })
+   .on('keydown',(e,f)=>{
+    if(e.key==='Enter'||e.key===' '){
+     e.preventDefault();
+     const code=model.districtCode(f.properties,'stateHouse');
+     selectElectionDistrict(f,race?.districts?.[String(code)],race);
+    }
+   });
+  root.selectAll('.atlasDistrictLabel').data(features.filter(f=>path.area(f)>190)).join('text')
+   .attr('class','atlasDistrictLabel').attr('data-x',f=>path.centroid(f)[0]).attr('data-y',f=>path.centroid(f)[1])
+   .text(f=>model.districtCode(f.properties,'stateHouse'));
+  syncDistrictLabels(d3.zoomTransform(svg.node()).k);
+  if(race){
+   const statusLabel=race.status==='certified'?'Certified':race.status==='unofficial'?'Current unofficial':'Current';
+   $('districtMapLabel').textContent='Alaska · '+race.title+' · House district results';
+   $('districtVintage').textContent=race.electionDate+' · '+statusLabel+' House district results';
+   $('atlasHint').textContent='Select a House district to see who won · Scroll to zoom · Drag to move';
+   status('');
+  }else{
+   $('districtMapLabel').textContent='Alaska · '+layers[layer].title+' · House district results unavailable';
+   $('districtVintage').textContent='Alaska State House district boundaries shown';
+   status('House district results are not yet available for this Alaska race.');
+  }
+  display(meta(null,'02'));
+ }catch(error){
+  if(turn===seq)status('Alaska House district election geography could not be loaded.');
+ }
+}
 function polygons(data,national){
  const {w,h}=canvas();
  const features=data.features.filter(f=>f.geometry?.coordinates?.length&&byFips[String(f.properties?.STATE)]);
@@ -247,8 +344,8 @@ function polygons(data,national){
   }
  }
  if(!path){
-  const projection=national?d3.geoAlbersUsa():d3.geoMercator();
-  projection.fitExtent(national?[[24,25],[w-24,h-25]]:model.districtViewport(w,h,features.length),fc);
+  const projection=national?d3.geoAlbersUsa():state==='AK'?alaskaProjection(w,h,fc,features.length):d3.geoMercator();
+  if(national||state!=='AK')projection.fitExtent(national?[[24,25],[w-24,h-25]]:model.districtViewport(w,h,features.length),fc);
   path=d3.geoPath(projection);plot(features,path,false);
  }
  if(!national){
@@ -288,8 +385,9 @@ async function geojson(url){
 async function refresh(){
  const turn=++seq;ui();tipOff();deselect();
  if(layers[layer].type==='countyElection'){
+  if(state==='AK'){await alaskaStatewideElectionMap(turn);hash();return;}
   if(state){countyElectionMap();hash();return;}
-  nationalStates();status('Choose a state to view county election results.');hash();return;
+  nationalStates();status('Choose a state to view statewide election results.');hash();return;
  }
  if(state)stateOutline();else nationalStates();
  if(!state&&layer!=='house'){status('Choose a state to view its '+layers[layer].title.toLowerCase()+'.');hash();return;}
@@ -347,6 +445,7 @@ $('districtFind').addEventListener('click',find);
 $('districtSearch').addEventListener('keydown',e=>{if(e.key==='Enter')find();});
 $('selectionClose').addEventListener('click',()=>{deselect(true);hash();});
 window.addEventListener('resize',()=>{
+ if(state==='AK'&&layers[layer].type==='countyElection'){alaskaStatewideElectionMap(seq);return;}
  if(state&&layers[layer].type==='countyElection'){countyElectionMap();return;}
  const item=cache.get(layer+'|'+(state||'US'));
  if(item&&layers[layer].type==='district')polygons(item,!state);
