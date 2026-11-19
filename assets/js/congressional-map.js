@@ -4,7 +4,7 @@
 const $=id=>document.getElementById(id),d3=window.d3,states=window.GEO_STATES,model=window.CONGRESSIONAL_MODEL,partyModel=window.CONGRESSIONAL_POLITICAL_MODEL;
 const byFips=Object.fromEntries(states.map(s=>[s.fips,s])),byCode=Object.fromEntries(states.map(s=>[s.abbr,s]));
 const layers={
- house:{title:'U.S. House districts',type:'district',id:5,vintage:'119th Congress · January 2025 Census boundaries'},
+ house:{title:'U.S. House districts',type:'district',id:0,vintage:'120th Congress · 2026 election boundaries'},
  stateSenate:{title:'State Senate districts',type:'district',id:8,vintage:'2024 Census legislative boundaries'},
  stateHouse:{title:'State House / Assembly districts',type:'district',id:9,vintage:'2024 Census legislative boundaries'},
  senate:{title:'U.S. Senate',type:'countyElection',vintage:'County election results'},
@@ -23,14 +23,32 @@ const currentCode=f=>model.districtCode(f.properties,layer);
 const meta=(feature,fips)=>{
  const p=feature?.properties||{},code=feature?currentCode(feature):null;
  const id=fips||p.STATE||byCode[state]?.fips||null;
- return {scope:code===null?'state':'district',layer,state:byFips[id]?.abbr||null,stateFips:id,
-  district:code,geoid:code===null?id:String(p.GEOID),vintage:layers[layer].vintage};
+ const stateCode=byFips[id]?.abbr||null;
+ const electionResult=layer==='house'&&code!==null?houseElectionResult(stateCode,code):null;
+ return {scope:code===null?'state':'district',layer,state:stateCode,stateFips:id,
+  district:code,geoid:code===null?id:String(p.GEOID),vintage:layers[layer].vintage,
+  electionDate:electionResult?'2026-11-03':null,electionStatus:electionResult?.status||null,
+  sourceUrl:electionResult?.sourceUrl||electionResult?.pageUrl||null,
+  electionTitle:electionResult?'2026 U.S. House election':null,electionResult};
 };
 function electionFor(which,stateCode){
+ const current=window.US_2026_ELECTION_RESULTS?.[which]?.[stateCode];
+ if(current)return current;
  if(stateCode==='AK')return window.AK_STATEWIDE_ELECTION_RESULTS?.[which]||null;
  if(stateCode!=='CA')return null;
  if(which==='governor')return window.CA_GOVERNOR_2026_RESULTS||null;
  return window.STATEWIDE_ELECTION_RESULTS?.states?.CA?.[which]||null;
+}
+function houseElectionResult(stateCode,code){
+ const key=model.electionDistrictKey(code);
+ return window.US_2026_ELECTION_RESULTS?.house?.[stateCode]?.[String(key).padStart(2,'0')]||
+        window.US_2026_ELECTION_RESULTS?.house?.[stateCode]?.[key]||null;
+}
+function houseResultStatus(feature){
+ if(layer!=='house')return null;
+ const code=byFips[String(feature?.properties?.STATE||'').padStart(2,'0')]?.abbr;
+ const result=houseElectionResult(code,currentCode(feature));
+ return result?.resultState||'unresolved';
 }
 function countyElectionResult(which,stateCode,countyFips){
  return electionFor(which,stateCode)?.counties?.[countyFips]||null;
@@ -117,7 +135,14 @@ function hash(){try{history.replaceState(null,'','#'+[state||'US',layer,district
 function updateLegend(){
  const legend=$('atlasPartyLegend');
  if(!legend)return;
- if(layers[layer].type==='countyElection'&&!state){
+ if(layer==='house'){
+  legend.setAttribute('aria-label','2026 U.S. House election result color key');
+  legend.innerHTML=
+   '<span class="atlasLegendPair"><i class="atlasPartySwatch dem" aria-hidden="true"></i> Democratic 2026 winner / leader</span>'+
+   '<span class="atlasLegendPair"><i class="atlasPartySwatch rep" aria-hidden="true"></i> Republican 2026 winner / leader</span>'+
+   '<span class="atlasLegendPair"><i class="atlasPartySwatch vacant" aria-hidden="true"></i> Undecided / unavailable</span>'+
+   '<small>Paler dashed districts are leading but not yet called. Winners are for the incoming 120th Congress.</small>';
+ }else if(layers[layer].type==='countyElection'&&!state){
   if(layer==='president'){
    legend.setAttribute('aria-label','2024 presidential statewide winner color key');
    legend.innerHTML=
@@ -159,8 +184,9 @@ function ui(){
  $('congressState').value=state||'';
  $('congressBack').hidden=!state;
  $('districtMapLabel').textContent=stateName()+' · '+layers[layer].title;
- if(!state&&layer==='senate')$('districtVintage').textContent='Current U.S. Senate delegation';
- else if(!state&&layer==='governor')$('districtVintage').textContent='Current governor party';
+ if(layer==='house')$('districtVintage').textContent='120th Congress · 2026 election results';
+ else if(!state&&layer==='senate')$('districtVintage').textContent='Incoming U.S. Senate after 2026 election';
+ else if(!state&&layer==='governor')$('districtVintage').textContent='Governor after 2026 election';
  else if(!state&&layer==='president')$('districtVintage').textContent='2024 presidential statewide winner';
  else $('districtVintage').textContent=layers[layer].vintage;
  $('atlasHint').textContent=state?
@@ -181,6 +207,10 @@ function partyForFeature(feature){
  const code=byFips[fips]?.abbr;
  if(!code)return 'unknown';
  if(layers[layer].type==='countyElection'&&isState)return nationalStateParty(layer,code);
+ if(layer==='house'&&!isState){
+  const result=houseElectionResult(code,currentCode(feature));
+  return result?.party||'unknown';
+ }
  if(typeof partyResolver!=='function')return 'unknown';
  const result=partyResolver({layer,state:code,scope:isState?'state':'district',district:isState?null:currentCode(feature)});
  return ['democratic','republican','other','split','vacant'].includes(result)?result:'unknown';
@@ -199,12 +229,19 @@ function canvas(){
 }
 function name(f,isState){
  const s=byFips[String(isState?f.id:f.properties?.STATE).padStart(2,'0')];
- return isState?(s?.name||'State'):(s?.name||stateName())+' · '+layers[layer].title+' · '+model.districtDisplayName(layer,currentCode(f));
+ if(isState)return s?.name||'State';
+ const base=(s?.name||stateName())+' · '+layers[layer].title+' · '+model.districtDisplayName(layer,currentCode(f));
+ if(layer!=='house')return base;
+ const result=houseElectionResult(s?.abbr,currentCode(f));
+ if(!result)return base+' · 2026 result unavailable';
+ const verb=result.resultState==='won'?'won':result.resultState==='leads'?'leads':'unresolved';
+ return base+' · '+result.winner+' '+verb;
 }
 function plot(features,path,isState,group=root){
  group.selectAll('path').data(features,f=>f.properties?.GEOID||f.id).join('path')
   .attr('d',path).attr('class','atlasFeature'+(isState?' atlasState':''))
   .attr('data-party',partyForFeature)
+  .attr('data-result-status',f=>isState?null:houseResultStatus(f))
   .attr('role','button').attr('tabindex',0)
   .attr('aria-label',f=>name(f,isState))
   .on('mousemove',(e,f)=>tipOn(e,name(f,isState))).on('mouseleave',tipOff)
