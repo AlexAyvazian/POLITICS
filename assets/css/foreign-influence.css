@@ -107,3 +107,32 @@
  fill:#fff;font-size:14px;font-weight:800;paint-order:stroke;
  stroke:rgba(5,11,27,.94);stroke-width:4px;stroke-linejoin:round
 }
+
+/* Prevent Chrome's SVG-path bounding-box outline from creating a huge
+ * rectangular highlight across the map (notably Russia, which crosses
+ * the dateline). Keep accessible keyboard focus via the country stroke. */
+.foreignInfluence #mapSvg:focus{outline:none!important}
+.foreignInfluence #mapSvg path.country:focus,
+.foreignInfluence #mapSvg path.country:focus-visible{
+ outline:none!important;
+ outline-offset:0!important;
+}
+.foreignInfluence #mapSvg path.country:focus-visible{
+ stroke:#fff;
+ stroke-width:2;
+ filter:drop-shadow(0 0 8px var(--glow));
+}
+.foreignInfluence .faraExplanation{margin:12px 0 9px;padding:14px 13px;background:rgba(5,13,30,.48);border:1px solid rgba(135,200,218,.2);border-radius:12px}
+.foreignInfluence .faraMeaningLabel{color:#95e5dd;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin:0 0 12px}
+.foreignInfluence .faraFact{border-top:1px solid rgba(145,187,213,.15);padding:9px 0}
+.foreignInfluence .faraFact:first-of-type{border-top:0}
+.foreignInfluence .faraFact>strong{display:block;color:#e4f5fc;font-size:12px}
+.foreignInfluence .faraFact>p{color:#bacddd;font-size:11px;line-height:1.58;margin:5px 0 0}
+.foreignInfluence .faraFactWarning{border-left:2px solid #e5be83;padding-left:11px}
+.foreignInfluence .faraReportingPeriod{font-size:11px;color:#9fc7d6;margin:6px 0}
+.foreignInfluence .faraExplanation>a{display:inline-block;font-size:11px;color:#a5dded;margin:6px 0}
+.foreignInfluence .faraDocuments{margin-top:12px;border-top:1px solid rgba(140,201,214,.16);padding-top:9px}
+.foreignInfluence .faraDocuments>summary{font-size:11px;color:#b5e4ee;cursor:pointer;font-weight:760}
+.foreignInfluence .faraDocuments .faraDocumentLink{display:block;font-size:10px;line-height:1.45;margin:7px 0}
+.foreignInfluence .faraDocuments .faraDocsTitle{margin:9px 0;font-size:10px;line-height:1.5;text-transform:none;letter-spacing:normal;font-weight:500}
+.foreignInfluence .faraPrincipal{min-height:0}

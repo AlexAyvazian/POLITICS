@@ -68,3 +68,18 @@ test('selected country remains legible at world zoom with accessible map callout
  assert.match(js,/marker\.append\('text'\)/);
  assert.match(css,/\.foreignInfluence \.foreignSelectedMarker/);
 });
+
+test('country focus cannot draw rectangular browser outline over world map',()=>{
+ const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
+ assert.match(css,/\.foreignInfluence #mapSvg path\.country:focus\s*,\s*\.foreignInfluence #mapSvg path\.country:focus-visible\s*\{[^}]*outline:\s*none\s*!important/s);
+ assert.match(css,/\.foreignInfluence #mapSvg:focus\s*\{[^}]*outline:\s*none\s*!important/s);
+ assert.match(css,/\.foreignInfluence #mapSvg path\.country:focus-visible\s*\{[^}]*stroke:\s*#fff/s);
+});
+test('FARA cards explain services and payments before collapsing source filings',()=>{
+ const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
+ assert.match(js,/function makeFilingExplanation/);
+ assert.match(js,/function makeSourceLinks/);
+ assert.match(js,/details[^\n]{0,120}faraDocuments/);
+ assert.match(js,/assets\/data\/foreign-influence\/filing-insights\//);
+ assert.match(js,/Reported payments/);
+});
