@@ -1,6 +1,7 @@
 /* Congressional Atlas political data: read-only cached federal D1 and public
- * static nightly state rosters. Fill colors mean verified CURRENT incumbency,
- * not election outcomes or forecasts. No provider API-key call on a map click.
+ * static nightly state rosters. Legislative district fills mean verified current
+ * incumbency; President/Governor/U.S. Senate county fills are sourced election
+ * outcomes handled by congressional-map.js. No provider API-key call on a map click.
  */
 (function(){
 'use strict';
