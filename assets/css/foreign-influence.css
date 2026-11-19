@@ -93,3 +93,17 @@
  .foreignInfluence .facilityList{min-height:220px}
  .foreignInfluence .foreignCountryChooser[open]{max-height:240px}
 }
+
+/* Country selection marker: preserves geographic scale and draws attention
+ * without replacing the international map with an extreme zoom. */
+.foreignInfluence .foreignMapSelection{pointer-events:none}
+.foreignInfluence .foreignSelectedMarker{pointer-events:none}
+.foreignInfluence .foreignSelectedMarker .foreignSelectionHalo{
+ fill:rgba(5,13,31,.65);stroke:var(--markerColor,#b8f2ff);
+ stroke-width:2.5;filter:drop-shadow(0 0 10px var(--markerGlow,#a6eaff))
+}
+.foreignInfluence .foreignSelectedMarker .foreignSelectionDot{fill:#fff;stroke:var(--markerColor,#b8f2ff);stroke-width:1.5}
+.foreignInfluence .foreignSelectedMarker text{
+ fill:#fff;font-size:14px;font-weight:800;paint-order:stroke;
+ stroke:rgba(5,11,27,.94);stroke-width:4px;stroke-linejoin:round
+}
