@@ -14,13 +14,14 @@ import json
 import re
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 
 ROOT=Path(__file__).resolve().parents[1]
 DATA=ROOT/'assets/data/foreign-influence'
 OUTPUT=DATA/'filing-insights'
+FAILED=OUTPUT/'unreadable.json'
 LIMIT_BYTES=12_000_000
 
 def compact(s,limit=520):
@@ -145,8 +146,20 @@ def plan():
     sorted_choices=sorted(choices.values(),key=lambda e:(not e['active'],e['reg']))
     return sorted_choices
 
+def should_attempt(failure,source_url,now):
+    """Skip unreadable or oversized originals for a week; retry revised filings."""
+    if not isinstance(failure,dict) or failure.get('sourceUrl')!=source_url:return True
+    try:
+        last=datetime.fromisoformat(failure.get('attemptedAt',''))
+        if last.tzinfo is None:last=last.replace(tzinfo=timezone.utc)
+    except (ValueError,TypeError):return True
+    return now-last>=timedelta(days=7)
+
 def refresh(limit=60):
     OUTPUT.mkdir(parents=True,exist_ok=True)
+    now=datetime.now(timezone.utc)
+    try:failures=json.loads(FAILED.read_text())
+    except (OSError,ValueError):failures={}
     queue=[]
     for entry in plan():
         path=OUTPUT/(entry['reg']+'.json')
@@ -155,10 +168,12 @@ def refresh(limit=60):
                 old=json.loads(path.read_text())
                 if old.get('sourceUrl')==entry['doc']['url']:continue
             except (OSError,ValueError):pass
+        if not should_attempt(failures.get(entry['reg']),entry['doc']['url'],now):
+            continue
         queue.append(entry)
         if len(queue)>=limit:break
     if not queue:
-        print('No new official FARA supplements in current incremental batch')
+        print('No new eligible FARA supplements in current incremental batch')
         return
     def process(e):
         txt=pdf_text(e['doc']['url'],e['reg'])
@@ -167,15 +182,24 @@ def refresh(limit=60):
         return e['reg'],result
     count=0
     with ThreadPoolExecutor(max_workers=4) as pool:
-        futures=[pool.submit(process,e) for e in queue]
+        futures={pool.submit(process,e):e for e in queue}
         for future in as_completed(futures):
+            entry=futures[future]
             try:
                 reg,record=future.result()
-                (OUTPUT/(reg+'.json')).write_text(json.dumps(record,ensure_ascii=False,separators=(',',':'))+'\n')
+                (OUTPUT/(reg+'.json')).write_text(json.dumps(record,ensure_ascii=False,separators=(',',':'))+'\\n')
+                failures.pop(reg,None)
                 count+=1
-            except Exception as e:
-                print('One PDF could not be automatically explained: '+str(e)[:160])
-    print('Processed',count,'of',len(queue),'latest supplemental statements; unmatched remain pending')
+            except Exception as error:
+                # A scanned PDF without a text layer is not an empty
+                # disclosure. Leave it unavailable and continue to other
+                # registrants on the next daily run.
+                failures[entry['reg']]={'sourceUrl':entry['doc']['url'],
+                     'attemptedAt':now.isoformat(),'reason':str(error)[:100]}
+                print('Original PDF needs another extraction method: '+str(error)[:100])
+    FAILED.write_text(json.dumps(failures,ensure_ascii=False,sort_keys=True,separators=(',',':'))+'\\n')
+    print('Processed',count,'of',len(queue),'eligible supplemental statements; '
+          'unreadable originals postponed for seven days')
 
 if __name__=='__main__':
     ap=argparse.ArgumentParser()
