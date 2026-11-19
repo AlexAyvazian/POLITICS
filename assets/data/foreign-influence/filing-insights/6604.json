@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "registrationNumber": "6604",
+  "sourceUrl": "https://efile.fara.gov/docs/6604-Supplemental-Statement-20260603-15.pdf",
+  "periodEnd": "2026-04-30",
+  "servicesSummary": "Kobre & Kim LLP reported providing legal services for Roman Arkadyevich Abramovich that it described as exempt from FARA registration under 22 U.S.C. § 613(g). Its attached riders say related payments and disbursements were made under licenses from the UK Office of Financial Sanctions.",
+  "moneyStatus": "placeholder_not_actual",
+  "moneyExplanation": "The firm reported receiving money and making disbursements connected to legal services, but explicitly states that the $0.01 figures in the form are electronic-filing placeholders, NOT actual payments. The true amounts cannot be calculated from those entries.",
+  "totalReceivedUsd": null,
+  "totalDisbursedUsd": null,
+  "contactsSummary": null,
+  "namedPrincipals": [
+    "Roman Arkadyevich Abramovich"
+  ],
+  "extractionMethod": "Source-verified reading of original DOJ FARA Supplemental Statement, June 3, 2026",
+  "coverage": "The underlying statement does not establish a payment to a U.S. politician or identify a government lobbying contact in the reviewed entries. No total financial amount has been inferred."
+}
