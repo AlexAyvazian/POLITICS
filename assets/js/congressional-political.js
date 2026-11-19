@@ -8,7 +8,7 @@
 const READER='https://politics-daily-snapshot.alxayvazian.workers.dev';
 const panel=document.getElementById('politicalDetails');
 const model=window.CONGRESSIONAL_POLITICAL_MODEL;
-const NCSL=window.POLITICS_NCSL,governors=window.GOVERNORS_2026,atlas=window.POLITICS_CONGRESSIONAL_ATLAS,vacancies=window.POLITICS_VERIFIED_VACANCIES;
+const NCSL=window.POLITICS_NCSL,governors=window.GOVERNORS_2026,atlas=window.POLITICS_CONGRESSIONAL_ATLAS,vacancies=window.POLITICS_VERIFIED_VACANCIES,ELECTION=window.US_2026_ELECTION_RESULTS;
 if(!panel||!model)return;
 const stateCache=new Map();
 /* The community congress-legislators roster currently omits these 2025
@@ -16,8 +16,8 @@ const stateCache=new Map();
  * 119th Congress. Use only as a narrow fallback when the stored roster has
  * fewer than two senators for the matching state. */
 const VERIFIED_CURRENT_SENATORS=Object.freeze({
- OH:Object.freeze({name:'Jon Husted',party:'Republican',url:'https://www.senate.gov/states/OH/intro.htm',verifiedAt:'2026-11-19'}),
- FL:Object.freeze({name:'Ashley Moody',party:'Republican',url:'https://www.senate.gov/states/FL/intro.htm',verifiedAt:'2026-11-19'})
+ OH:Object.freeze({name:'Jon Husted',party:'Republican',url:'https://www.senate.gov/states/OH/intro.htm',verifiedAt:'2026-11-19',end:'2027-01-03'}),
+ FL:Object.freeze({name:'Ashley Moody',party:'Republican',url:'https://www.senate.gov/states/FL/intro.htm',verifiedAt:'2026-11-19',end:'2027-01-03'})
 });
 function currentSenators(state){
  const people=model.senators(federal,state);
@@ -32,20 +32,49 @@ function currentSenateParty(state){
  if(parties.includes('unknown'))return 'unknown';
  return new Set(parties).size===1?parties[0]:'split';
 }
+function electionPartyLabel(value){
+ return value==='democratic'?'Democratic':value==='republican'?'Republican':value==='other'?'Other':'Party not reported';
+}
+function houseElectionResult(state,district){
+ const key=String(Number(district)).padStart(2,'0');
+ return ELECTION?.house?.[state]?.[key]||ELECTION?.house?.[state]?.[String(district)]||null;
+}
+function incomingSenators(state){
+ const current=currentSenators(state);
+ const race=ELECTION?.senate?.[state];
+ if(!race||!race.winner||race.resultState==='unresolved')return current;
+ const holdovers=current.filter(person=>String(person.end||'')!=='2027-01-03');
+ const elected={name:race.winner,party:electionPartyLabel(race.party),elected:true,resultState:race.resultState,pageUrl:race.pageUrl};
+ const combined=[...holdovers,elected];
+ const seen=new Set();
+ return combined.filter(person=>{
+  const key=String(person.name||'').toLowerCase();
+  if(!key||seen.has(key))return false;
+  seen.add(key);return true;
+ }).slice(0,2);
+}
+function incomingSenateParty(state){
+ const people=incomingSenators(state);
+ if(people.length!==2)return 'unknown';
+ const parties=people.map(person=>model.partyClass(person.party));
+ if(parties.includes('unknown'))return 'unknown';
+ return new Set(parties).size===1?parties[0]:'split';
+}
 /* Party classes are categorical current incumbency, never vote predictions.
  * A missing or partial legislative roster leaves unmatched districts neutral. */
 function resolveParty({layer,state,scope,district}){
  if(!state)return 'unknown';
  const vacancy=scope==='district'?model.verifiedVacancy(vacancies,{layer,state,district}):null;
  let incumbentParty='unknown';
- if(layer==='house')incumbentParty=scope==='district'?model.houseParty(federal,state,district):'unknown';
+ if(layer==='house'&&scope==='district')
+  incumbentParty=houseElectionResult(state,district)?.party||'unknown';
  else if(layer==='stateSenate'||layer==='stateHouse')
   incumbentParty=scope==='district'?model.stateDistrictParty(stateData.get(state),layer,district):
    model.chamberMajority(NCSL?.states?.[state],layer);
  else if(layer==='governor'&&scope==='state')
-  incumbentParty=model.partyClass(NCSL?.states?.[state]?.governor);
+  incumbentParty=ELECTION?.governor?.[state]?.party||model.partyClass(NCSL?.states?.[state]?.governor);
  else if(layer==='senate'&&scope==='state')
-  incumbentParty=currentSenateParty(state);
+  incumbentParty=incomingSenateParty(state);
  // State drill-downs are still colored by election winners in congressional-map.js.
  // These statewide values are only for the national U.S. overview.
  return model.districtPartyWithVacancies(incumbentParty,vacancy);
@@ -146,30 +175,61 @@ function render(){
   }else if(state==='DC'){
    chunks.push(note('D.C. is not a state and has no governor or state legislature. Its elected council is not represented by these state legislative layers.'));
   }
-  if(layer==='governor'||scope==='state'){
-   if(gv){chunks.push(heading('Governor'));chunks.push(person({name:gv,party:ns?party(ns.governor):'Party not reported'}));
-    chunks.push(note('NGA roster · '+esc(governors.asOf)+' · '+link(governors.sourceUrl,'source')));}
+  if(layer==='governor'){
+   const race=ELECTION?.governor?.[state];
+   if(race){
+    chunks.push(heading('2026 election · Governor'));
+    chunks.push(row(race.resultState==='won'?'Winner':'Leader',race.winner+' · '+electionPartyLabel(race.party)));
+    if(Number.isFinite(race.winnerPct))chunks.push(row('Vote share',race.winnerPct.toFixed(1)+'%'));
+    chunks.push(note((race.resultState==='won'?'Called/certified election result':'Current count; race not yet called')+
+     ' · '+link(race.pageUrl||race.sourceUrl||ELECTION.sourceUrl,'2026 election source')+'.'));
+   }else chunks.push(note('No governor election is listed for this state in the 2026 general election.'));
+   if(gv){chunks.push(heading('Current governor'));chunks.push(person({name:gv,party:ns?party(ns.governor):'Party not reported'}));
+    chunks.push(note('Current officeholder until the new term begins · NGA roster · '+esc(governors.asOf)+' · '+link(governors.sourceUrl,'source')));}
+  }else if(scope==='state'&&gv){
+   chunks.push(heading('Governor'));chunks.push(person({name:gv,party:ns?party(ns.governor):'Party not reported'}));
   }
   if(layer==='house'){
    if(scope==='district'){
-    chunks.push(heading(state==='DC'?'Current U.S. delegate':'Current U.S. representative'));
-    const people=model.house(federal,state,s.district);
-    if(federalStatus==='loading')chunks.push(note('Loading the stored congressional roster…'));
-    else if(federalStatus==='unavailable')chunks.push(note('The stored congressional roster is temporarily unavailable.'));
-    else if(!people.length&&vacancy)chunks.push(verifiedVacancyNote());
-    else if(!people.length)chunks.push(note('No matching current member in the stored roster; this does not establish a vacancy.'));
-    else chunks.push(...people.map(p=>person(p,'federal')));
-   }else chunks.push(note('Choose a U.S. House district to see its current representative.'));
+    const result=s.electionResult||houseElectionResult(state,s.district);
+    chunks.push(heading('2026 election · 120th Congress'));
+    if(result){
+     chunks.push(row(result.resultState==='won'?'2026 winner':'Current leader',result.winner+' · '+electionPartyLabel(result.party)));
+     if(Number.isFinite(result.winnerPct))chunks.push(row('Vote share',result.winnerPct.toFixed(1)+'%'));
+     if(result.runner&&Number.isFinite(result.runnerPct))chunks.push(row(result.runner,result.runnerPct.toFixed(1)+'%'));
+     chunks.push(note((result.resultState==='won'?'Race called/certified':'Race still counting')+
+      ' · '+link(result.pageUrl||result.sourceUrl||ELECTION?.sourceUrl,'2026 election source')+'.'));
+     if(result.resultState==='won')chunks.push(note('Member-elect for the 120th Congress. Takes office Jan. 3, 2027.'));
+    }else chunks.push(note('No 2026 House result is loaded for this district.'));
+    chunks.push(note('This map uses the 120th Congress district lines. It does not map the sitting 119th representative onto redrawn 2026 geography.'));
+   }else chunks.push(note('Choose a U.S. House district to see its 2026 election result for the incoming 120th Congress.'));
   }
-  if(layer==='senate'||scope==='state'){
+  if(layer==='senate'){
+   if(state==='DC')chunks.push(note('Washington, D.C. has no voting U.S. senators.'));
+   else {
+    const race=ELECTION?.senate?.[state];
+    if(race){
+     chunks.push(heading('2026 election · 120th Congress'));
+     chunks.push(row(race.resultState==='won'?'Winner':'Current leader',race.winner+' · '+electionPartyLabel(race.party)));
+     if(Number.isFinite(race.winnerPct))chunks.push(row('Vote share',race.winnerPct.toFixed(1)+'%'));
+     chunks.push(note((race.resultState==='won'?'Race called/certified':'Race still counting')+
+      ' · '+link(race.pageUrl||race.sourceUrl||ELECTION?.sourceUrl,'2026 election source')+'.'));
+    }else chunks.push(note('No U.S. Senate election is listed for this state in 2026.'));
+    if(federalStatus==='loading')chunks.push(note('Loading stored Senate records…'));
+    else if(federalStatus==='unavailable')chunks.push(note('Stored Senate roster temporarily unavailable.'));
+    else{
+     chunks.push(heading('Incoming Senate delegation'));
+     const incoming=incomingSenators(state);
+     chunks.push(...(incoming.length?incoming.map(p=>person(p,p.elected?'election':'federal')):[note('Incoming delegation unavailable.')]));
+     chunks.push(note('2026 winners take office with the 120th Congress on Jan. 3, 2027.'));
+     chunks.push(heading('Current senators · 119th Congress'));
+     chunks.push(...currentSenators(state).map(p=>person(p,'federal')));
+    }
+   }
+  }else if(scope==='state'){
    chunks.push(heading('U.S. senators'));
    if(state==='DC')chunks.push(note('Washington, D.C. has no voting U.S. senators.'));
-   else if(federalStatus==='loading')chunks.push(note('Loading stored Senate records…'));
-   else if(federalStatus==='unavailable')chunks.push(note('Stored Senate roster temporarily unavailable.'));
-   else {
-    const senators=currentSenators(state);
-    chunks.push(...(senators.length?senators.map(p=>person(p,'federal')):[note('No matching senators in the stored roster; verify before assuming a vacancy.')]));
-   }
+   else if(federalStatus==='ready')chunks.push(...currentSenators(state).map(p=>person(p,'federal')));
   }
   if((layer==='stateHouse'||layer==='stateSenate')&&scope==='district'){
    chunks.push(heading(layer==='stateSenate'?'State senator':'State representative'));
@@ -189,10 +249,10 @@ function render(){
      '. Source roster reflects current officeholder records, not an election prediction.'));
    }
   }
-  if(federalStatus==='ready'&&(layer==='house'||layer==='senate'||scope==='state'))
-   chunks.push(note('Federal member snapshot · '+esc(federal.asOf||federal.retrievedAt?.slice(0,10)||'date not reported')+
+  if(federalStatus==='ready'&&(layer==='senate'||scope==='state'))
+   chunks.push(note('Current 119th Congress roster · '+esc(federal.asOf||federal.retrievedAt?.slice(0,10)||'date not reported')+
     ' · '+link('https://github.com/unitedstates/congress-legislators','source')+
-    '. This is an incumbency roster, not a 2026 election forecast.'));
+    '. Election winners are shown separately above.'));
  }
  panel.innerHTML=chunks.join('');
 }
