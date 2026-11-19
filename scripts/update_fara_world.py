@@ -146,10 +146,20 @@ def build_country_snapshot(iso,principals,docs,index,now,catalog=None):
             # to concern any individual principal within that registrant.
             scoped=normalize(d['principal'])==normalize(p['principalName']) if d['principal'] else False
             scoped_country=normalize_country(d['country'],index)==iso if d['country'] else False
-            if not scoped and not scoped_country and d['principal']:continue
+            # A document naming a DIFFERENT principal must not be presented
+            # against this principal, even if both share the same country.
+            if d['principal'] and not scoped:continue
+            if d['country'] and not scoped_country:continue
             related.append({'url':d['url'],'type':d['type'],'filed':d['filed'],
                             'appliesTo':'named principal' if scoped else 'registrant filing'})
-        related=sorted(related,key=lambda x:x['filed'],reverse=True)[:6]
+        # Financial supplements and foreign-principal exhibits are prioritized
+        # over unrelated short forms; the original complete filing index is
+        # always one click away for additional documents.
+        def document_priority(doc):
+            kind=doc['type'].casefold()
+            return 0 if 'supplemental' in kind else 1 if 'exhibit' in kind else 2 if 'informational' in kind else 3
+        related=sorted(related,key=lambda x:x['filed'],reverse=True)
+        related=sorted(related,key=document_priority)[:10]
         items.append({
             'registrationNumber':registration,'principalName':p['principalName'],
             'registrantName':p['registrantName'],
