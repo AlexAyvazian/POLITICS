@@ -32,7 +32,12 @@ NO_CHAMBER = {("stateHouse", "31"), ("stateHouse", "11"), ("stateSenate", "11")}
 
 def endpoint(layer: str, state: str, count_only: bool = False) -> str:
     assert layer in LAYERS and state in FIPS
-    params = {"where": "STATE='" + state + "'", "f": "json" if count_only else "geojson"}
+    where = "STATE='" + state + "'"
+    if layer == "house":
+        # TIGERweb can include a ZZ polygon for areas where a congressional
+        # district is explicitly not defined. It is not an electoral district.
+        where += " AND GEOID NOT LIKE '%ZZ'"
+    params = {"where": where, "f": "json" if count_only else "geojson"}
     if count_only:
         params["returnCountOnly"] = "true"
     else:
@@ -71,6 +76,8 @@ def validate(layer: str, state: str, data: dict, count: int) -> dict:
         geoid = props.get("GEOID")
         if not isinstance(geoid, str) or len(geoid) != expected_length or not geoid.startswith(state):
             raise ValueError(f"{layer}/{state}: invalid district GEOID {geoid}")
+        if layer == "house" and not geoid[2:].isdigit():
+            raise ValueError(f"{layer}/{state}: non-electoral House GEOID {geoid}")
         if str(props.get("STATE")) != state or geometry.get("type") not in ("Polygon", "MultiPolygon"):
             raise ValueError(f"{layer}/{state}: unexpected state or geometry type")
         if not geometry.get("coordinates"):
