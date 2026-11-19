@@ -9,6 +9,8 @@ on:
   push:
     paths:
       - .github/workflows/refresh-congressional-geography.yml
+      - scripts/update_congressional_boundaries.py
+      - tests/test_boundary_snapshot.py
 
 permissions:
   contents: write
@@ -50,6 +52,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Refresh cached congressional and state legislative geography"
           # Other commits may land during a lengthy national fetch.
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

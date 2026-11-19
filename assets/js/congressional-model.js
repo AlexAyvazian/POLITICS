@@ -2,11 +2,12 @@
  * Independent of the existing county map and county aggregation logic. */
 (function(root){
 'use strict';
-const CENSUS='https://tigerweb.geo.census.gov/arcgis/rest/services/Generalized_ACS2025/Legislative/MapServer/';
+const CENSUS_CURRENT='https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer/';
+const CENSUS_ACS2025='https://tigerweb.geo.census.gov/arcgis/rest/services/Generalized_ACS2025/Legislative/MapServer/';
 const LAYERS=Object.freeze({
- house:{id:5,label:'U.S. House districts',vintage:'119th Congress · 2025 boundaries',codeLength:2},
- stateSenate:{id:8,label:'State Senate districts',vintage:'2024 district boundaries',codeLength:3},
- stateHouse:{id:9,label:'State House / Assembly districts',vintage:'2024 district boundaries',codeLength:3}
+ house:{id:0,label:'U.S. House districts',vintage:'120th Congress · 2026 election boundaries',codeLength:2,base:CENSUS_CURRENT},
+ stateSenate:{id:8,label:'State Senate districts',vintage:'2024 district boundaries',codeLength:3,base:CENSUS_ACS2025},
+ stateHouse:{id:9,label:'State House / Assembly districts',vintage:'2024 district boundaries',codeLength:3,base:CENSUS_ACS2025}
 });
 function censusUrl(layer,stateFips){
  if(!LAYERS[layer]||!/^[0-9]{2}$/.test(String(stateFips))||String(stateFips)==='00')return null;
@@ -14,7 +15,7 @@ function censusUrl(layer,stateFips){
   where:"STATE='"+stateFips+"'",outFields:'GEOID,BASENAME,STATE',
   outSR:'4326',geometryPrecision:'4',returnGeometry:'true',f:'geojson'
  };
- return CENSUS+LAYERS[layer].id+'/query?'+
+ return LAYERS[layer].base+LAYERS[layer].id+'/query?'+
   Object.entries(params).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
 }
 function districtCode(props,layer){

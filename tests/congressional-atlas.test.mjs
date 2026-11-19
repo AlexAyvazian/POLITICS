@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const read=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
 function setup(){const ctx={window:{}};vm.runInNewContext(read('assets/js/congressional-model.js'),ctx);return ctx.window.CONGRESSIONAL_MODEL;}
 test('separate congressional atlas has selectable federal and both state legislative boundaries',()=>{
- const c=setup();assert.equal(c.LAYERS.house.id,5);assert.equal(c.LAYERS.stateSenate.id,8);assert.equal(c.LAYERS.stateHouse.id,9);
+ const c=setup();assert.equal(c.LAYERS.house.id,0);assert.equal(c.LAYERS.stateSenate.id,8);assert.equal(c.LAYERS.stateHouse.id,9);
  for(const name of ['house','stateSenate','stateHouse']) {
   const url=new URL(c.censusUrl(name,'06'));
   assert.equal(url.hostname,'tigerweb.geo.census.gov');
@@ -270,7 +270,7 @@ test('national statewide maps color states instead of forcing every state unknow
  assert.doesNotMatch(js,/if\(layers\[layer\]\.type==='countyElection'&&isState\)return 'unknown'/);
  assert.match(political,/layer==='governor'&&scope==='state'/);
  assert.match(political,/layer==='senate'&&scope==='state'/);
- assert.match(political,/currentSenateParty\(state\)/);
+ assert.match(political,/incomingSenateParty\(state\)/);
 });
 
 test('national statewide legends describe state-level meaning while drilldowns keep local winner legend',()=>{
@@ -301,8 +301,50 @@ test('certified 2024 presidential state winner cache covers fifty states and DC'
 
 test('national statewide map labels describe current control or statewide election winner',()=>{
  const js=read('assets/js/congressional-map.js');
- assert.match(js,/Current U\.S\. Senate delegation/);
- assert.match(js,/Current governor party/);
+ assert.match(js,/Incoming U\.S\. Senate after 2026 election/);
+ assert.match(js,/Governor after 2026 election/);
  assert.match(js,/2024 presidential statewide winner/);
  assert.match(js,/Select a state to drill into election results/);
+});
+
+
+test('post-election House atlas uses 120th Congress geography and 2026 election results',()=>{
+ const js=read('assets/js/congressional-map.js');
+ const html=read('congressional.html');
+ assert.match(js,/120th Congress/);
+ assert.match(js,/US_2026_ELECTION_RESULTS/);
+ assert.match(js,/houseElectionResult/);
+ assert.match(js,/2026 U\.S\. House election/);
+ assert.match(html,/assets\/data\/elections\/us-2026\.js/);
+ assert.match(html,/120th Congress/);
+ assert.match(html,/TIGERweb\/Legislative\/MapServer/);
+});
+
+test('2026 national Senate and governor maps use election winners while preserving non-up states',()=>{
+ const js=read('assets/js/congressional-map.js');
+ const political=read('assets/js/congressional-political.js');
+ assert.match(js,/US_2026_ELECTION_RESULTS\?\.\[which\]/);
+ assert.match(political,/ELECTION\?\.senate/);
+ assert.match(political,/ELECTION\?\.governor/);
+ assert.match(political,/incomingSenators/);
+ assert.match(political,/2026 election · 120th Congress/);
+ assert.match(political,/Takes office Jan\. 3, 2027/);
+});
+
+test('120th House selection shows election result rather than mapping current 119th member onto redrawn geography',()=>{
+ const political=read('assets/js/congressional-political.js');
+ assert.match(political,/houseElectionResult/);
+ assert.match(political,/Member-elect|2026 winner/);
+ assert.doesNotMatch(political,/Current U\.S\. representative.*model\.house\(federal,state,s\.district\)/s);
+});
+
+
+test('published Congressional Atlas manifest is the regenerated 120th Congress House cache',()=>{
+ const manifest=JSON.parse(read('assets/data/congressional/manifest.json'));
+ assert.equal(manifest.mapVintage.house,'120th Congress (2026 election boundaries)');
+ assert.match(manifest.source,/120th Congress House/);
+ const total=Object.values(manifest.counts.house).reduce((sum,n)=>sum+n,0);
+ assert.equal(total,435);
+ assert.equal(manifest.counts.house['06'],52);
+ assert.equal(manifest.counts.house['48'],38);
 });
