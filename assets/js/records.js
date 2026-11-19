@@ -496,9 +496,9 @@ async function loadMoneyNetwork(m,committeeId=null,trail=[]){
    amount.textContent=typeof row.amountCents==='number'&&Number.isFinite(row.amountCents)?
     moneyLabel(row.amountCents/100):'Amount unavailable';
    const context=document.createElement('span');context.className='recordsNetworkContext';
-   context.textContent=(row.sourceFeed==='schedule_a'?'Reported receipt':'Reported disbursement')+
+   context.textContent=(row.memo?'Memo/intermediary entry — not additional money':
+    row.sourceFeed==='schedule_a'?'Reported committee receipt':'Reported committee disbursement')+
     (row.date?' · '+formatDate(row.date):'')+
-    (row.memo?' · Memo entry':'')+
     (row.amendment?' · Filing '+row.amendment:'');
    entry.append(button,amount,context);
    const connected=from?row.sourceConnectedOrganization:row.recipientConnectedOrganization;
