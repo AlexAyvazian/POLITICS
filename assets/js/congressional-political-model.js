@@ -10,12 +10,13 @@
  function senators(snapshot,state){return (byState(snapshot,state).senators||[]).filter(p=>p?.name);}
  function stateMembers(snapshot,layer,code){
   if(!['stateSenate','stateHouse'].includes(layer)||!snapshot?.people)return [];
-  const wanted=String(code??'').trim().toUpperCase();
+  const normalizeDistrict=value=>{const raw=String(value??'').trim().toUpperCase();return /^\d+$/.test(raw)?String(Number(raw)):raw;};
+  const wanted=normalizeDistrict(code);
   if(!wanted)return [];
   return snapshot.people.filter(p=>{
    const title=String(p.role||p.current_role?.title||'').toLowerCase();
    const chamber=layer==='stateSenate'?/senator|senate/:/assembly|representative|delegate|house/;
-   const district=String(p.district??p.current_role?.district??'').trim().toUpperCase();
+   const district=normalizeDistrict(p.district??p.current_role?.district);
    return chamber.test(title)&&district===wanted;
   });
  }
