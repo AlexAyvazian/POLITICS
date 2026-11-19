@@ -11,6 +11,27 @@ const model=window.CONGRESSIONAL_POLITICAL_MODEL;
 const NCSL=window.POLITICS_NCSL,governors=window.GOVERNORS_2026,atlas=window.POLITICS_CONGRESSIONAL_ATLAS,vacancies=window.POLITICS_VERIFIED_VACANCIES;
 if(!panel||!model)return;
 const stateCache=new Map();
+/* The community congress-legislators roster currently omits these 2025
+ * appointees. Official U.S. Senate state pages verify both as serving in the
+ * 119th Congress. Use only as a narrow fallback when the stored roster has
+ * fewer than two senators for the matching state. */
+const VERIFIED_CURRENT_SENATORS=Object.freeze({
+ OH:Object.freeze({name:'Jon Husted',party:'Republican',url:'https://www.senate.gov/states/OH/intro.htm',verifiedAt:'2026-11-19'}),
+ FL:Object.freeze({name:'Ashley Moody',party:'Republican',url:'https://www.senate.gov/states/FL/intro.htm',verifiedAt:'2026-11-19'})
+});
+function currentSenators(state){
+ const people=model.senators(federal,state);
+ const fallback=VERIFIED_CURRENT_SENATORS[state];
+ if(!fallback||people.length>=2||people.some(person=>person.name===fallback.name))return people;
+ return [...people,fallback].slice(0,2);
+}
+function currentSenateParty(state){
+ const people=currentSenators(state);
+ if(people.length!==2)return 'unknown';
+ const parties=people.map(person=>model.partyClass(person.party));
+ if(parties.includes('unknown'))return 'unknown';
+ return new Set(parties).size===1?parties[0]:'split';
+}
 /* Party classes are categorical current incumbency, never vote predictions.
  * A missing or partial legislative roster leaves unmatched districts neutral. */
 function resolveParty({layer,state,scope,district}){
@@ -24,7 +45,7 @@ function resolveParty({layer,state,scope,district}){
  else if(layer==='governor'&&scope==='state')
   incumbentParty=model.partyClass(NCSL?.states?.[state]?.governor);
  else if(layer==='senate'&&scope==='state')
-  incumbentParty=model.senateParty(federal,state);
+  incumbentParty=currentSenateParty(state);
  // State drill-downs are still colored by election winners in congressional-map.js.
  // These statewide values are only for the national U.S. overview.
  return model.districtPartyWithVacancies(incumbentParty,vacancy);
@@ -41,8 +62,10 @@ const row=(label,value)=>'<div class="atlasPoliticalRow"><span>'+esc(label)+'</s
 const person=(p,kind)=>{
  const name=esc(p.name||'Unlisted'),partyLabel=esc(p.party||'Party not reported');
  const bioguide=String(p.bioguide||'');
+ const explicitFederal=/^https:\/\/www\.senate\.gov\/states\/[A-Z]{2}\/intro\.htm$/.test(String(p.url||''))?p.url:null;
  const url=kind==='federal'&&/^[A-Z][0-9]{6}$/.test(bioguide)?
   'https://bioguide.congress.gov/search/bio/'+bioguide:
+  kind==='federal'&&explicitFederal?explicitFederal:
   kind==='state'&&/^https:\/\/((www\.)?openstates\.org|open\.pluralpolicy\.com)\//.test(String(p.url||''))?p.url:null;
  const recordLink=kind==='federal'&&/^[A-Z][0-9]{6}$/.test(bioguide)?
    '<a class="atlasViewRecords" href="records.html#member='+encodeURIComponent(bioguide)+'">View voting record &amp; disclosures ↗</a>':'';
@@ -144,7 +167,7 @@ function render(){
    else if(federalStatus==='loading')chunks.push(note('Loading stored Senate records…'));
    else if(federalStatus==='unavailable')chunks.push(note('Stored Senate roster temporarily unavailable.'));
    else {
-    const senators=model.senators(federal,state);
+    const senators=currentSenators(state);
     chunks.push(...(senators.length?senators.map(p=>person(p,'federal')):[note('No matching senators in the stored roster; verify before assuming a vacancy.')]));
    }
   }
