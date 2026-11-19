@@ -1,0 +1,48 @@
+name: Refresh nationwide 2026 election results
+
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/update_us_2026_results.py"
+      - "tests/test_us_2026_results.py"
+      - ".github/workflows/refresh-us-2026-results.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: us-2026-election-results-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify result parser
+        run: python -m unittest discover -s tests -p test_us_2026_results.py -v
+      - name: Fetch current 2026 House Senate and governor results
+        run: python scripts/update_us_2026_results.py
+      - name: Publish changed election cache
+        shell: bash
+        run: |
+          git add assets/data/elections/us-2026.js
+          if git diff --cached --quiet; then
+            echo "No 2026 result changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh nationwide 2026 election results"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
