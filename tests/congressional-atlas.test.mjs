@@ -235,3 +235,18 @@ test('Alaska statewide election layers use House districts, not borough county-e
  assert.match(js,/House district results/i);
  assert.doesNotMatch(js,/Alaska.*county results unavailable/i);
 });
+
+
+test('Alaska statewide election cache has all 40 House districts for Governor Senate and President',()=>{
+ const ctx={window:{}};
+ vm.runInNewContext(read('assets/data/elections/ak-statewide.js'),ctx);
+ const ak=ctx.window.AK_STATEWIDE_ELECTION_RESULTS;
+ assert.equal(Object.keys(ak.governor.districts).length,40);
+ assert.equal(Object.keys(ak.senate.districts).length,40);
+ assert.equal(Object.keys(ak.president.districts).length,40);
+ assert.equal(ak.governor.geography,'stateHouseDistrict');
+ assert.equal(ak.senate.geography,'stateHouseDistrict');
+ assert.equal(ak.president.geography,'stateHouseDistrict');
+ assert.equal(Object.values(ak.governor.districts).filter(x=>x.party==='democratic').length,32);
+ assert.equal(Object.values(ak.senate.districts).filter(x=>x.party==='democratic').length,24);
+});
