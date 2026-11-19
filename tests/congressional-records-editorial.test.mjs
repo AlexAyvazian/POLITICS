@@ -103,3 +103,12 @@ test('every member receives a common source-linked committee-network panel',()=>
  assert.match(js,/loadMoneyNetwork\(m\);/);
  assert.doesNotMatch(js,/JEFF PAC|Jeffries for Congress/);
 });
+
+test('representative profile keeps the full portrait visible instead of cropping the face',()=>{
+ const css=read('assets/css/records-editorial.css');
+ const portraitRule=css.match(/\.recordsProfilePortrait img\{([^}]+)\}/);
+ assert.ok(portraitRule,'profile photograph needs a dedicated rule');
+ assert.match(portraitRule[1],/object-fit:\s*contain\s*;/,'entire headshot must remain visible');
+ assert.doesNotMatch(portraitRule[1],/object-fit:\s*cover\s*;/,'portrait must not crop the face');
+ assert.match(css,/\.recordsProfilePortrait\{[^}]*overflow:hidden/,'photo remains inside the existing profile frame');
+});
