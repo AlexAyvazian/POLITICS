@@ -129,3 +129,54 @@ test('state executive roster has all fifty verified NGA governor names with clea
  assert.match(read('congressional.html'),/assets\/js\/governors\.js/);
  assert.match(read('assets/js/congressional.js'),/GOVERNORS_2026/);
 });
+
+
+test('statewide elected offices drill into county election results instead of painting one whole state',()=>{
+ const js=read('assets/js/congressional-map.js');
+ const html=read('congressional.html');
+ assert.match(js,/senate:\{title:'U\.S\. Senate',type:'countyElection'/);
+ assert.match(js,/governor:\{title:'Governors',type:'countyElection'/);
+ assert.match(js,/president:\{title:'President',type:'countyElection'/);
+ assert.match(js,/US_ATLAS\.objects\.counties/);
+ assert.match(js,/function countyElectionMap/);
+ assert.match(js,/countyElectionResult/);
+ assert.match(js,/scope:'county'/);
+ assert.match(html,/assets\/data\/elections\/ca-statewide\.js/);
+});
+
+test('statewide county maps use election winners rather than current officeholder party',()=>{
+ const js=read('assets/js/congressional-map.js');
+ const political=read('assets/js/congressional-political.js');
+ assert.match(js,/data-election-party/);
+ assert.match(js,/county winner/i);
+ assert.doesNotMatch(political,/else if\(layer==='president'\)incumbentParty=model\.partyClass\('Republican'\)/);
+ assert.doesNotMatch(political,/else if\(layer==='governor'\)incumbentParty=model\.partyClass\(NCSL/);
+ assert.match(political,/scope==='county'/);
+ assert.match(political,/County result/);
+});
+
+test('California statewide election cache distinguishes certified historical results from live 2026 canvass',()=>{
+ const ctx={window:{}};
+ vm.runInNewContext(read('assets/data/elections/ca-statewide.js'),ctx);
+ const ca=ctx.window.STATEWIDE_ELECTION_RESULTS.states.CA;
+ assert.equal(ca.president.electionDate,'2024-11-05');
+ assert.equal(ca.president.status,'certified');
+ assert.equal(ca.senate.electionDate,'2024-11-05');
+ assert.equal(ca.senate.status,'certified');
+ assert.equal(ca.governor.electionDate,'2026-11-03');
+ assert.ok(['unofficial','certified'].includes(ca.governor.status));
+ assert.equal(Object.keys(ca.president.counties).length,58);
+ assert.equal(Object.keys(ca.senate.counties).length,58);
+ assert.equal(Object.keys(ca.governor.counties).length,58);
+ assert.equal(ca.president.counties['06019'].party,'republican');
+ assert.equal(ca.senate.counties['06019'].party,'republican');
+});
+
+test('statewide election map labels the election and county-result source instead of state geography',()=>{
+ const js=read('assets/js/congressional-map.js');
+ assert.match(js,/County results/);
+ assert.match(js,/electionDate/);
+ assert.match(js,/certified/i);
+ assert.match(js,/unofficial/i);
+ assert.match(js,/sourceUrl/);
+});
