@@ -444,3 +444,21 @@ body[data-view="records"] .recordsProfile{
 @media(max-width:760px){.recordsNetworkGrid{grid-template-columns:1fr;gap:12px}.recordsNetworkColumn{padding:16px}.recordsNetworkEdge{grid-template-columns:minmax(0,1fr) auto}}
 
 .recordsNetworkAffiliation{grid-column:1/-1;color:#c1d8df;font-size:10px;line-height:1.45;font-weight:580}
+
+
+/* Reuse the County Atlas geographic palette exactly on state silhouette
+ * hover/focus. Keep the normal silhouette colors and approved outline art. */
+.recordsStateCard:hover .recordsStateGlyph path,
+.recordsStateCard:focus-visible .recordsStateGlyph path{
+ fill:var(--records-state-hover,#718096);
+ stroke:var(--records-state-hover,#718096);
+ filter:drop-shadow(0 0 10px var(--records-state-glow,#9caabe));
+}
+.recordsStateCard:hover strong,
+.recordsStateCard:focus-visible strong{
+ color:var(--records-state-hover,#b7ced8);
+}
+.recordsStateCard:focus-visible{
+ outline:2px solid var(--records-state-hover,#8ed8f6);
+ outline-offset:2px;
+}

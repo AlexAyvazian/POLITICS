@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const tick=()=>new Promise(r=>setImmediate(r));
 function node(id=''){
- const el={id,children:[],hidden:false,attributes:{},listeners:{},value:'',textContent:'',innerHTML:'',className:'',style:{},
+ const el={id,children:[],hidden:false,attributes:{},listeners:{},value:'',textContent:'',innerHTML:'',className:'',style:{setProperty(k,v){this[k]=v}},
   addEventListener(name,handler){this.listeners[name]=handler},
   setAttribute(k,v){this.attributes[k]=v},
   replaceChildren(...items){this.children=items},
@@ -46,18 +46,28 @@ function build(){
   history:{replaceState(){}},location:{hash:'',pathname:'/records.html',search:''},
   URLSearchParams,encodeURIComponent,fetch,Date,Number,Array,Intl};
  vm.runInNewContext(read('assets/js/states.js'),ctx);
+ vm.runInNewContext(read('assets/js/state-silhouettes.js'),ctx);
+ vm.runInNewContext(read('assets/js/geo-colors.js'),ctx);
  vm.runInNewContext(read('assets/js/records-model.js'),ctx);
  vm.runInNewContext(read('assets/js/records.js'),ctx);
- return {el,requests};
+ return {el,requests,geoColors:ctx.window.GEO_COLORS};
 }
 test('state tiles are the default directory, choosing Colorado exposes the delegation and a working voting profile',async()=>{
- const {el,requests}=build();
+ const {el,requests,geoColors}=build();
  await tick();await tick();await tick();
  assert.equal(el.stateGrid.children.length,51);
  assert.equal(el.stateDirectory.hidden,false);
  assert.equal(el.delegationDirectory.hidden,true);
  const co=el.stateGrid.children.find(c=>c.attributes['aria-label']==='Browse Colorado congressional delegation');
  assert.ok(co);
+ const alaska=el.stateGrid.children.find(c=>c.attributes['aria-label']==='Browse Alaska congressional delegation');
+ const florida=el.stateGrid.children.find(c=>c.attributes['aria-label']==='Browse Florida congressional delegation');
+ assert.ok(alaska&&florida);
+ assert.equal(alaska.style['--records-state-hover'],geoColors.state('02').hover);
+ assert.equal(florida.style['--records-state-hover'],geoColors.state('12').hover);
+ assert.notEqual(alaska.style['--records-state-hover'],florida.style['--records-state-hover']);
+ assert.match(alaska.children[0].innerHTML,/viewBox="12 28 176 104"/);
+ assert.match(co.children[0].innerHTML,/viewBox="0 0 200 160"/);
  co.click();
  assert.equal(el.stateDirectory.hidden,true);
  assert.equal(el.delegationDirectory.hidden,false);

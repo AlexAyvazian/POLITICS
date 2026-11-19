@@ -34,10 +34,20 @@ function renderStateDirectory(){
   const btn=document.createElement('button');
   btn.type='button';btn.className='recordsStateCard';
   btn.setAttribute('aria-label','Browse '+item.name+' congressional delegation');
+  // Use the exact geographically assigned state hover colors already used
+  // on the main Atlas, not one universal blue highlight.
+  const stateColors=window.GEO_COLORS?.state?.(item.fips);
+  if(stateColors&&btn.style?.setProperty){
+   btn.style.setProperty('--records-state-hover',stateColors.hover);
+   btn.style.setProperty('--records-state-glow',stateColors.glow);
+  }
   const glyph=document.createElement('span');
   glyph.className='recordsStateGlyph';glyph.setAttribute('aria-hidden','true');
   const path=window.POLITICS_STATE_SILHOUETTES?.[item.abbr];
-  if(path)glyph.innerHTML='<svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" focusable="false"><path d="'+path+'"></path></svg>';
+  // Alaska spans a wide mainland and Aleutian chain. A tighter viewport
+  // gives its outline equal visual presence without changing its geography.
+  const viewBox=item.abbr==='AK'?'12 28 176 104':'0 0 200 160';
+  if(path)glyph.innerHTML='<svg viewBox="'+viewBox+'" preserveAspectRatio="xMidYMid meet" focusable="false"><path d="'+path+'"></path></svg>';
   const abbreviation=document.createElement('span');
   abbreviation.className='recordsStateAbbr';abbreviation.textContent=item.abbr;
   const name=document.createElement('strong');
