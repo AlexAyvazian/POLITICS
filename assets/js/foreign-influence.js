@@ -12,7 +12,7 @@ const byNumeric=new Map(COUNTRIES.filter(c=>c.numeric).map(c=>[String(c.numeric)
 const byName=new Map(COUNTRIES.flatMap(c=>[c.name,...(c.atlasNames||[])].map(n=>[n.toLowerCase(),c])));
 const byIso=new Map(COUNTRIES.map(c=>[c.iso2,c]));
 const compare=(a,b)=>a.name.localeCompare(b.name);
-const countries=COUNTRIES.filter(c=>!c.noDirectory).sort(compare);
+const countries=COUNTRIES.filter(c=>c.iso2).sort(compare);
 const millerRaw=(lambda,phi)=>[lambda,1.25*Math.log(Math.tan(Math.PI/4+.4*phi))];
 millerRaw.invert=(x,y)=>[x,2.5*Math.atan(Math.exp(.8*y))-.625*Math.PI];
 const projection=d3.geoProjection(millerRaw);
