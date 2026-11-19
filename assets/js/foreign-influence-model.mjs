@@ -43,3 +43,36 @@ export function documentsForGroup(documents,group='all'){
  if(!['supplemental','contracts','communications','other'].includes(group))return [];
  return filtered.filter(doc=>documentGroup(doc)===group);
 }
+
+
+/* Influence themes are deterministic labels applied only when reviewed filing
+ * text contains explicit topic language. They are navigation aids, not claims
+ * about a country's overall policy or intent. */
+export const INFLUENCE_THEMES=[
+ {id:'trade_commerce',label:'Trade & commerce',description:'Trade, market access, investment, imports or exports.',
+  patterns:[/\btrade\b/i,/\btariffs?\b/i,/\bmarket access\b/i,/\bimports?\b/i,/\bexports?\b/i,/\bcommercial\b/i,/\bcommerce\b/i,/\binvestment\b/i]},
+ {id:'sanctions_regulation',label:'Sanctions & regulation',description:'Sanctions, OFAC, export controls, licenses or regulatory policy.',
+  patterns:[/\bsanctions?\b/i,/\bOFAC\b/i,/\bexport controls?\b/i,/\bregulat(?:ion|ory|ions)\b/i,/\blicen[cs](?:e|es|ing)\b/i]},
+ {id:'defense_security',label:'Defense & security',description:'Defense, national security, military or intelligence matters.',
+  patterns:[/\bdefen[cs]e\b/i,/\bnational security\b/i,/\bmilitary\b/i,/\barmed forces?\b/i,/\bweapons?\b/i,/\bmissiles?\b/i,/\bintelligence\b/i,/\bNATO\b/i]},
+ {id:'energy_resources',label:'Energy & resources',description:'Energy, oil, gas, petroleum, LNG, mining or critical minerals.',
+  patterns:[/\benergy\b/i,/\boil\b/i,/\bnatural gas\b/i,/\bpetroleum\b/i,/\bLNG\b/i,/\bmining\b/i,/\bminerals?\b/i]},
+ {id:'media_pr',label:'Media & public relations',description:'Public relations, media, communications, messaging or advertising.',
+  patterns:[/\bpublic relations?\b/i,/\bmedia\b/i,/\bpress outreach\b/i,/\bcommunications?\b/i,/\bstrategic messaging\b/i,/\badvertis(?:ing|ement|ements)\b/i,/\binformational materials?\b/i]},
+ {id:'tourism',label:'Tourism promotion',description:'Tourism, destination marketing or visitor promotion.',
+  patterns:[/\btourism\b/i,/\btourist(?:s)?\b/i,/\bdestination marketing\b/i,/\bvisitor information\b/i,/\btravel promotion\b/i]},
+ {id:'legal',label:'Legal representation',description:'Legal services, counsel, litigation or court proceedings.',
+  patterns:[/\blegal services?\b/i,/\blegal counsel\b/i,/\blitigation\b/i,/\bcourt proceedings?\b/i,/\battorney\b/i]},
+ {id:'diplomacy_relations',label:'Diplomacy & foreign relations',description:'Diplomatic, bilateral or U.S. foreign-relations activity.',
+  patterns:[/\bdiplomatic\b/i,/\bbilateral\b/i,/\bforeign relations\b/i,/\bU\.?S\.?[- ](?:foreign )?relations\b/i,/\bembassy\b/i,/\bdiplomacy\b/i]},
+ {id:'technology_industry',label:'Technology & industry',description:'Technology, semiconductors, aerospace, cyber or telecommunications.',
+  patterns:[/\btechnology\b/i,/\bsemiconductors?\b/i,/\baerospace\b/i,/\bcyber(?:security)?\b/i,/\btelecommunications?\b/i,/\btelecom\b/i]},
+ {id:'agriculture_food',label:'Agriculture & food',description:'Agriculture, livestock, food commodities or farming.',
+  patterns:[/\bagricultur(?:e|al)\b/i,/\blivestock\b/i,/\bbeef\b/i,/\blamb\b/i,/\bcoffee\b/i,/\bfarming\b/i,/\bfood commodities\b/i]}
+];
+
+export function classifyInfluenceText(text){
+ const value=String(text||'').trim();
+ if(!value)return [];
+ return INFLUENCE_THEMES.filter(theme=>theme.patterns.some(pattern=>pattern.test(value))).map(theme=>theme.id);
+}
