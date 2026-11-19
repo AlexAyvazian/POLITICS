@@ -15,6 +15,11 @@ function toCents(v){
 export function normalizeFecMoneyRow(feed,row){
  if(!['schedule_a','schedule_b'].includes(feed)||!row||typeof row!=='object')return null;
  const inbound=feed==='schedule_a';
+ // FEC conduit/intermediary records can have contributor_id set to the
+ // processor committee while contributor_name identifies an INDIVIDUAL.
+ // A matching FEC committee ID alone must never create a PAC-to-PAC edge.
+ const entityType=String(row.entity_type||'').toUpperCase();
+ if(inbound&&!['COM','PAC','CCM','PTY'].includes(entityType))return null;
  const sourceCommitteeId=String(inbound?row.contributor_id:row.committee_id||'');
  const recipientCommitteeId=String(inbound?row.committee_id:row.recipient_committee_id||'');
  const amountCents=toCents(inbound?row.contribution_receipt_amount:row.disbursement_amount);
@@ -22,7 +27,7 @@ export function normalizeFecMoneyRow(feed,row){
  const id=String(row.sub_id||'');
  if(!COMMITTEE.test(sourceCommitteeId)||!COMMITTEE.test(recipientCommitteeId)||!amountCents||!date||!/^[0-9]{1,30}$/.test(id))return null;
  if(row.two_year_transaction_period!==undefined&&Number(row.two_year_transaction_period)!==CYCLE)return null;
- const image=String(row.image_number||'');
+ const image=typeof row.image_number==='string'?row.image_number:'';
  const sourceUrl=/^[0-9]{10,20}$/.test(image)?
   'https://docquery.fec.gov/cgi-bin/fecimg/?'+image:
   'https://www.fec.gov/data/committee/'+(inbound?recipientCommitteeId:sourceCommitteeId)+'/?cycle='+CYCLE;
