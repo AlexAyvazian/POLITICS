@@ -83,3 +83,37 @@ test('FARA cards explain services and payments before collapsing source filings'
  assert.match(js,/assets\/data\/foreign-influence\/filing-insights\//);
  assert.match(js,/Reported payments/);
 });
+
+
+test('foreign influence panel prioritizes country intelligence over filing filters and country chooser',()=>{
+ const html=readFileSync(new URL('../foreign-influence.html',import.meta.url),'utf8');
+ assert.doesNotMatch(html,/id="statusFilter"/);
+ assert.doesNotMatch(html,/id="documentFilter"/);
+ assert.doesNotMatch(html,/id="countryChooser"/);
+ assert.doesNotMatch(html,/id="regionFilter"/);
+ assert.match(html,/id="countryOverview"/);
+ assert.match(html,/id="relationshipList"/);
+ assert.match(html,/id="activityTimeline"/);
+ assert.match(html,/id="historicalRecords"/);
+ assert.match(html,/id="coverageNote"/);
+ assert.equal((html.match(/id="search"/g)||[]).length,1);
+});
+
+test('country intelligence separates historical records and does not repeat generic disclosure boilerplate per principal',()=>{
+ const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
+ assert.match(js,/function splitHistoricalRecords/);
+ assert.match(js,/function renderCountryOverview/);
+ assert.match(js,/function renderRelationshipList/);
+ assert.match(js,/function renderTimeline/);
+ assert.doesNotMatch(js,/This U\.S\. registrant has filed a FARA record for the named foreign principal/);
+ assert.doesNotMatch(js,/A verified amount has not yet been extracted\. This does not mean no money was received or spent/);
+ assert.doesNotMatch(js,/No named officials or contacts have been verified from this record/);
+});
+
+test('selected country inspector is widened for readable intelligence sections',()=>{
+ const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
+ assert.match(css,/\.foreignInfluence \.app\s*\{[^}]*grid-template-columns:[^;}]*minmax\(520px,/s);
+ assert.match(css,/\.foreignInfluence \.relationshipList/);
+ assert.match(css,/\.foreignInfluence \.activityTimeline/);
+ assert.match(css,/\.foreignInfluence \.historicalRecords/);
+});
