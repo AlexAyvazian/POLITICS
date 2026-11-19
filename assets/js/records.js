@@ -33,6 +33,7 @@ function renderStateDirectory(){
  for(const item of states){
   const btn=document.createElement('button');
   btn.type='button';btn.className='recordsStateCard';
+  if(item.abbr==='AK')btn.className+=' recordsStateCard--alaska';
   btn.setAttribute('aria-label','Browse '+item.name+' congressional delegation');
   // Use the exact geographically assigned state hover colors already used
   // on the main Atlas, not one universal blue highlight.

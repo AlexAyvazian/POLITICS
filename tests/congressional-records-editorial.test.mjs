@@ -112,3 +112,15 @@ test('representative profile keeps the full portrait visible instead of cropping
  assert.doesNotMatch(portraitRule[1],/object-fit:\s*cover\s*;/,'portrait must not crop the face');
  assert.match(css,/\.recordsProfilePortrait\{[^}]*overflow:hidden/,'photo remains inside the existing profile frame');
 });
+
+test('Alaska fills its selector tile without distorting the established silhouette or changing hover colors',()=>{
+ const css=read('assets/css/records-editorial.css');
+ const js=read('assets/js/records.js');
+ const html=read('records.html');
+ assert.match(js,/item\.abbr==='AK'\)btn\.className\+=' recordsStateCard--alaska'/);
+ assert.match(css,/\.recordsStateCard--alaska\s+\.recordsStateGlyph\s+svg\s*\{[^}]*transform:\s*scale\(1\.35\)/s);
+ assert.match(css,/\.recordsStateCard--alaska\s+\.recordsStateGlyph\s+svg\s*\{[^}]*transform-origin:\s*50%\s+50%/s);
+ assert.match(css,/@media\s*\(max-width:740px\)\s*\{\s*\.recordsStateCard--alaska\s+\.recordsStateGlyph\s+svg\s*\{[^}]*transform:\s*scale\(1\.14\)/s);
+ assert.match(html,/assets\/js\/geo-colors\.js/);
+ assert.match(js,/--records-state-hover/);
+});
