@@ -21,10 +21,11 @@ test('House district colors come from the 2026 result rather than current 119th 
  assert.match(js,/pending/);
 });
 
-test('national Senate and Governor layers use 2026 election outcomes where a 2026 race exists',()=>{
+test('national Senate and Governor layers use only 2026 outcomes and do not fall back to stale prior races',()=>{
  const js=read('assets/js/congressional-map.js');
  assert.match(js,/US_ELECTION_2026.*senate/s);
  assert.match(js,/US_ELECTION_2026.*governor/s);
+ assert.match(js,/if\(nationwide\)return nationwide\?\.\[which\]\?\.\[stateCode\]\|\|null/);
  assert.match(js,/No 2026 race/);
 });
 
