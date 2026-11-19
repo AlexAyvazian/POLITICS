@@ -21,8 +21,12 @@ function districtCode(props,layer){
  const size=LAYERS[layer]?.codeLength;
  if(!size)return null;
  const id=String(props?.GEOID||'');
- if(!/^[0-9]+$/.test(id)||id.length!==size+2)return null;
- return id.slice(2);
+ if(id.length!==size+2)return null;
+ const suffix=id.slice(2);
+ if(/^[0-9]+$/.test(suffix))return suffix;
+ const basename=String(props?.BASENAME||'').trim();
+ if(['stateSenate','stateHouse'].includes(layer)&&/^[A-Za-z0-9]+$/.test(basename))return basename;
+ return null;
 }
 function liveTerm(person,asOf){
  const terms=person?.terms||[];
@@ -133,7 +137,9 @@ function districtViewport(width,height,count){
 function districtDisplayName(layer,code){
  if(layer==='house'&&String(code)==='00')return 'At-large';
  if(layer==='house'&&String(code)==='98')return 'At-large delegate';
- const value=Number(code);
+ const raw=String(code??'').trim();
+ if(/^[A-Za-z]+$/.test(raw))return 'District '+raw.toUpperCase();
+ const value=Number(raw);
  return Number.isInteger(value)&&value>=0?'District '+value:'District';
 }
 
