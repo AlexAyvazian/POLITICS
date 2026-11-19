@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timezone, timedelta
-from scripts.update_fara_explanations import explain_supplemental, clean_activity, should_attempt, prioritize_plan_entries
+from scripts.update_fara_explanations import explain_supplemental, clean_activity, should_attempt, prioritize_plan_entries, extract_page_text, EXTRACTOR_VERSION
 
 FILING = """
 For 6 Month Period Ending 04/30/2026
@@ -55,12 +55,30 @@ class TestFaraEvidence(unittest.TestCase):
  def test_an_unreadable_pdf_does_not_block_tomorrows_new_filing(self):
   now=datetime(2026,11,19,tzinfo=timezone.utc)
   failure={'sourceUrl':'https://efile.fara.gov/docs/999-Supplemental-Statement-20261119.pdf',
-           'attemptedAt':now.isoformat(),'reason':'no_text'}
+           'attemptedAt':now.isoformat(),'reason':'no_text','extractorVersion':EXTRACTOR_VERSION}
   self.assertFalse(should_attempt(failure,failure['sourceUrl'],now+timedelta(days=1)))
   self.assertTrue(should_attempt(failure,failure['sourceUrl'],now+timedelta(days=8)))
   self.assertTrue(should_attempt(failure,'https://efile.fara.gov/docs/999-Supplemental-Statement-20261120.pdf',now))
   self.assertTrue(should_attempt(None,failure['sourceUrl'],now))
  
+ def test_pdf_text_falls_back_to_standard_native_extraction_before_declaring_unreadable(self):
+  class FakePage:
+   def __init__(self):self.calls=[]
+   def extract_text(self,extraction_mode=None):
+    self.calls.append(extraction_mode)
+    if extraction_mode=='layout':return '   '
+    return 'Readable native PDF text from the standard extractor. '*8
+  page=FakePage()
+  text=extract_page_text(page)
+  self.assertIn('Readable native PDF text',text)
+  self.assertEqual(page.calls,['layout',None])
+
+ def test_failed_pdf_is_retried_immediately_when_extractor_version_changes(self):
+  now=datetime(2026,11,19,tzinfo=timezone.utc)
+  failure={'sourceUrl':'https://efile.fara.gov/docs/999-Supplemental-Statement-20261119.pdf',
+           'attemptedAt':now.isoformat(),'reason':'no_text','extractorVersion':EXTRACTOR_VERSION-1}
+  self.assertTrue(should_attempt(failure,failure['sourceUrl'],now+timedelta(minutes=5)))
+
  def test_document_without_real_activity_or_money_is_uncertain(self):
   text='1. (a) Name of Registrant\nSome Firm\n(b) Registration Number\n1234\n## III - ACTIVITIES\n## IV - FINANCIAL INFORMATION\n'
   doc=explain_supplemental(text,'1234','https://efile.fara.gov/docs/1234-Supplemental-Statement-20260603.pdf')
