@@ -67,7 +67,13 @@ jobs:
           node --check assets/js/congressional-political.js
           node --test tests/congressional-static-cache.test.mjs tests/congressional-atlas.test.mjs tests/congressional-2026-election.test.mjs
       - name: Validate and refresh official geographic boundary files
-        run: python scripts/update_congressional_boundaries.py --workers 3
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            python scripts/update_congressional_boundaries.py --workers 3
+          else
+            python scripts/update_congressional_boundaries.py --workers 3 --layers house
+          fi
       - name: Audit all generated district maps before publishing
         run: node scripts/audit_congressional_geometry.mjs
       - name: Commit only changed static boundary files
