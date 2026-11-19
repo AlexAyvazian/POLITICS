@@ -10,12 +10,13 @@
  function senators(snapshot,state){return (byState(snapshot,state).senators||[]).filter(p=>p?.name);}
  function stateMembers(snapshot,layer,code){
   if(!['stateSenate','stateHouse'].includes(layer)||!snapshot?.people)return [];
-  const n=Number(code);
-  if(!Number.isInteger(n))return [];
+  const wanted=String(code??'').trim().toUpperCase();
+  if(!wanted)return [];
   return snapshot.people.filter(p=>{
    const title=String(p.role||p.current_role?.title||'').toLowerCase();
    const chamber=layer==='stateSenate'?/senator|senate/:/assembly|representative|delegate|house/;
-   return chamber.test(title)&&Number(p.district||p.current_role?.district)===n;
+   const district=String(p.district??p.current_role?.district??'').trim().toUpperCase();
+   return chamber.test(title)&&district===wanted;
   });
  }
  function stateCompleteness(snapshot){
@@ -28,7 +29,9 @@
 function districtMarker(layer,code){
  if(layer==='house'&&String(code)==='00')return 'AL';
  if(layer==='house'&&String(code)==='98')return 'DC';
- const n=Number(code);
+ const raw=String(code??'').trim();
+ if(/^[A-Za-z]+$/.test(raw))return raw.toUpperCase();
+ const n=Number(raw);
  return Number.isInteger(n)&&n>=0?String(n):'?';
 }
 function partyClass(raw){
