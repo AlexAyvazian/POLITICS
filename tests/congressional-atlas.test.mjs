@@ -270,7 +270,7 @@ test('national statewide maps color states instead of forcing every state unknow
  assert.doesNotMatch(js,/if\(layers\[layer\]\.type==='countyElection'&&isState\)return 'unknown'/);
  assert.match(political,/layer==='governor'&&scope==='state'/);
  assert.match(political,/layer==='senate'&&scope==='state'/);
- assert.match(political,/model\.senateParty\(federal,state\)/);
+ assert.match(political,/currentSenateParty\(state\)/);
 });
 
 test('national statewide legends describe state-level meaning while drilldowns keep local winner legend',()=>{
