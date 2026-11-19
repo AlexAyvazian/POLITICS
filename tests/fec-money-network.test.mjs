@@ -4,7 +4,7 @@ import {normalizeFecMoneyRow,graphEvidence,selectBatchMembers,normalizeFecCommit
 
 test('Schedule A receipts link only identified committees, not employer name guesses',()=>{
  const row={sub_id:'100001',committee_id:'C00000002',committee_name:'Recipient Campaign',
-  contributor_id:'C00000001',contributor_name:'Example PAC',contribution_receipt_amount:10000,
+  contributor_id:'C00000001',contributor_name:'Example PAC',entity_type:'COM',contribution_receipt_amount:10000,
   contribution_receipt_date:'2026-06-10',two_year_transaction_period:2026,image_number:'123456789012345678'};
  const edge=normalizeFecMoneyRow('schedule_a',row);
  assert.equal(edge.sourceCommitteeId,'C00000001');
@@ -54,4 +54,16 @@ test('FEC-reported connected organization is an affiliation, never presumed dono
  assert.equal(out.designation,'B');
  assert.equal(out.relationshipType,'FEC connected organization');
  assert.equal(normalizeFecCommittee({committee_id:'INVALID',name:'Example'}),null);
+});
+
+test('intermediary FEC committee ID never turns a named individual into a PAC',()=>{
+ const donor={sub_id:'301',committee_id:'C00313247',contributor_id:'C00694323',
+  contributor_name:'JUDY GUSTAFSON',entity_type:'IND',receipt_type_full:'CONTRIBUTION',
+  contribution_receipt_amount:25,contribution_receipt_date:'2026-06-30',
+  two_year_transaction_period:2026};
+ assert.equal(normalizeFecMoneyRow('schedule_a',donor),null);
+ assert.equal(normalizeFecMoneyRow('schedule_a',{...donor,entity_type:'ORG'}),null);
+ assert.equal(normalizeFecMoneyRow('schedule_a',{...donor,entity_type:''}),null);
+ const committee={...donor,entity_type:'PAC',contributor_name:'REGISTERED PAC'};
+ assert.equal(normalizeFecMoneyRow('schedule_a',committee).sourceCommitteeId,'C00694323');
 });
