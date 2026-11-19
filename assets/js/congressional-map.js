@@ -274,29 +274,29 @@ async function alaskaStatewideElectionMap(turn){
   root.selectAll('path.atlasElectionDistrict').data(features,f=>String(f.properties?.GEOID||'')).join('path')
    .attr('d',path)
    .attr('class','atlasFeature atlasElectionDistrict')
-   .attr('data-party',f=>race?.districts?.[String(model.districtCode(f.properties,'stateHouse'))]?.party||'unknown')
-   .attr('data-election-party',f=>race?.districts?.[String(model.districtCode(f.properties,'stateHouse'))]?.party||'unknown')
+   .attr('data-party',f=>race?.districts?.[model.electionDistrictKey(model.districtCode(f.properties,'stateHouse'))]?.party||'unknown')
+   .attr('data-election-party',f=>race?.districts?.[model.electionDistrictKey(model.districtCode(f.properties,'stateHouse'))]?.party||'unknown')
    .attr('role','button').attr('tabindex',0)
    .attr('aria-label',f=>{
     const code=model.districtCode(f.properties,'stateHouse');
-    const result=race?.districts?.[String(code)];
+    const result=race?.districts?.[model.electionDistrictKey(code)];
     return 'House District '+code+(result?.winner?' · '+result.winner+' won':' · result unavailable');
    })
    .on('mousemove',(e,f)=>{
     const code=model.districtCode(f.properties,'stateHouse');
-    const result=race?.districts?.[String(code)];
+    const result=race?.districts?.[model.electionDistrictKey(code)];
     tipOn(e,'House District '+code+(result?.winner?' · '+result.winner+' won':' · result unavailable'));
    })
    .on('mouseleave',tipOff)
    .on('click',(e,f)=>{
     const code=model.districtCode(f.properties,'stateHouse');
-    selectElectionDistrict(f,race?.districts?.[String(code)],race);
+    selectElectionDistrict(f,race?.districts?.[model.electionDistrictKey(code)],race);
    })
    .on('keydown',(e,f)=>{
     if(e.key==='Enter'||e.key===' '){
      e.preventDefault();
      const code=model.districtCode(f.properties,'stateHouse');
-     selectElectionDistrict(f,race?.districts?.[String(code)],race);
+     selectElectionDistrict(f,race?.districts?.[model.electionDistrictKey(code)],race);
     }
    });
   root.selectAll('.atlasDistrictLabel').data(features.filter(f=>path.area(f)>190)).join('text')
