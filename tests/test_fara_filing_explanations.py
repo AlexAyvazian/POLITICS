@@ -40,6 +40,7 @@ class TestFaraEvidence(unittest.TestCase):
   self.assertIn('placeholder',doc['moneyExplanation'].lower())
   self.assertIn('legal services',doc['servicesSummary'].lower())
   self.assertIn('UK',doc['servicesSummary'])
+  self.assertEqual(doc.get('financialRows'),[])
  def test_form_questions_are_not_reported_as_actual_political_contacts(self):
   doc=explain_supplemental(FILING,'6604','https://efile.fara.gov/docs/6604-Supplemental-Statement-20260603-15.pdf')
   self.assertIsNone(doc['contactsSummary'])
@@ -101,6 +102,44 @@ Total
   self.assertEqual(doc['politicalContacts'][0]['contact'],'John Stout, Rep. Burchett')
   self.assertIn('1 disclosed U.S. political-contact',doc['contactsSummary'])
   self.assertNotIn('Wall Street Journal',doc['contactsSummary'])
+
+ def test_itemized_receipts_and_disbursements_keep_principal_purpose_counterparty_and_amount(self):
+  text="""
+For 6 Month Period Ending 01/31/2025
+(b) Registration Number 5666
+Ministry of Foreign Affairs, Republic of Somaliland
+## III - ACTIVITIES
+11. Activities/Services
+Government relations support.
+## IV - FINANCIAL INFORMATION
+14. (a) RECEIPTS-MONIES
+Ministry of Foreign Affairs, Republic of Somaliland | 09/10/2024 | Republic of Somaliland | Retainer for public affairs | $ 125,000.00
+$ 125,000.00
+Total
+14. (b) RECEIPTS - FUNDRAISING CAMPAIGN
+15. (a) DISBURSEMENTS-MONIES
+Ministry of Foreign Affairs, Republic of Somaliland | 08/26/2024 | Various | Travel | $ 29.48
+Ministry of Foreign Affairs, Republic of Somaliland | 08/31/2024 | ArentFox Schiff LLP | Legal counsel | $ 6,810.75
+Ministry of Foreign Affairs, Republic of Somaliland | ---------- | ---------- | Subtotal | $ 6,840.23
+$ 12,646.37
+Total
+15. (b) DISBURSEMENTS-THINGS OF VALUE
+"""
+  doc=explain_supplemental(text,'5666','https://efile.fara.gov/docs/5666-Supplemental-Statement-20250303-44.pdf',
+      ['Ministry of Foreign Affairs, Republic of Somaliland'])
+  rows=doc['financialRows']
+  self.assertEqual(len(rows),3)
+  self.assertEqual(rows[0],{
+      'direction':'receipt','principal':'Ministry of Foreign Affairs, Republic of Somaliland',
+      'date':'09/10/2024','counterparty':'Republic of Somaliland',
+      'purpose':'Retainer for public affairs','amountUsd':125000.0})
+  self.assertEqual(rows[1]['direction'],'disbursement')
+  self.assertEqual(rows[1]['purpose'],'Travel')
+  self.assertEqual(rows[1]['amountUsd'],29.48)
+  self.assertEqual(rows[2]['counterparty'],'ArentFox Schiff LLP')
+  self.assertEqual(rows[2]['purpose'],'Legal counsel')
+  self.assertEqual(rows[2]['amountUsd'],6810.75)
+  self.assertNotIn(6840.23,[x['amountUsd'] for x in rows])
 
  def test_newest_active_supplements_are_prioritized_before_registration_number(self):
   entries=[
