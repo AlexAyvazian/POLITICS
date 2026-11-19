@@ -188,6 +188,7 @@ function render(){
     chunks.push(note('Current officeholder until the new term begins · NGA roster · '+esc(governors.asOf)+' · '+link(governors.sourceUrl,'source')));}
   }else if(scope==='state'&&gv){
    chunks.push(heading('Governor'));chunks.push(person({name:gv,party:ns?party(ns.governor):'Party not reported'}));
+   chunks.push(note('NGA roster · '+esc(governors.asOf)+' · '+link(governors.sourceUrl,'source')));
   }
   if(layer==='house'){
    if(scope==='district'){
