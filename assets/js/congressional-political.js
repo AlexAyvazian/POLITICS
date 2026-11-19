@@ -20,9 +20,8 @@ function resolveParty({layer,state,scope,district}){
  else if(layer==='stateSenate'||layer==='stateHouse')
   incumbentParty=scope==='district'?model.stateDistrictParty(stateData.get(state),layer,district):
    model.chamberMajority(NCSL?.states?.[state],layer);
- else if(layer==='senate')incumbentParty=model.senateParty(federal,state);
- else if(layer==='governor')incumbentParty=model.partyClass(NCSL?.states?.[state]?.governor);
- else if(layer==='president')incumbentParty=model.partyClass('Republican');
+ // Statewide election-result layers are colored by county winners in congressional-map.js,
+ // never by the current officeholder's party.
  return model.districtPartyWithVacancies(incumbentParty,vacancy);
 }
 function repaint(){atlas?.setPartyResolver?.(resolveParty);}
@@ -78,6 +77,20 @@ function render(){
  const verifiedVacancyNote=()=>note('<strong>Vacant — no current officeholder.</strong> '+esc(vacancy.detail)+' Verified vacancy · '+esc(vacancies.asOf)+' · '+link(vacancy.sourceUrl,vacancy.sourceName)+'.');
  const ns=NCSL?.states?.[state],gv=governors?.states?.[state];
  const chunks=[];
+ if(scope==='county'){
+  chunks.push(heading('County result'));
+  const result=s.electionResult;
+  if(result){
+   chunks.push(row('Winner',(result.winner||'Unreported')+' · '+party(result.party==='democratic'?'D':result.party==='republican'?'R':result.party)));
+   if(result.demName)chunks.push(row(result.demName,Number.isFinite(result.demPct)?result.demPct.toFixed(1)+'%':'Democratic'));
+   if(result.repName)chunks.push(row(result.repName,Number.isFinite(result.repPct)?result.repPct.toFixed(1)+'%':'Republican'));
+   const statusLabel=s.electionStatus==='certified'?'Certified result':s.electionStatus==='unofficial'?'Current unofficial result':'Result status unavailable';
+   chunks.push(note(statusLabel+' · '+esc(s.electionDate||'date unavailable')+
+    (s.sourceUrl?' · '+link(s.sourceUrl,'election source'):'')+'.'));
+  }else{
+   chunks.push(note('County result is not available in the loaded election dataset for this state.'));
+  }
+ }
  // Countrywide presidential incumbents are independently verified on USAGov.
  if(layer==='president'){
   chunks.push(heading('Federal executive branch'));
