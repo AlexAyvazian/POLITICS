@@ -1,0 +1,71 @@
+name: Refresh DOJ FARA world registry
+
+on:
+  schedule:
+    - cron: "34 11 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/update_fara_world.py
+      - tests/test_fara_world.py
+      - assets/js/foreign-influence-model.mjs
+      - tests/foreign-influence.test.mjs
+      - .github/workflows/refresh-fara-world.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/update_fara_world.py
+      - tests/test_fara_world.py
+      - assets/js/foreign-world-catalog.js
+      - .github/workflows/refresh-fara-world.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fara-world-daily
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify FARA country, financial-claim and source-document handling
+        run: python -m unittest discover -s tests -p test_fara_world.py -v
+      - name: Verify FARA frontend only presents verified dollar figures
+        run: node --test tests/foreign-influence.test.mjs
+
+  publish:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch official DOJ daily bulk registries and index linked filings
+        run: python scripts/update_fara_world.py
+      - name: Publish only verified daily FARA country snapshots
+        shell: bash
+        run: |
+          git add assets/data/foreign-influence/
+          if git diff --cached --quiet; then
+            echo "No new FARA registry data"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh DOJ FARA worldwide principal and filing records"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
