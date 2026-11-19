@@ -46,3 +46,10 @@ test('the boundary generator identifies House geography as 120th Congress while 
  assert.match(model,/120th Congress/);
  assert.match(records,/119th Congressional Districts/);
 });
+
+test('2026 election workflow publishes the generated cache on non-PR runs and same-repo PR branches',()=>{
+ const workflow=read('.github/workflows/refresh-us-2026-election-results.yml');
+ assert.match(workflow,/github\.event_name != 'pull_request' \|\| github\.event\.pull_request\.head\.repo\.full_name == github\.repository/);
+ assert.match(workflow,/GITHUB_HEAD_REF:-\$GITHUB_REF_NAME/);
+ assert.match(workflow,/git push origin "HEAD:\$\{TARGET_BRANCH\}"/);
+});
