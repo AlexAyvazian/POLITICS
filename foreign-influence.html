@@ -44,29 +44,41 @@
     <div><h2 id="panelTitle">World</h2><div class="muted" id="panelMeta">United States · Department of Justice FARA</div></div>
     <span class="modeBadge">FARA filings</span>
    </div>
-   <section class="selectedCard" id="selectedCard" aria-live="polite">
+
+   <section class="selectedCard countryOverview" id="countryOverview" aria-live="polite">
     <strong>Choose a country</strong>
-    <p class="muted">The sidebar will show registered foreign principals, U.S. agents and links to original filings.</p>
+    <p class="muted">Select a country on the map to see its foreign principals, U.S. registrants, documented purpose and filing activity.</p>
    </section>
-   <section class="facilitySection" aria-labelledby="listLabel">
-    <div class="foreignFilters">
-     <label><span>Status</span><select id="statusFilter"><option value="all">All reported principals</option><option value="active">Active</option><option value="terminated">Terminated</option></select></label>
-     <label><span>Find</span><input id="search" type="search" placeholder="Search agent or foreign principal…" aria-label="Search registrant or foreign principal"></label>
-     <label><span>Filing evidence</span><select id="documentFilter" aria-label="Filter by original filing type"><option value="all">All filing types</option><option value="supplemental">Spending and activity statements</option><option value="contracts">Contracts and agreements</option><option value="communications">Public communications</option><option value="other">Other filings</option></select></label>
-    </div>
-    <p class="muted listLabel" id="listLabel" aria-live="polite">Select a country to explore the filings.</p>
-    <div class="facilityList" id="facilityList" tabindex="0"></div>
-    <button id="loadMore" type="button" hidden>Show additional records</button>
+
+   <section class="countryIntelTools" aria-label="Search the selected country">
+    <label for="search"><span>Find in this country</span><input id="search" type="search" placeholder="Search principal or U.S. registrant…" aria-label="Search principal or U.S. registrant"></label>
    </section>
-   <details class="foreignCountryChooser" id="countryChooser">
-    <summary>Choose another country</summary>
-   <section class="regionSection" aria-labelledby="countryListTitle">
-    <div class="regionHead"><span class="muted" id="countryListTitle">Countries</span><input id="regionFilter" type="search" placeholder="Find a country…" aria-label="Find a country"></div>
-    <div class="regionGrid" id="regionList" role="list"></div>
+
+   <p class="coverageNote" id="coverageNote" aria-live="polite">Select a country to load its DOJ FARA relationships.</p>
+
+   <section class="intelSection purposeSection" id="purposeSection" aria-labelledby="purposeTitle">
+    <div class="intelSectionHead"><div><span class="intelKicker">DOCUMENTED PURPOSE</span><h3 id="purposeTitle">What they hired U.S. firms to do</h3></div></div>
+    <div class="purposeList" id="purposeList"><p class="muted">Select a country to load reviewed filing summaries.</p></div>
    </section>
+
+   <section class="intelSection relationshipsSection" aria-labelledby="relationshipsTitle">
+    <div class="intelSectionHead"><div><span class="intelKicker">WHO HIRED WHOM</span><h3 id="relationshipsTitle">Foreign principals → U.S. registrants</h3></div></div>
+    <div class="relationshipList" id="relationshipList"><p class="muted">Select a country to load relationships.</p></div>
+   </section>
+
+   <section class="intelSection timelineSection" aria-labelledby="timelineTitle">
+    <div class="intelSectionHead"><div><span class="intelKicker">ACTIVITY TIMELINE</span><h3 id="timelineTitle">When the network was active</h3></div></div>
+    <div class="activityTimeline" id="activityTimeline"><p class="muted">Select a country to load filing activity.</p></div>
+   </section>
+
+   <details class="historicalSection" id="historicalSection">
+    <summary>Historical / legacy records <span id="historicalCount"></span></summary>
+    <p class="historicalIntro">Older terminated or predecessor-state filings are separated from current and recent activity so they do not dominate the country view.</p>
+    <div class="historicalRecords" id="historicalRecords"></div>
    </details>
+
    <details class="foreignSourceDetails"><summary>Source and interpretation</summary>
-   <p class="attribution" id="sourceNote">Official source: <a href="https://efile.fara.gov/ords/fara/f?p=107:21:::NO::" target="_blank" rel="noopener noreferrer">DOJ FARA bulk data</a>. Country colors and glass frame reuse the existing Healthcare Directory. FARA registration is not evidence of an illegal donation or a direct payment to any U.S. official.</p>
+    <p class="attribution" id="sourceNote">Official source: <a href="https://efile.fara.gov/ords/fara/f?p=107:21:::NO::" target="_blank" rel="noopener noreferrer">DOJ FARA bulk data</a>. FARA registration identifies a disclosed foreign-principal relationship; it is not by itself evidence of an illegal donation, a payment to a U.S. official, or government ownership of a principal.</p>
    </details>
   </aside>
  </div>
