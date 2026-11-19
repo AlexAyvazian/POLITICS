@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timezone, timedelta
-from scripts.update_fara_explanations import explain_supplemental, clean_activity, should_attempt
+from scripts.update_fara_explanations import explain_supplemental, clean_activity, should_attempt, prioritize_plan_entries
 
 FILING = """
 For 6 Month Period Ending 04/30/2026
@@ -67,4 +67,48 @@ class TestFaraEvidence(unittest.TestCase):
   self.assertEqual(doc['moneyStatus'],'not_extracted')
   self.assertIsNone(doc['totalReceivedUsd'])
   self.assertIsNone(doc['totalDisbursedUsd'])
+ def test_verified_filing_totals_and_named_us_political_contacts_are_extracted(self):
+  text="""
+For 6 Month Period Ending 01/31/2025
+(b) Registration Number 5666
+9. In addition to those named in Items 7 and 8:
+Ministry of Foreign Affairs, Republic of Somaliland
+## III - ACTIVITIES
+11. Activities/Services
+Government relations and public affairs support.
+12. Political activity
+Ministry of Foreign Affairs, Republic of Somaliland | 11/20/2024 | John Stout, Rep. Burchett | Email | Update on U.S.-Somaliland relations
+Ministry of Foreign Affairs, Republic of Somaliland | 11/20/2024 | Wall Street Journal | Text message | U.S.-Somaliland relations
+13. Other activity
+## IV - FINANCIAL INFORMATION
+14. (a) RECEIPTS-MONIES
+See Appendix for Response
+$ 3,329,032.46
+Total
+14. (b) RECEIPTS - FUNDRAISING CAMPAIGN
+15. (a) DISBURSEMENTS-MONIES
+Ministry of Foreign Affairs, Republic of Somaliland | 08/26/2024 | Various | Travel | $ 29.48
+$ 12,646.37
+Total
+15. (b) DISBURSEMENTS-THINGS OF VALUE
+"""
+  doc=explain_supplemental(text,'5666','https://efile.fara.gov/docs/5666-Supplemental-Statement-20250303-44.pdf',
+      ['Ministry of Foreign Affairs, Republic of Somaliland'])
+  self.assertEqual(doc['moneyStatus'],'verified_filing_totals')
+  self.assertEqual(doc['totalReceivedUsd'],3329032.46)
+  self.assertEqual(doc['totalDisbursedUsd'],12646.37)
+  self.assertEqual(len(doc['politicalContacts']),1)
+  self.assertEqual(doc['politicalContacts'][0]['contact'],'John Stout, Rep. Burchett')
+  self.assertIn('1 disclosed U.S. political-contact',doc['contactsSummary'])
+  self.assertNotIn('Wall Street Journal',doc['contactsSummary'])
+
+ def test_newest_active_supplements_are_prioritized_before_registration_number(self):
+  entries=[
+   {'reg':'100','active':True,'doc':{'filed':'01/01/2025'}},
+   {'reg':'9000','active':True,'doc':{'filed':'11/18/2026'}},
+   {'reg':'8000','active':False,'doc':{'filed':'11/19/2026'}},
+  ]
+  ordered=prioritize_plan_entries(entries)
+  self.assertEqual([x['reg'] for x in ordered],['9000','100','8000'])
+
 if __name__ == '__main__':unittest.main()
