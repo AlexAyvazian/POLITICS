@@ -182,3 +182,12 @@ test('statewide election map labels the election and county-result source instea
  assert.match(js,/unofficial/i);
  assert.match(js,/sourceUrl/);
 });
+
+
+test('statewide county-result layers use an election-result legend instead of a vacancy legend',()=>{
+ const js=read('assets/js/congressional-map.js');
+ assert.match(js,/Democratic county winner/);
+ assert.match(js,/Republican county winner/);
+ assert.match(js,/Result unavailable/);
+ assert.match(js,/function updateLegend/);
+});
