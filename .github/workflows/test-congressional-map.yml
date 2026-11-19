@@ -29,6 +29,9 @@ on:
       - "assets/data/elections/ak-statewide.js"
       - "scripts/update_ak_statewide_results.py"
       - "tests/test_ak_statewide_results.py"
+      - "assets/data/elections/us-2026.js"
+      - "scripts/update_us_2026_results.py"
+      - "tests/test_us_2026_results.py"
       - ".github/workflows/test-congressional-map.yml"
   workflow_dispatch:
 
@@ -70,3 +73,5 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_ca_statewide_results.py -v
       - name: Verify Alaska statewide House-district result parser
         run: python3 -m unittest discover -s tests -p test_ak_statewide_results.py -v
+      - name: Verify nationwide 2026 election-result parser
+        run: python3 -m unittest discover -s tests -p test_us_2026_results.py -v
