@@ -1,7 +1,8 @@
 /* Congressional Atlas political data: read-only cached federal D1 and public
- * static nightly state rosters. Legislative district fills mean verified current
- * incumbency; President/Governor/U.S. Senate geographic fills are sourced election
- * outcomes handled by congressional-map.js. Alaska statewide races use House districts. No provider API-key call on a map click.
+ * static nightly state rosters. State legislative fills mean verified current
+ * incumbency. U.S. House, President, Governor and U.S. Senate election-result
+ * fills are handled by congressional-map.js. Current officeholders stay visible
+ * separately from incoming 2026 winners until the new terms begin.
  */
 (function(){
 'use strict';
@@ -110,13 +111,14 @@ function render(){
   chunks.push(heading(unit+' result'));
   const result=s.electionResult;
   if(result){
-   chunks.push(row('Winner',(result.winner||'Unreported')+' · '+party(result.party==='democratic'?'D':result.party==='republican'?'R':result.party)));
+   const unitParty=result.mapParty||result.party;
+   chunks.push(row('Winner',(result.winner||'Unreported')+' · '+party(unitParty==='democratic'?'D':unitParty==='republican'?'R':unitParty)));
    if(Number.isFinite(result.winnerPct))chunks.push(row(result.winner,result.winnerPct.toFixed(1)+'%'));
    if(result.runner&&Number.isFinite(result.runnerPct))chunks.push(row(result.runner,result.runnerPct.toFixed(1)+'%'));
    if(result.demName)chunks.push(row(result.demName,Number.isFinite(result.demPct)?result.demPct.toFixed(1)+'%':'Democratic'));
    if(result.repName)chunks.push(row(result.repName,Number.isFinite(result.repPct)?result.repPct.toFixed(1)+'%':'Republican'));
    if(Number.isFinite(result.marginPts)&&!Number.isFinite(result.winnerPct))chunks.push(row('Winning margin',result.marginPts.toFixed(1)+' points'));
-   const statusLabel=s.electionStatus==='certified'?'Certified result':s.electionStatus==='unofficial'?'Current unofficial result':'Result status unavailable';
+   const statusLabel=s.electionStatus==='final'||s.electionStatus==='certified'?'Certified result':s.electionStatus==='called'?'Called result':s.electionStatus==='counting'||s.electionStatus==='unofficial'?'Current count':'Result status unavailable';
    chunks.push(note(statusLabel+' · '+esc(s.electionDate||'date unavailable')+
     (s.sourceUrl?' · '+link(s.sourceUrl,'election source'):'')+'.'));
   }else{
@@ -152,7 +154,9 @@ function render(){
   }
   if(layer==='house'){
    if(scope==='district'){
-    chunks.push(heading(state==='DC'?'Current U.S. delegate':'Current U.S. representative'));
+    chunks.push(heading('2026 House election'));
+    chunks.push(...electionSummary(s));
+    chunks.push(heading(state==='DC'?'Current U.S. delegate — 119th Congress':'Current U.S. representative — 119th Congress'));
     const people=model.house(federal,state,s.district);
     if(federalStatus==='loading')chunks.push(note('Loading the stored congressional roster…'));
     else if(federalStatus==='unavailable')chunks.push(note('The stored congressional roster is temporarily unavailable.'));
@@ -161,8 +165,12 @@ function render(){
     else chunks.push(...people.map(p=>person(p,'federal')));
    }else chunks.push(note('Choose a U.S. House district to see its current representative.'));
   }
+  if((layer==='senate'||layer==='governor')&&scope==='state'){
+   chunks.push(heading(layer==='senate'?'2026 U.S. Senate election':'2026 Governor election'));
+   chunks.push(...electionSummary(s));
+  }
   if(layer==='senate'||scope==='state'){
-   chunks.push(heading('U.S. senators'));
+   chunks.push(heading('Current U.S. senators — 119th Congress'));
    if(state==='DC')chunks.push(note('Washington, D.C. has no voting U.S. senators.'));
    else if(federalStatus==='loading')chunks.push(note('Loading stored Senate records…'));
    else if(federalStatus==='unavailable')chunks.push(note('Stored Senate roster temporarily unavailable.'));

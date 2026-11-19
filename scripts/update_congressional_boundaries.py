@@ -19,8 +19,10 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "assets" / "data" / "congressional"
-CENSUS = "https://tigerweb.geo.census.gov/arcgis/rest/services/Generalized_ACS2025/Legislative/MapServer"
-LAYERS = {"house": 5, "stateSenate": 8, "stateHouse": 9}
+CENSUS = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer"
+# Current House geography is the 120th Congress. State legislative maps remain
+# on the 2024/ACS2025 layers until their 2026 election-result renderer is added.
+LAYERS = {"house": 0, "stateSenate": 9, "stateHouse": 10}
 FIPS = ("01 02 04 05 06 08 09 10 11 12 13 15 16 17 18 19 20 21 22 23 24 "
         "25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 44 45 "
         "46 47 48 49 50 51 53 54 55 56").split()
@@ -30,7 +32,12 @@ NO_CHAMBER = {("stateHouse", "31"), ("stateHouse", "11"), ("stateSenate", "11")}
 
 def endpoint(layer: str, state: str, count_only: bool = False) -> str:
     assert layer in LAYERS and state in FIPS
-    params = {"where": "STATE='" + state + "'", "f": "json" if count_only else "geojson"}
+    where = "STATE='" + state + "'"
+    if layer == "house":
+        # TIGERweb can include a ZZ polygon for areas where a congressional
+        # district is explicitly not defined. It is not an electoral district.
+        where += " AND GEOID NOT LIKE '%ZZ'"
+    params = {"where": where, "f": "json" if count_only else "geojson"}
     if count_only:
         params["returnCountOnly"] = "true"
     else:
@@ -69,6 +76,8 @@ def validate(layer: str, state: str, data: dict, count: int) -> dict:
         geoid = props.get("GEOID")
         if not isinstance(geoid, str) or len(geoid) != expected_length or not geoid.startswith(state):
             raise ValueError(f"{layer}/{state}: invalid district GEOID {geoid}")
+        if layer == "house" and not geoid[2:].isdigit():
+            raise ValueError(f"{layer}/{state}: non-electoral House GEOID {geoid}")
         if str(props.get("STATE")) != state or geometry.get("type") not in ("Polygon", "MultiPolygon"):
             raise ValueError(f"{layer}/{state}: unexpected state or geometry type")
         if not geometry.get("coordinates"):
@@ -128,6 +137,13 @@ def store(path: Path, data: dict) -> None:
     temp.replace(path)
 
 
+def build_jobs(layers) -> list[tuple[str, str]]:
+    selected = list(layers)
+    if not selected or any(layer not in LAYERS for layer in selected):
+        raise ValueError("Unknown or empty boundary layer selection")
+    return [(layer, fips) for layer in selected for fips in FIPS]
+
+
 def build_one(layer: str, state: str) -> tuple[str, str, int]:
     path = DATA / layer / f"{state}.geojson"
     if (layer, state) in NO_CHAMBER:
@@ -144,9 +160,11 @@ def build_one(layer: str, state: str) -> tuple[str, str, int]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--workers", type=int, default=3)
+    parser.add_argument("--layers", nargs="+", choices=list(LAYERS), default=list(LAYERS),
+                        help="Boundary layers to refresh; omitted means all cached layers")
     args = parser.parse_args()
     failures = []
-    jobs = [(layer, fips) for layer in LAYERS for fips in FIPS]
+    jobs = build_jobs(args.layers)
     with ThreadPoolExecutor(max_workers=min(4, max(1, args.workers))) as executor:
         tasks = {executor.submit(build_one, layer, fips): (layer, fips) for layer, fips in jobs}
         for future in as_completed(tasks):
@@ -166,8 +184,8 @@ def main() -> int:
         return 1
 
     national_features = []
-    manifest = {"source": "U.S. Census Bureau TIGERweb / Generalized_ACS2025",
-                "mapVintage": {"house": "119th Congress (January 2025)",
+    manifest = {"source": "U.S. Census Bureau TIGERweb / Legislative current service",
+                "mapVintage": {"house": "120th Congress (January 2026)",
                                "stateSenate": "2024 districts",
                                "stateHouse": "2024 districts"},
                 "states": FIPS, "counts": {}}

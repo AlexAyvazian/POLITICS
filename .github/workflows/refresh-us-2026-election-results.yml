@@ -1,0 +1,67 @@
+name: Refresh nationwide 2026 election results
+
+on:
+  schedule:
+    - cron: "27 */6 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/update_us_2026_election_results.py
+      - tests/test_us_2026_election_results.py
+      - assets/js/congressional-map.js
+      - assets/js/congressional-political.js
+      - assets/css/congressional-map.css
+      - congressional.html
+      - .github/workflows/refresh-us-2026-election-results.yml
+  push:
+    paths:
+      - scripts/update_us_2026_election_results.py
+      - tests/test_us_2026_election_results.py
+      - .github/workflows/refresh-us-2026-election-results.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: us-2026-election-results
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test election-result parser
+        run: python -m unittest discover -s tests -p test_us_2026_election_results.py -v
+      - name: Build nationwide 2026 election cache
+        run: python scripts/update_us_2026_election_results.py
+      - name: Verify generated browser cache
+        run: |
+          test -s assets/data/elections/us-2026.js
+          grep -q 'US_ELECTION_2026' assets/data/elections/us-2026.js
+          grep -q '"house"' assets/data/elections/us-2026.js
+          grep -q '"senate"' assets/data/elections/us-2026.js
+          grep -q '"governor"' assets/data/elections/us-2026.js
+      - name: Commit changed election cache
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          git add assets/data/elections/us-2026.js
+          if git diff --cached --quiet; then
+            echo "2026 election cache unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh nationwide 2026 election results"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

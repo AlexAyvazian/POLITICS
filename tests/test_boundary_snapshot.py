@@ -7,11 +7,22 @@ from scripts import update_congressional_boundaries as source
 
 class GeographySnapshotTests(unittest.TestCase):
     def test_census_requests_are_for_approved_layers_and_state(self):
-        self.assertIn("/5/query?", source.endpoint("house", "53"))
+        self.assertIn("/0/query?", source.endpoint("house", "53"))
+        self.assertIn("TIGERweb/Legislative/MapServer", source.CENSUS)
+        self.assertIn("GEOID+NOT+LIKE", source.endpoint("house", "53"))
+        self.assertIn("/9/query?", source.endpoint("stateSenate", "53", count_only=True))
         self.assertIn("returnCountOnly=true", source.endpoint("stateSenate", "53", count_only=True))
+        self.assertIn("/10/query?", source.endpoint("stateHouse", "53"))
         self.assertNotIn("returnCountOnly", source.endpoint("stateHouse", "53"))
         with self.assertRaises(AssertionError):
             source.endpoint("invalid", "53")
+
+    def test_targeted_refresh_can_limit_network_work_to_house_without_dropping_other_cached_layers(self):
+        house_jobs = source.build_jobs(["house"])
+        self.assertEqual(len(house_jobs), len(source.FIPS))
+        self.assertTrue(all(layer == "house" for layer, _ in house_jobs))
+        all_jobs = source.build_jobs(list(source.LAYERS))
+        self.assertEqual(len(all_jobs), len(source.FIPS) * len(source.LAYERS))
 
     def test_no_unicameral_or_dc_nonexistent_chambers(self):
         self.assertIn(("stateHouse", "31"), source.NO_CHAMBER)
@@ -28,6 +39,13 @@ class GeographySnapshotTests(unittest.TestCase):
             source.validate("house", "53", payload, 10)
         with self.assertRaises(ValueError):
             source.validate("house", "06", payload, 1)
+        undefined = {"type": "FeatureCollection", "features": [{
+            "type": "Feature",
+            "geometry": feature["geometry"],
+            "properties": {"STATE": "09", "GEOID": "09ZZ", "BASENAME": "Congressional Districts not defined"},
+        }]}
+        with self.assertRaises(ValueError):
+            source.validate("house", "09", undefined, 1)
 
     def test_national_approximation_preserves_geometry_type_and_closed_rings(self):
         polygon = {"type": "MultiPolygon", "coordinates": [

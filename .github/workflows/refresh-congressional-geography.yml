@@ -5,17 +5,42 @@ on:
   schedule:
     - cron: "17 9 * * *"
   workflow_dispatch:
+  pull_request:
+    paths:
+      - congressional.html
+      - assets/js/congressional-map.js
+      - assets/js/congressional-model.js
+      - assets/js/congressional-political.js
+      - assets/css/congressional-map.css
+      - assets/data/elections/**
+      - scripts/update_congressional_boundaries.py
+      - scripts/update_us_2026_election_results.py
+      - tests/congressional-atlas.test.mjs
+      - tests/congressional-static-cache.test.mjs
+      - tests/congressional-2026-election.test.mjs
+      - tests/test_boundary_snapshot.py
+      - tests/test_us_2026_election_results.py
+      - .github/workflows/refresh-congressional-geography.yml
   # Bootstrap the first map snapshot when this workflow is introduced.
   push:
     paths:
+      - scripts/update_congressional_boundaries.py
+      - assets/js/congressional-map.js
+      - assets/js/congressional-model.js
+      - assets/js/congressional-political.js
+      - assets/css/congressional-map.css
+      - congressional.html
+      - tests/congressional-atlas.test.mjs
+      - tests/congressional-2026-election.test.mjs
+      - tests/test_boundary_snapshot.py
       - .github/workflows/refresh-congressional-geography.yml
 
 permissions:
   contents: write
 
 concurrency:
-  group: congressional-atlas-boundary-snapshot
-  cancel-in-progress: false
+  group: congressional-atlas-boundary-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   refresh:
@@ -25,6 +50,7 @@ jobs:
       - name: Checkout public POLITICS repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref || github.ref_name }}
           persist-credentials: true
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,13 +58,26 @@ jobs:
           python-version: "3.12"
       - name: Validate snapshot generator
         run: python -m unittest discover -s tests -p test_boundary_snapshot.py -v
+      - name: Validate 2026 election-result cache
+        run: python -m unittest discover -s tests -p test_us_2026_election_results.py -v
       - name: Check public map static-cache contract
-        run: node --test tests/congressional-static-cache.test.mjs tests/congressional-atlas.test.mjs
+        run: |
+          node --check assets/js/congressional-map.js
+          node --check assets/js/congressional-model.js
+          node --check assets/js/congressional-political.js
+          node --test tests/congressional-static-cache.test.mjs tests/congressional-atlas.test.mjs tests/congressional-2026-election.test.mjs
       - name: Validate and refresh official geographic boundary files
-        run: python scripts/update_congressional_boundaries.py --workers 3
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            python scripts/update_congressional_boundaries.py --workers 3
+          else
+            python scripts/update_congressional_boundaries.py --workers 3 --layers house
+          fi
       - name: Audit all generated district maps before publishing
         run: node scripts/audit_congressional_geometry.mjs
       - name: Commit only changed static boundary files
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         shell: bash
         run: |
           git add assets/data/congressional/
@@ -46,10 +85,11 @@ jobs:
             echo "Census boundaries unchanged. Keeping all previously published snapshots."
             exit 0
           fi
+          TARGET_BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Refresh cached congressional and state legislative geography"
-          # Other commits may land during a lengthy national fetch.
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
+          git commit -m "Refresh cached 120th Congress geography"
+          # Publish only the geometry that passed this run's tests and full audit.
+          git fetch origin "${TARGET_BRANCH}"
+          git rebase "origin/${TARGET_BRANCH}"
+          git push origin "HEAD:${TARGET_BRANCH}"
