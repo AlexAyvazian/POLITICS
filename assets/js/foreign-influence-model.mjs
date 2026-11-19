@@ -26,3 +26,20 @@ export function selectedPrincipalRecords(country,search=''){
 export function safeFaraDocument(url){
  return typeof url==='string'&&/^https:\/\/efile\.fara\.gov\/(?:docs\/[^?#]+\.pdf|api\/v1\/RegDocs\/json\/[0-9]+)$/i.test(url)?url:null;
 }
+
+/* Filing-type navigation: a supplemental statement may disclose receipts,
+ * disbursements and activities. A link is NOT evidence that money was paid. */
+export function documentGroup(doc){
+ const t=String(doc?.type||'').toLowerCase();
+ if(t.includes('supplemental'))return 'supplemental';
+ if(t.includes('exhibit')||t.includes('agreement'))return 'contracts';
+ if(t.includes('informational'))return 'communications';
+ return 'other';
+}
+export function documentsForGroup(documents,group='all'){
+ if(!Array.isArray(documents))return [];
+ const filtered=documents.filter(doc=>safeFaraDocument(doc?.url));
+ if(group==='all')return filtered;
+ if(!['supplemental','contracts','communications','other'].includes(group))return [];
+ return filtered.filter(doc=>documentGroup(doc)===group);
+}
