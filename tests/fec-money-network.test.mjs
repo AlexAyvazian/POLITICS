@@ -32,7 +32,7 @@ test('Schedule B disbursements preserve direction, memo flag and original filing
 });
 
 test('evidence never sums A and B cross-filings as if they are separate dollars',()=>{
- const a=normalizeFecMoneyRow('schedule_a',{sub_id:'5',committee_id:'C00000002',contributor_id:'C00000001',contribution_receipt_amount:10000,contribution_receipt_date:'2026-05-11',two_year_transaction_period:2026});
+ const a=normalizeFecMoneyRow('schedule_a',{sub_id:'5',committee_id:'C00000002',contributor_id:'C00000001',entity_type:'COM',contribution_receipt_amount:10000,contribution_receipt_date:'2026-05-11',two_year_transaction_period:2026});
  const b=normalizeFecMoneyRow('schedule_b',{sub_id:'9',committee_id:'C00000001',recipient_committee_id:'C00000002',disbursement_amount:10000,disbursement_date:'2026-05-11',two_year_transaction_period:2026});
  const result=graphEvidence('C00000002',[a,b]);
  assert.equal(result.records.length,2);
