@@ -19,7 +19,9 @@ function mount(){
  const requests=[];
  const federal={source:'unitedstates/congress-legislators community data',asOf:'2026-11-02',count:534,states:{
   CA:{house:[{name:'Example District Five',party:'Republican',bioguide:'E000001',district:5}],
-   senators:[{name:'Example Senator',party:'Democrat',bioguide:'E000002'}]}
+   senators:[{name:'Example Senator',party:'Democrat',bioguide:'E000002'}]},
+  OH:{house:[],senators:[{name:'Bernie Moreno',party:'Republican',bioguide:'M001242'}]},
+  FL:{house:[],senators:[{name:'Rick Scott',party:'Republican',bioguide:'S001217'}]}
  }};
  const sample={state:'CA',totalPeople:122,retrievedAt:'2026-11-01T20:44:29.109Z',people:[
   {name:'Example State Senator',role:'Senator',party:'Democratic',district:'39',url:'https://openstates.org/person/safe/'},
@@ -75,4 +77,20 @@ test('state overview renders dated governor, statewide legislative breakdown and
  assert.match(app.box.innerHTML,/Example Senator/);
  assert.match(app.box.innerHTML,/2026-11-01/);
  assert.match(app.box.innerHTML,/State political control/);
+});
+
+
+test('official Senate appointee fallbacks complete Ohio and Florida delegations when community roster is missing them',async()=>{
+ const app=mount();
+ await wait();await wait();
+ assert.equal(app.party({layer:'senate',state:'OH',scope:'state',district:null}),'republican');
+ assert.equal(app.party({layer:'senate',state:'FL',scope:'state',district:null}),'republican');
+ app.choose({state:'OH',scope:'state',layer:'senate',district:null,geoid:'39'});
+ await wait();
+ assert.match(app.box.innerHTML,/Bernie Moreno/);
+ assert.match(app.box.innerHTML,/Jon Husted/);
+ app.choose({state:'FL',scope:'state',layer:'senate',district:null,geoid:'12'});
+ await wait();
+ assert.match(app.box.innerHTML,/Rick Scott/);
+ assert.match(app.box.innerHTML,/Ashley Moody/);
 });
