@@ -191,3 +191,47 @@ test('statewide county-result layers use an election-result legend instead of a 
  assert.match(js,/Result unavailable/);
  assert.match(js,/function updateLegend/);
 });
+
+
+test('Alaska State Senate preserves letter districts A through T',()=>{
+ const ctx={window:{}};
+ vm.runInNewContext(read('assets/js/congressional-model.js'),ctx);
+ vm.runInNewContext(read('assets/js/congressional-political-model.js'),ctx);
+ const geo=JSON.parse(read('assets/data/congressional/stateSenate/02.geojson'));
+ const model=ctx.window.CONGRESSIONAL_MODEL;
+ const political=ctx.window.CONGRESSIONAL_POLITICAL_MODEL;
+ const codes=new Set(geo.features.map(f=>model.districtCode(f.properties,'stateSenate')));
+ assert.equal(codes.size,20);
+ assert.ok(codes.has('A')&&codes.has('T'));
+ assert.equal(model.districtDisplayName('stateSenate','A'),'District A');
+ assert.equal(political.districtMarker('stateSenate','A'),'A');
+});
+
+test('Alaska letter districts join to current senator roster instead of coercing to zero',()=>{
+ const ctx={window:{}};
+ vm.runInNewContext(read('assets/js/congressional-political-model.js'),ctx);
+ const model=ctx.window.CONGRESSIONAL_POLITICAL_MODEL;
+ const snapshot={people:[
+  {name:'Bert Stedman',party:'Republican',role:'Senator',district:'A'},
+  {name:'Jesse Kiehl',party:'Democratic',role:'Senator',district:'B'}
+ ]};
+ assert.equal(model.stateMembers(snapshot,'stateSenate','A')[0].name,'Bert Stedman');
+ assert.equal(model.stateDistrictParty(snapshot,'stateSenate','A'),'republican');
+ assert.equal(model.stateDistrictParty(snapshot,'stateSenate','B'),'democratic');
+});
+
+test('Alaska legislative districts use an Alaska-centered projection instead of generic Mercator',()=>{
+ const js=read('assets/js/congressional-map.js');
+ assert.match(js,/function alaskaProjection/);
+ assert.match(js,/state==='AK'\?alaskaProjection/);
+ assert.match(js,/geoConicEqualArea/);
+});
+
+test('Alaska statewide election layers use House districts, not borough county-equivalents',()=>{
+ const js=read('assets/js/congressional-map.js');
+ assert.match(js,/function alaskaStatewideElectionMap/);
+ assert.match(js,/state==='AK'/);
+ assert.match(js,/stateHouse\/02\.geojson/);
+ assert.match(js,/House district results/i);
+ assert.doesNotMatch(js,/Alaska.*county results unavailable/i);
+});
