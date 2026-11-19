@@ -65,7 +65,7 @@
 
 /* Country selections stay on the WORLD map. Evidence, not navigation, owns the
    sidebar. Optional country search and methodology are collapsed below it. */
-.foreignInfluence .app{grid-template-columns:minmax(360px,1fr) minmax(520px,44vw)}
+.foreignInfluence .app{grid-template-columns:minmax(340px,1fr) minmax(560px,46vw)}
 .foreignInfluence .sidePanel{gap:9px;padding:16px}
 .foreignInfluence .selectedCard{padding:10px 13px;border-radius:16px}
 .foreignInfluence .faraSectionLabel{font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;color:#9bcfe5}
@@ -295,4 +295,174 @@
 .foreignInfluence .evidenceCoverageNote{margin:7px 0 0;color:#8ea5b2;font-size:8px;line-height:1.45}
 @media(max-width:560px){
  .foreignInfluence .evidenceCoverageMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+
+/* Registry-only Foreign Influence directory. */
+.foreignInfluence .registrySection{
+ flex:0 0 auto;
+ padding:12px 13px;
+ border:1px solid rgba(148,197,221,.16);
+ border-radius:15px;
+ background:rgba(3,10,28,.34)
+}
+.foreignInfluence .registrySectionHead{
+ display:flex;
+ align-items:flex-end;
+ justify-content:space-between;
+ gap:12px;
+ margin-bottom:9px
+}
+.foreignInfluence .registrySectionHead h3{
+ margin:3px 0 0;
+ color:#f0f6fb;
+ font-size:14px;
+ line-height:1.3
+}
+.foreignInfluence .registryCount{
+ color:#8fb5c6;
+ font-size:9px;
+ font-weight:800;
+ white-space:nowrap
+}
+.foreignInfluence .registrationDirectory,
+.foreignInfluence .moneyRegistry{
+ display:grid;
+ gap:0;
+ overflow:hidden;
+ border:1px solid rgba(145,190,214,.12);
+ border-radius:11px;
+ background:rgba(4,12,27,.42)
+}
+.foreignInfluence .registryHeader,
+.foreignInfluence .registryRow{
+ display:grid;
+ align-items:start;
+ min-width:0
+}
+.foreignInfluence .registrationHeader,
+.foreignInfluence .registrationRow{
+ grid-template-columns:minmax(150px,1.35fr) minmax(150px,1.25fr) minmax(110px,.75fr) minmax(90px,.6fr)
+}
+.foreignInfluence .moneyHeader,
+.foreignInfluence .moneyRegistryRow{
+ grid-template-columns:minmax(150px,1.15fr) minmax(170px,1.35fr) minmax(110px,.72fr) minmax(110px,.72fr)
+}
+.foreignInfluence .registryHeader{
+ background:rgba(20,39,61,.68);
+ border-bottom:1px solid rgba(149,194,216,.16)
+}
+.foreignInfluence .registryHeader span{
+ padding:8px 9px;
+ color:#8fb3c4;
+ font-size:7px;
+ line-height:1.3;
+ font-weight:900;
+ text-transform:uppercase;
+ letter-spacing:.075em
+}
+.foreignInfluence .registryRow{
+ border-top:1px solid rgba(145,188,211,.1)
+}
+.foreignInfluence .registryRow:first-of-type{
+ border-top:0
+}
+.foreignInfluence .registryRow:hover{
+ background:rgba(24,47,70,.34)
+}
+.foreignInfluence .registryCell{
+ min-width:0;
+ padding:9px;
+ border-left:1px solid rgba(145,188,211,.08);
+ overflow-wrap:anywhere
+}
+.foreignInfluence .registryCell:first-child{
+ border-left:0
+}
+.foreignInfluence .registryCell strong{
+ display:block;
+ color:#e8f2f7;
+ font-size:10px;
+ line-height:1.38
+}
+.foreignInfluence .registryCell span{
+ display:block;
+ margin-top:3px;
+ color:#8fa9b8;
+ font-size:8px;
+ line-height:1.38
+}
+.foreignInfluence .registryCell a{
+ display:inline-block;
+ margin-top:4px;
+ font-size:8px
+}
+.foreignInfluence .registrantCell strong{
+ color:#a9e1d9
+}
+.foreignInfluence .registryStatus{
+ display:inline-block!important;
+ width:max-content;
+ margin:0!important;
+ padding:3px 6px;
+ border-radius:999px;
+ font-size:7px!important;
+ font-weight:900;
+ text-transform:uppercase;
+ letter-spacing:.06em
+}
+.foreignInfluence .registryStatus.active{
+ color:#a9eadc;
+ border:1px solid rgba(117,220,196,.24);
+ background:rgba(54,142,124,.15)
+}
+.foreignInfluence .registryStatus.terminated{
+ color:#aebdca;
+ border:1px solid rgba(154,178,196,.18);
+ background:rgba(92,112,130,.14)
+}
+.foreignInfluence .moneyRegistryNote{
+ margin:-1px 0 9px;
+ color:#91aab8;
+ font-size:8px;
+ line-height:1.45
+}
+.foreignInfluence .moneyValueCell strong{
+ color:#bdf0df;
+ font-size:11px;
+ font-variant-numeric:tabular-nums;
+ white-space:nowrap
+}
+.foreignInfluence .moneyPrincipalCell span{
+ margin-top:0;
+ color:#b6c9d4;
+ font-size:9px;
+ line-height:1.45
+}
+.foreignInfluence .countryOverview .faraCountryMetrics{
+ grid-template-columns:repeat(4,minmax(0,1fr))
+}
+@media(max-width:1180px){
+ .foreignInfluence .app{grid-template-columns:minmax(320px,1fr) minmax(540px,49vw)}
+ .foreignInfluence .registrationHeader,
+ .foreignInfluence .registrationRow{
+  grid-template-columns:minmax(135px,1.25fr) minmax(135px,1.15fr) minmax(100px,.72fr) minmax(82px,.58fr)
+ }
+}
+@media(max-width:960px){
+ .foreignInfluence .app{grid-template-columns:1fr}
+ .foreignInfluence .sidePanel{max-height:none;overflow:visible}
+}
+@media(max-width:640px){
+ .foreignInfluence .registryHeader{display:none}
+ .foreignInfluence .registrationRow,
+ .foreignInfluence .moneyRegistryRow{
+  grid-template-columns:1fr 1fr
+ }
+ .foreignInfluence .registryCell{
+  border-left:0;
+  border-top:1px solid rgba(145,188,211,.08)
+ }
+ .foreignInfluence .registryCell:nth-child(-n+2){border-top:0}
+ .foreignInfluence .countryOverview .faraCountryMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
