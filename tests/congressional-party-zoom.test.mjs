@@ -60,7 +60,7 @@ test('party colors are applied only on Congressional Atlas via political snapsho
  assert.match(html,/id="atlasPartyLegend"/);
  assert.match(map,/setPartyResolver/);
  assert.match(political,/setPartyResolver/);
- assert.match(political,/houseParty\(/);
+ assert.match(political,/houseElectionResult\(/);
  assert.match(political,/stateDistrictParty\(/);
  assert.doesNotMatch(read('index.html'),/atlasPartyLegend|congressional-political-model/);
 });
