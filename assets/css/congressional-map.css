@@ -204,3 +204,14 @@ body[data-view="congress"] button,body[data-view="congress"] input,body[data-vie
  fill:#435269;
  opacity:.82
 }
+
+/* 2026 House results: distinguish a current lead from a called/certified winner. */
+#districtMap .atlasFeature[data-result-status="leads"]{
+ opacity:.68;
+ stroke-dasharray:3 2;
+}
+#districtMap .atlasFeature[data-result-status="unresolved"]{
+ fill:#344d68;
+ opacity:.82;
+ stroke-dasharray:2 3;
+}
