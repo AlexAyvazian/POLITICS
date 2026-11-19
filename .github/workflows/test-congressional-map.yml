@@ -17,6 +17,7 @@ on:
       - "congressional.html"
       - "tests/congressional*.test.mjs"
       - "tests/test_boundary_snapshot.py"
+      - "scripts/update_congressional_boundaries.py"
       - "scripts/audit_congressional_geometry.mjs"
       - "scripts/audit_party_coverage.mjs"
       - "assets/data/legislators/**"
