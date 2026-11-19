@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {countrySummary,selectedPrincipalRecords,verifiedSpending,documentGroup,documentsForGroup} from '../assets/js/foreign-influence-model.mjs';
+import {countrySummary,selectedPrincipalRecords,verifiedSpending,documentGroup,documentsForGroup,classifyInfluenceText} from '../assets/js/foreign-influence-model.mjs';
 
 test('FARA country summary never presents registry counts as spending',()=>{
  const summary={countries:{SG:{principals:17,activePrincipals:9,registrants:5,financialStatus:'not_extracted',verifiedDisbursementsUsd:null}}};
@@ -124,4 +124,28 @@ test('money evidence explains what itemized filing money was for',()=>{
  assert.match(js,/counterparty/);
  assert.match(js,/purpose/);
  assert.match(css,/\.foreignInfluence \.moneyBreakdownRow/);
+});
+
+
+test('influence themes require explicit reviewed-text evidence',()=>{
+ assert.deepEqual(classifyInfluenceText('Public relations, strategic messaging, media monitoring and press outreach'),['media_pr']);
+ assert.deepEqual(classifyInfluenceText('Advocacy concerning OFAC sanctions and export-control licenses'),['sanctions_regulation']);
+ assert.deepEqual(classifyInfluenceText('Tourism promotion, destination marketing and visitor information'),['tourism']);
+ assert.deepEqual(classifyInfluenceText('Legal counsel concerning litigation and court proceedings'),['legal']);
+ assert.deepEqual(classifyInfluenceText('General administrative support and scheduling'),[]);
+ const mixed=classifyInfluenceText('Defense and national security cooperation involving military technology and energy security');
+ assert.ok(mixed.includes('defense_security'));
+ assert.ok(mixed.includes('energy_resources'));
+ assert.ok(mixed.includes('technology_industry'));
+});
+
+test('country inspector summarizes supported influence themes with evidence',()=>{
+ const html=readFileSync(new URL('../foreign-influence.html',import.meta.url),'utf8');
+ const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
+ const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
+ assert.match(html,/id="influenceThemeList"/);
+ assert.match(js,/function renderInfluenceThemes/);
+ assert.match(js,/classifyInfluenceText/);
+ assert.match(js,/themeEvidence/);
+ assert.match(css,/\.foreignInfluence \.influenceThemeRow/);
 });
