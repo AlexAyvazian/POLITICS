@@ -101,3 +101,16 @@ test('selected country inspector is widened for readable intelligence sections',
  assert.match(css,/\.foreignInfluence \.historicalRecords/);
  assert.match(css,/\.foreignInfluence \.sidePanel\{[^}]*overflow-y:auto/s);
 });
+
+
+test('country inspector includes verified money evidence and named U.S. political contacts',()=>{
+ const html=readFileSync(new URL('../foreign-influence.html',import.meta.url),'utf8');
+ const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
+ assert.match(html,/id="moneyEvidenceList"/);
+ assert.match(html,/id="politicalContactList"/);
+ assert.match(js,/filing-insights\/index\.json/);
+ assert.match(js,/function renderMoneyEvidence/);
+ assert.match(js,/function renderPoliticalContacts/);
+ assert.match(js,/politicalContacts/);
+ assert.match(js,/verified_filing_totals/);
+});
