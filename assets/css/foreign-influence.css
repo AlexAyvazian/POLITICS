@@ -65,7 +65,7 @@
 
 /* Country selections stay on the WORLD map. Evidence, not navigation, owns the
    sidebar. Optional country search and methodology are collapsed below it. */
-.foreignInfluence .app{grid-template-columns:minmax(400px,1.2fr) minmax(520px,42vw)}
+.foreignInfluence .app{grid-template-columns:minmax(400px,1.2fr) minmax(540px,42vw)}
 .foreignInfluence .sidePanel{gap:9px;padding:16px}
 .foreignInfluence .selectedCard{padding:10px 13px;border-radius:16px}
 .foreignInfluence .faraSectionLabel{font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;color:#9bcfe5}
