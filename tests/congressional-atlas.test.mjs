@@ -337,3 +337,14 @@ test('120th House selection shows election result rather than mapping current 11
  assert.match(political,/Member-elect|2026 winner/);
  assert.doesNotMatch(political,/Current U\.S\. representative.*model\.house\(federal,state,s\.district\)/s);
 });
+
+
+test('published Congressional Atlas manifest is the regenerated 120th Congress House cache',()=>{
+ const manifest=JSON.parse(read('assets/data/congressional/manifest.json'));
+ assert.equal(manifest.mapVintage.house,'120th Congress (2026 election boundaries)');
+ assert.match(manifest.source,/120th Congress House/);
+ const total=Object.values(manifest.counts.house).reduce((sum,n)=>sum+n,0);
+ assert.equal(total,435);
+ assert.equal(manifest.counts.house['06'],52);
+ assert.equal(manifest.counts.house['48'],38);
+});
