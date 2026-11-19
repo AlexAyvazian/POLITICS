@@ -22,7 +22,9 @@ ROOT=Path(__file__).resolve().parents[1]
 DATA=ROOT/'assets/data/foreign-influence'
 OUTPUT=DATA/'filing-insights'
 FAILED=OUTPUT/'unreadable.json'
-LIMIT_BYTES=12_000_000
+LIMIT_BYTES=28_000_000
+MAX_PAGES=90
+EXTRACTOR_VERSION=2
 SCHEMA_VERSION=3
 
 def compact(s,limit=520):
@@ -274,6 +276,19 @@ def explain_supplemental(text,reg,source_url,known_principals=None):
                    'U.S. political contacts require an itemized principal/date/contact/method/purpose row. '
                    'No payment to a politician or principal-specific share is inferred.'}
 
+def extract_page_text(page):
+    """Use only native PDF text layers; standard mode is a non-OCR fallback."""
+    try:
+        layout=page.extract_text(extraction_mode='layout') or ''
+    except Exception:
+        layout=''
+    if len(layout.strip())>=80:return layout
+    try:
+        standard=page.extract_text() or ''
+    except Exception:
+        standard=''
+    return standard if len(standard.strip())>len(layout.strip()) else layout
+
 def pdf_text(url,registration):
     if not re.fullmatch(r'https://efile\.fara\.gov/docs/'+re.escape(registration)+r'-Supplemental-Statement-[^\s?#]+\.pdf',url,re.I):
         raise ValueError('Unrecognized official PDF')
@@ -285,9 +300,9 @@ def pdf_text(url,registration):
         raw=response.read(LIMIT_BYTES+1)
     if len(raw)>LIMIT_BYTES or not raw.startswith(b'%PDF'):raise ValueError('Invalid PDF')
     pdf=PdfReader(io.BytesIO(raw),strict=False)
-    if len(pdf.pages)>45:raise ValueError('Unexpectedly long PDF')
-    txt='\n'.join((p.extract_text(extraction_mode='layout') or '') for p in pdf.pages)
-    if len(txt)<200:raise ValueError('PDF text layer absent; no unverified OCR substitution')
+    if len(pdf.pages)>MAX_PAGES:raise ValueError('Unexpectedly long PDF')
+    txt='\n'.join(extract_page_text(page) for page in pdf.pages)
+    if len(txt.strip())<200:raise ValueError('PDF text layer absent; no unverified OCR substitution')
     return txt
 
 def plan():
@@ -314,8 +329,9 @@ def plan():
     return prioritize_plan_entries(choices.values())
 
 def should_attempt(failure,source_url,now):
-    """Skip unreadable or oversized originals for a week; retry revised filings."""
+    """Retry revised filings or improved extractors; back off unchanged failures."""
     if not isinstance(failure,dict) or failure.get('sourceUrl')!=source_url:return True
+    if failure.get('extractorVersion')!=EXTRACTOR_VERSION:return True
     try:
         last=datetime.fromisoformat(failure.get('attemptedAt',''))
         if last.tzinfo is None:last=last.replace(tzinfo=timezone.utc)
@@ -348,6 +364,7 @@ def refresh(limit=120):
     def process(e):
         txt=pdf_text(e['doc']['url'],e['reg'])
         result=explain_supplemental(txt,e['reg'],e['doc']['url'],list(e['names']))
+        result['extractorVersion']=EXTRACTOR_VERSION
         result['extractedAt']=datetime.now(timezone.utc).isoformat(timespec='seconds')
         return e['reg'],result
     count=0
@@ -362,7 +379,8 @@ def refresh(limit=120):
                 count+=1
             except Exception as error:
                 failures[entry['reg']]={'sourceUrl':entry['doc']['url'],
-                     'attemptedAt':now.isoformat(),'reason':str(error)[:100]}
+                     'attemptedAt':now.isoformat(),'reason':str(error)[:100],
+                     'extractorVersion':EXTRACTOR_VERSION}
                 print('Original PDF needs another extraction method: '+str(error)[:100])
     FAILED.write_text(json.dumps(failures,ensure_ascii=False,sort_keys=True,separators=(',',':'))+'\n')
     publish_insight_index(now)
