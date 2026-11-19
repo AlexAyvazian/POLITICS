@@ -104,7 +104,7 @@ body[data-view="records"] .recordsProfile{
  box-shadow:0 24px 62px rgba(0,0,0,.22);margin-bottom:20px;
 }
 .recordsProfilePortrait{position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 20%,#485970,#17263d)}
-.recordsProfilePortrait img{display:block;width:100%;height:100%;object-fit:cover;object-position:center top;filter:saturate(.8)}
+.recordsProfilePortrait img{display:block;width:100%;height:100%;object-fit:contain;object-position:center center;filter:saturate(.8)}
 .recordsProfilePortrait::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(11,23,42,.55),transparent 50%)}
 .recordsProfileHead{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;border:0;padding:35px clamp(22px,4vw,65px)}
 .recordsProfileHead h2{font-size:clamp(34px,5.5vw,70px);letter-spacing:-.06em;margin:0;line-height:1.04}
