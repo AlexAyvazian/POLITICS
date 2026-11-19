@@ -105,6 +105,6 @@ test('selected country inspector stays wide enough for directory columns',()=>{
 
 test('foreign influence gives the world map more desktop width without collapsing the registry',()=>{
  const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
- assert.match(css,/\.foreignInfluence \.app\s*\{[^}]*grid-template-columns:\s*minmax\(400px,1\.2fr\)\s+minmax\(520px,42vw\)/s);
+ assert.match(css,/\.foreignInfluence \.app\s*\{[^}]*grid-template-columns:\s*minmax\(400px,1\.2fr\)\s+minmax\(540px,42vw\)/s);
  assert.match(css,/@media\(max-width:1180px\)[\s\S]*?\.foreignInfluence \.app\{grid-template-columns:minmax\(340px,1fr\) minmax\(500px,45vw\)\}/);
 });
