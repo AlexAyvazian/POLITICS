@@ -251,3 +251,12 @@ test('Alaska statewide election cache has all 40 House districts for Governor Se
  assert.equal(Object.values(ak.governor.districts).filter(x=>x.party==='democratic').length,32);
  assert.equal(Object.values(ak.senate.districts).filter(x=>x.party==='democratic').length,24);
 });
+
+
+test('Alaska election-result joins normalize zero-padded House district IDs',()=>{
+ const c=setup();
+ assert.equal(c.electionDistrictKey('001'),'1');
+ assert.equal(c.electionDistrictKey('010'),'10');
+ assert.equal(c.electionDistrictKey('040'),'40');
+ assert.equal(c.electionDistrictKey('A'),'A');
+});

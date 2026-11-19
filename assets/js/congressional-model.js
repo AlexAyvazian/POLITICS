@@ -134,6 +134,11 @@ function districtViewport(width,height,count){
  const x=count===1?.20:.075,y=count===1?.17:.085;
  return [[Math.round(w*x),Math.round(h*y)],[Math.round(w*(1-x)),Math.round(h*(1-y))]];
 }
+function electionDistrictKey(code){
+ const raw=String(code??'').trim();
+ if(/^\d+$/.test(raw))return String(Number(raw));
+ return raw.toUpperCase();
+}
 function districtDisplayName(layer,code){
  if(layer==='house'&&String(code)==='00')return 'At-large';
  if(layer==='house'&&String(code)==='98')return 'At-large delegate';
@@ -143,5 +148,5 @@ function districtDisplayName(layer,code){
  return Number.isInteger(value)&&value>=0?'District '+value:'District';
 }
 
-root.CONGRESSIONAL_MODEL=Object.freeze({LAYERS,censusUrl,districtCode,federalMembers,stateLawmakerMatches,rewindForD3,splitHawaiiIslands,districtViewport,districtDisplayName});
+root.CONGRESSIONAL_MODEL=Object.freeze({LAYERS,censusUrl,districtCode,electionDistrictKey,federalMembers,stateLawmakerMatches,rewindForD3,splitHawaiiIslands,districtViewport,districtDisplayName});
 })(typeof window!=='undefined'?window:globalThis);
