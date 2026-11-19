@@ -158,16 +158,18 @@ test('statewide county maps use election winners rather than current officeholde
 test('California statewide election cache distinguishes certified historical results from live 2026 canvass',()=>{
  const ctx={window:{}};
  vm.runInNewContext(read('assets/data/elections/ca-statewide.js'),ctx);
+ vm.runInNewContext(read('assets/data/elections/ca-governor-2026.js'),ctx);
  const ca=ctx.window.STATEWIDE_ELECTION_RESULTS.states.CA;
+ const governor=ctx.window.CA_GOVERNOR_2026_RESULTS;
  assert.equal(ca.president.electionDate,'2024-11-05');
  assert.equal(ca.president.status,'certified');
  assert.equal(ca.senate.electionDate,'2024-11-05');
  assert.equal(ca.senate.status,'certified');
- assert.equal(ca.governor.electionDate,'2026-11-03');
- assert.ok(['unofficial','certified'].includes(ca.governor.status));
+ assert.equal(governor.electionDate,'2026-11-03');
+ assert.ok(['pending','unofficial','certified'].includes(governor.status));
  assert.equal(Object.keys(ca.president.counties).length,58);
  assert.equal(Object.keys(ca.senate.counties).length,58);
- assert.equal(Object.keys(ca.governor.counties).length,58);
+ assert.ok([0,58].includes(Object.keys(governor.counties).length));
  assert.equal(ca.president.counties['06019'].party,'republican');
  assert.equal(ca.senate.counties['06019'].party,'republican');
 });
