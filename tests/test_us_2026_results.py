@@ -37,7 +37,8 @@ class US2026ElectionResultTests(unittest.TestCase):
         self.assertEqual(data["house"]["CA"]["05"]["party"],"democratic")
         self.assertEqual(data["senate"]["CA"]["winner"],"Sam Blue")
         self.assertEqual(data["senate"]["CA"]["counties"]["06019"]["party"],"democratic")
-        self.assertEqual(data["governor"]["TX"]["status"],"counting")
+        self.assertEqual(data["governor"]["TX"]["status"],"unofficial")
+        self.assertEqual(data["governor"]["TX"]["rawStatus"],"counting")
         self.assertEqual(data["governor"]["TX"]["outcome"],"leads")
         self.assertEqual(data["governor"]["TX"]["counties"]["48001"]["party"],"republican")
 
