@@ -51,7 +51,7 @@ jobs:
           grep -q '"senate"' assets/data/elections/us-2026.js
           grep -q '"governor"' assets/data/elections/us-2026.js
       - name: Commit changed election cache
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         shell: bash
         run: |
           git add assets/data/elections/us-2026.js
@@ -59,9 +59,10 @@ jobs:
             echo "2026 election cache unchanged."
             exit 0
           fi
+          TARGET_BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Refresh nationwide 2026 election results"
-          git fetch origin "${GITHUB_REF_NAME}"
-          git rebase "origin/${GITHUB_REF_NAME}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git fetch origin "${TARGET_BRANCH}"
+          git rebase "origin/${TARGET_BRANCH}"
+          git push origin "HEAD:${TARGET_BRANCH}"
