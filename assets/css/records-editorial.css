@@ -462,3 +462,17 @@ body[data-view="records"] .recordsProfile{
  outline:2px solid var(--records-state-hover,#8ed8f6);
  outline-offset:2px;
 }
+
+/* Alaska's natural wide footprint previously occupied much less vertical
+ * space than adjacent states. Scale the entire SVG uniformly, keeping the
+ * mainland AND Aleutians and the already-approved per-state hover palette. */
+.recordsStateCard--alaska .recordsStateGlyph svg{
+ transform:scale(1.35);
+ transform-origin:50% 50%;
+}
+@media(max-width:740px){
+ .recordsStateCard--alaska .recordsStateGlyph svg{transform:scale(1.14)}
+}
+@media(max-width:430px){
+ .recordsStateCard--alaska .recordsStateGlyph svg{transform:scale(1.08)}
+}
