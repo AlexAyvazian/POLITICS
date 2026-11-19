@@ -178,3 +178,13 @@ test('country inspector shows evidence completeness instead of treating missing 
  assert.match(js,/Missing extraction is not evidence of no activity/);
  assert.match(css,/\.foreignInfluence \.evidenceCoverage/);
 });
+
+
+test('foreign influence browser uses runtime API instead of committed FARA snapshot files',()=>{
+ const source=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
+ assert.match(source,/\/api\/fara\/summary/);
+ assert.match(source,/\/api\/fara\/country\//);
+ assert.doesNotMatch(source,/assets\/data\/foreign-influence\/latest\.json/);
+ assert.doesNotMatch(source,/assets\/data\/foreign-influence\/countries\//);
+ assert.doesNotMatch(source,/assets\/data\/foreign-influence\/filing-insights\//);
+});
