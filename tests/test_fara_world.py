@@ -62,6 +62,18 @@ class FaraWorldTests(unittest.TestCase):
         self.assertEqual(safe_fara_url('https://efile.fara.gov/docs/789-test.pdf'),
             'https://efile.fara.gov/docs/789-test.pdf')
 
+    def test_empty_country_is_unmatched_instead_of_blocking_valid_records(self):
+        rows=[
+            {'Registration_Number':'1','Foreign_Principal':'Organization with no location',
+             'Country_Location':'','Registrant_Name':'Agent A'},
+            {'Registration_Number':'2','Foreign_Principal':'Enterprise Singapore',
+             'Country_Location':'SINGAPORE','Registrant_Name':'Agent B'}
+        ]
+        index=country_index(CATALOG)
+        summary=build_summary(rows,index,'2026-11-18T18:00:00Z')
+        self.assertEqual(summary['unmatchedPrincipals'],1)
+        self.assertEqual(summary['countries']['SG']['principals'],1)
+
     def test_summary_is_registries_not_spending_and_marks_unmatched(self):
         rows=[
             {'Registration_Number':'7794','Foreign_Principal':'Enterprise Singapore',
