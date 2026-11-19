@@ -143,6 +143,7 @@ body[data-view="congress"] button,body[data-view="congress"] input,body[data-vie
 .atlasPartySwatch.dem{background:#2466d3}
 .atlasPartySwatch.rep{background:#c43c49}
 .atlasPartySwatch.other{background:#9780d5}
+.atlasPartySwatch.split{background:#8970c3}
 .atlasPartySwatch.vacant{background:#e9faff}
 .atlasPartySwatch.unknown{background:#344d68}
 .atlasPartyLegend small{font-size:10px;color:#a3b7ce;width:100%;line-height:1.35}
