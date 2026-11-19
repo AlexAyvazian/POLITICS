@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {countrySummary,selectedPrincipalRecords,verifiedSpending,documentGroup,documentsForGroup} from '../assets/js/foreign-influence-model.mjs';
@@ -39,4 +40,22 @@ test('FARA filing categories make receipts and activities discoverable but do no
  assert.equal(documentsForGroup(docs,'supplemental').length,1);
  assert.equal(documentsForGroup(docs,'all').length,4);
  assert.equal(documentsForGroup(docs,'unknown').length,0);
+});
+
+test('country selection highlights on a geographic WORLD map rather than zooming to a country',()=>{
+ const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
+ assert.doesNotMatch(js,/projection\.fitExtent\([^;]+,feature\)/s);
+ assert.match(js,/projection\.fitExtent\(\[\[14,14\],\[width-14,height-14\]\],\{type:'Sphere'\}\)/);
+ assert.match(js,/selected\?\.iso2===featureCountry\(d\)\?\.iso2\?' selected'/);
+});
+test('selected country records appear before collapsed country navigation and long source note',()=>{
+ const html=readFileSync(new URL('../foreign-influence.html',import.meta.url),'utf8');
+ const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
+ const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
+ assert.ok(html.indexOf('class="facilitySection"')<html.indexOf('id="countryChooser"'));
+ assert.match(html,/<details id="countryChooser"/);
+ assert.match(js,/\$\('countryChooser'\)\.open=false/);
+ assert.match(js,/\$\('countryChooser'\)\.open=true/);
+ assert.match(css,/\.foreignInfluence \.facilityList\{/);
+ assert.match(html,/<details class="foreignSourceDetails"/);
 });
