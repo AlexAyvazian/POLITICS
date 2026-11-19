@@ -35,6 +35,12 @@ function electionFor(which,stateCode){
 function countyElectionResult(which,stateCode,countyFips){
  return electionFor(which,stateCode)?.counties?.[countyFips]||null;
 }
+function nationalStateParty(which,stateCode){
+ if(which==='president')return window.US_PRESIDENT_2024_STATE_WINNERS?.states?.[stateCode]||'unknown';
+ if(typeof partyResolver!=='function')return 'unknown';
+ const result=partyResolver({layer:which,state:stateCode,scope:'state',district:null});
+ return ['democratic','republican','other','split','vacant'].includes(result)?result:'unknown';
+}
 function status(text){$('congressLoading').hidden=!text;$('congressLoading').textContent=text||'';}
 function tipOff(){tip.hidden=true;}
 function tipOn(e,text){tip.textContent=text;tip.hidden=false;tip.style.left=Math.max(6,Math.min(innerWidth-300,e.clientX+12))+'px';tip.style.top=Math.max(6,Math.min(innerHeight-75,e.clientY+12))+'px';}
@@ -111,7 +117,29 @@ function hash(){try{history.replaceState(null,'','#'+[state||'US',layer,district
 function updateLegend(){
  const legend=$('atlasPartyLegend');
  if(!legend)return;
- if(layers[layer].type==='countyElection'){
+ if(layers[layer].type==='countyElection'&&!state){
+  if(layer==='president'){
+   legend.setAttribute('aria-label','2024 presidential statewide winner color key');
+   legend.innerHTML=
+    '<span class="atlasLegendPair"><i class="atlasPartySwatch dem" aria-hidden="true"></i> Democratic 2024 state winner</span>'+
+    '<span class="atlasLegendPair"><i class="atlasPartySwatch rep" aria-hidden="true"></i> Republican 2024 state winner</span>'+
+    '<span class="atlasLegendPair"><i class="atlasPartySwatch vacant" aria-hidden="true"></i> Result unavailable</span>';
+  }else if(layer==='governor'){
+   legend.setAttribute('aria-label','Current governor party color key');
+   legend.innerHTML=
+    '<span class="atlasLegendPair"><i class="atlasPartySwatch dem" aria-hidden="true"></i> Democratic governor</span>'+
+    '<span class="atlasLegendPair"><i class="atlasPartySwatch rep" aria-hidden="true"></i> Republican governor</span>'+
+    '<span class="atlasLegendPair"><i class="atlasPartySwatch other" aria-hidden="true"></i> Other / nonpartisan</span>'+
+    '<span class="atlasLegendPair"><i class="atlasPartySwatch vacant" aria-hidden="true"></i> Party unavailable</span>';
+  }else{
+   legend.setAttribute('aria-label','Current U.S. Senate delegation color key');
+   legend.innerHTML=
+    '<span class="atlasLegendPair"><i class="atlasPartySwatch dem" aria-hidden="true"></i> Democratic delegation</span>'+
+    '<span class="atlasLegendPair"><i class="atlasPartySwatch rep" aria-hidden="true"></i> Republican delegation</span>'+
+    '<span class="atlasLegendPair"><i class="atlasPartySwatch split" aria-hidden="true"></i> Split delegation</span>'+
+    '<span class="atlasLegendPair"><i class="atlasPartySwatch vacant" aria-hidden="true"></i> Delegation unavailable</span>';
+  }
+ }else if(layers[layer].type==='countyElection'){
   const unit=state==='AK'?'House district':'county';
   legend.setAttribute('aria-label',unit+' election winner color key');
   legend.innerHTML=
@@ -131,10 +159,13 @@ function ui(){
  $('congressState').value=state||'';
  $('congressBack').hidden=!state;
  $('districtMapLabel').textContent=stateName()+' · '+layers[layer].title;
- $('districtVintage').textContent=layers[layer].vintage;
+ if(!state&&layer==='senate')$('districtVintage').textContent='Current U.S. Senate delegation';
+ else if(!state&&layer==='governor')$('districtVintage').textContent='Current governor party';
+ else if(!state&&layer==='president')$('districtVintage').textContent='2024 presidential statewide winner';
+ else $('districtVintage').textContent=layers[layer].vintage;
  $('atlasHint').textContent=state?
   (layers[layer].type==='countyElection'?(state==='AK'?'Select a House district · Scroll to zoom · Drag to move':'Select a county · Scroll to zoom · Drag to move'):'Select a district · Scroll to zoom · Drag to move'):
-  'Select a state · Scroll to zoom · Drag to move';
+  (layers[layer].type==='countyElection'?'Select a state to drill into election results · Scroll to zoom · Drag to move':'Select a state · Scroll to zoom · Drag to move');
  document.querySelectorAll('[data-atlas-layer]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.atlasLayer===layer)));
 }
 function syncDistrictLabels(k){
@@ -149,7 +180,7 @@ function partyForFeature(feature){
  const fips=isState?String(feature.id).padStart(2,'0'):String(props.STATE||'').padStart(2,'0');
  const code=byFips[fips]?.abbr;
  if(!code)return 'unknown';
- if(layers[layer].type==='countyElection'&&isState)return 'unknown';
+ if(layers[layer].type==='countyElection'&&isState)return nationalStateParty(layer,code);
  if(typeof partyResolver!=='function')return 'unknown';
  const result=partyResolver({layer,state:code,scope:isState?'state':'district',district:isState?null:currentCode(feature)});
  return ['democratic','republican','other','split','vacant'].includes(result)?result:'unknown';
@@ -387,7 +418,7 @@ async function refresh(){
  if(layers[layer].type==='countyElection'){
   if(state==='AK'){await alaskaStatewideElectionMap(turn);hash();return;}
   if(state){countyElectionMap();hash();return;}
-  nationalStates();status('Choose a state to view statewide election results.');hash();return;
+  nationalStates();status('');hash();return;
  }
  if(state)stateOutline();else nationalStates();
  if(!state&&layer!=='house'){status('Choose a state to view its '+layers[layer].title.toLowerCase()+'.');hash();return;}
