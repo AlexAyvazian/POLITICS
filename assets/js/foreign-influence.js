@@ -74,18 +74,11 @@ function renderCountryChips(){
 function drawMap(){
  const shell=$('mapShell'),width=Math.max(320,shell.clientWidth),height=Math.max(300,shell.clientHeight);
  svg.attr('viewBox','0 0 '+width+' '+height);
- if(selected&&topologyFeatures.length){
-  const feature=topologyFeatures.find(f=>featureCountry(f)?.iso2===selected.iso2);
-  if(feature){
-   const pad=Math.max(16,Math.min(width,height)*.075);
-   projection.rotate([-d3.geoCentroid(feature)[0],0]);
-   projection.fitExtent([[pad,pad],[width-pad,height-pad]],feature);
-  }else{
-   projection.rotate([0,0]);projection.fitExtent([[14,14],[width-14,height-14]],{type:'Sphere'});
-  }
- }else{
-  projection.rotate([0,0]);projection.fitExtent([[14,14],[width-14,height-14]],{type:'Sphere'});
- }
+ // Country selection must retain the world map as geographic context.
+ // Only the selected country's fill/outline changes. Do NOT fitExtent to
+ // an individual country: that makes Ghana or Luxembourg fill the viewport.
+ projection.rotate([0,0]);
+ projection.fitExtent([[14,14],[width-14,height-14]],{type:'Sphere'});
  countryLayer.selectAll('path')
   .data(topologyFeatures,d=>String(d.id||d.properties?.name))
   .join('path')
@@ -166,7 +159,7 @@ async function choose(iso){
  $('panelMeta').textContent='Foreign principals registered under U.S. FARA';
  const card=$('selectedCard');card.replaceChildren();
  card.style.setProperty('--cardGlow',countryStates(country).glow);
- card.append(el('div','regionName',country.name));
+ card.append(el('div','faraSectionLabel','DOJ FARA registry snapshot'));
  const metrics=el('div','faraCountryMetrics');
  const addStat=(title,value)=>{const x=el('div','faraMetric');x.append(el('span','',title),el('strong','',value));metrics.append(x);};
  addStat('Principals indexed',displayNumber(record.principals));
@@ -175,10 +168,11 @@ async function choose(iso){
  card.append(metrics);
  const moneyValue=verifiedSpending(snapshot?.countries?.[iso]||{});
  const cash=el('p','faraMoney','Disclosed financial totals: '+moneyValue.text);
- card.append(cash,el('p','note','DOJ registries do not identify all amounts spent, lobbying targets or any payment to a member of Congress. Source PDFs remain essential for those claims.'));
+ card.append(cash);
  $('facilityList').replaceChildren(el('p','muted','Retrieving documented foreign-principal relationships…'));
  $('listLabel').textContent='Loading records for '+country.name+'…';
  $('statusFilter').value='all';$('documentFilter').value='all';$('search').value='';
+ $('countryChooser').open=false;
  renderCountryChips();
  drawMap();showLabel(country.name,record.principals);
  history.replaceState(null,'','#/country/'+encodeURIComponent(iso));
@@ -199,7 +193,7 @@ async function choose(iso){
 }
 function reset(){
  selected=null;detail=null;++renderVersion;
- history.replaceState(null,'','#/world');resetSidebar();renderCountryChips();drawMap();
+ history.replaceState(null,'','#/world');resetSidebar();$('countryChooser').open=true;renderCountryChips();drawMap();
  $('mapLabel').textContent='Choose a country to inspect DOJ FARA registrations';
 }
 function initEvents(){
@@ -212,7 +206,7 @@ function initEvents(){
  window.addEventListener('keydown',event=>{if(event.key==='Escape')reset();});
 }
 async function load(){
- initEvents();resetSidebar();
+ initEvents();resetSidebar();$('countryChooser').open=true;
  try{
   const topoResponse=await fetch('assets/vendor/foreign-countries-50m.json',{cache:'force-cache'});
   if(!topoResponse.ok)throw Error('World geography unavailable');
