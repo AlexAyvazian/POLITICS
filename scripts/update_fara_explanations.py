@@ -190,7 +190,18 @@ def explain_supplemental(text,reg,source_url,known_principals=None):
     elif total_received is not None or total_disbursed is not None:
         money_status='verified_filing_totals'
         parts=[]
-        if total_received is not None:parts.append('
+        if total_received is not None:
+            parts.append(chr(36)+format(total_received,',.2f')+' in total receipts')
+        if total_disbursed is not None:
+            parts.append(chr(36)+format(total_disbursed,',.2f')+' in total disbursements')
+        money_note=('The supplemental statement reports '+(' and '.join(parts))+
+                    ' for this registrant during the filing period. These are registrant-level '
+                    'filing totals and are not automatically attributable to any one foreign principal.')
+    else:
+        money_status='not_extracted'
+        money_note=('No verified receipts or expenditures have yet been extracted from this '
+                    'filing. The absence of an extracted amount does not mean no money moved.')
+    service=find_activity(text)
     rider_service=re.search(r'legal services exempt from registration under 22\s*U\.?S\.?C',r14+' '+r15,re.I)
     if not service and rider_service:service='The registrant reported providing legal services.'
     if re.search(r'UK\s+Office\s+of\s+Financial\s+Sanctions',r14+' '+r15,re.I):
