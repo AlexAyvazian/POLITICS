@@ -50,7 +50,7 @@ export function documentsForGroup(documents,group='all'){
  * about a country's overall policy or intent. */
 export const INFLUENCE_THEMES=[
  {id:'trade_commerce',label:'Trade & commerce',description:'Trade, market access, investment, imports or exports.',
-  patterns:[/\btrade\b/i,/\btariffs?\b/i,/\bmarket access\b/i,/\bimports?\b/i,/\bexports?\b/i,/\bcommercial\b/i,/\bcommerce\b/i,/\binvestment\b/i]},
+  patterns:[/\btrade\b/i,/\btariffs?\b/i,/\bmarket access\b/i,/\bimports?\b(?![- ]controls?\b)/i,/\bexports?\b(?![- ]controls?\b)/i,/\bcommercial\b/i,/\bcommerce\b/i,/\binvestment\b/i]},
  {id:'sanctions_regulation',label:'Sanctions & regulation',description:'Sanctions, OFAC, export controls, licenses or regulatory policy.',
   patterns:[/\bsanctions?\b/i,/\bOFAC\b/i,/\bexport controls?\b/i,/\bregulat(?:ion|ory|ions)\b/i,/\blicen[cs](?:e|es|ing)\b/i]},
  {id:'defense_security',label:'Defense & security',description:'Defense, national security, military or intelligence matters.',
