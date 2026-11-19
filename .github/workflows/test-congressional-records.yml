@@ -52,5 +52,7 @@ jobs:
       - name: Run full JS suite (informational; three unrelated legacy test failures)
         continue-on-error: true
         run: npm test
+      - name: Verify DOJ FARA country normalization and documentary-source claims
+        run: python3 -m unittest discover -s tests -p test_fara_world.py -v
       - name: Verify archived roll-call dataset joins and vote code meanings
         run: python3 -m unittest discover -s tests -p test_voteview_rollcalls.py -v

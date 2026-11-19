@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#050814">
+ <meta name="description" content="Explore documented foreign principals, U.S. agents and FARA filings by country. Financial payments are displayed only when verified from original disclosures.">
+ <title>Foreign Influence · POLITICS</title>
+ <link rel="stylesheet" href="assets/css/foreign-healthcare-shell.css">
+ <link rel="stylesheet" href="assets/css/foreign-influence.css">
+</head>
+<body class="worldView foreignInfluence">
+ <div class="orb one" aria-hidden="true"></div><div class="orb two" aria-hidden="true"></div><div class="orb three" aria-hidden="true"></div>
+ <div class="orb four" aria-hidden="true"></div><div class="orb five" aria-hidden="true"></div><div class="orb six" aria-hidden="true"></div><div class="orb seven" aria-hidden="true"></div>
+ <div class="cursorGlow" id="cursorGlow" aria-hidden="true"></div>
+ <div class="tooltip" id="tooltip" role="tooltip"></div>
+ <div class="app">
+  <header class="header glass">
+   <div class="titleBlock">
+    <span class="eyebrow">POLITICS · PUBLIC DISCLOSURES</span>
+    <h1>Foreign Influence</h1>
+    <p class="sub">Follow registered foreign principals, their U.S. agents, disclosure filings and documented activities. The map is a disclosure directory—not a claim that a country funded U.S. politicians.</p>
+   </div>
+   <div class="stats" aria-label="FARA source coverage">
+    <div class="stat"><b id="statCountries">—</b><span>countries with indexed records</span></div>
+    <div class="stat"><b id="statPrincipals">—</b><span>foreign-principal records</span></div>
+   </div>
+   <nav class="directorySwitch" aria-label="POLITICS sections">
+    <a href="index.html#map">County Atlas</a>
+    <a href="congressional.html">Congressional Atlas</a>
+    <a href="records.html">Records</a>
+    <a href="foreign-influence.html" aria-current="page">Foreign Influence</a>
+   </nav>
+  </header>
+  <main class="mapPanel glass" aria-label="World country disclosure map">
+   <div class="mapShell" id="mapShell">
+    <svg id="mapSvg" role="group" aria-label="Interactive world map of foreign-principal FARA records. Select a country to inspect disclosures."></svg>
+    <div class="mapLabel" id="mapLabel" aria-live="polite">Select a country to examine its disclosure records</div>
+    <div class="loading" id="loading" role="status">Loading world country boundaries…</div>
+   </div>
+  </main>
+  <aside class="sidePanel glass" aria-labelledby="panelTitle">
+   <div class="sideTitle">
+    <div><h2 id="panelTitle">World</h2><div class="muted" id="panelMeta">United States · Department of Justice FARA</div></div>
+    <span class="modeBadge">FARA filings</span>
+   </div>
+   <section class="selectedCard" id="selectedCard" aria-live="polite">
+    <strong>Choose a country</strong>
+    <p class="muted">The sidebar will show registered foreign principals, U.S. agents and links to original filings.</p>
+   </section>
+   <section class="regionSection" aria-labelledby="countryListTitle">
+    <div class="regionHead"><span class="muted" id="countryListTitle">Countries</span><input id="regionFilter" type="search" placeholder="Find a country…" aria-label="Find a country"></div>
+    <div class="regionGrid" id="regionList" role="list"></div>
+   </section>
+   <section class="facilitySection" aria-labelledby="listLabel">
+    <div class="foreignFilters">
+     <label><span>Status</span><select id="statusFilter"><option value="all">All reported principals</option><option value="active">Active</option><option value="terminated">Terminated</option></select></label>
+     <label><span>Find</span><input id="search" type="search" placeholder="Search agent or foreign principal…" aria-label="Search registrant or foreign principal"></label>
+    </div>
+    <p class="muted listLabel" id="listLabel" aria-live="polite">Select a country to explore the filings.</p>
+    <div class="facilityList" id="facilityList" tabindex="0"></div>
+    <button id="loadMore" type="button" hidden>Show additional records</button>
+   </section>
+   <p class="attribution" id="sourceNote">Official source: <a href="https://efile.fara.gov/ords/fara/f?p=107:21:::NO::" target="_blank" rel="noopener noreferrer">DOJ FARA bulk data</a>. Country colors and glass frame reuse the existing Healthcare Directory. FARA registration is not evidence of an illegal donation or a direct payment to any U.S. official.</p>
+  </aside>
+ </div>
+ <script src="assets/vendor/foreign-d3.min.js"></script>
+ <script src="assets/vendor/foreign-topojson.min.js"></script>
+ <script type="module" src="assets/js/foreign-influence.js"></script>
+</body>
+</html>

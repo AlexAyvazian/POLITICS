@@ -1,0 +1,59 @@
+/* POLITICS Foreign Influence — exact Healthcare Directory shell, adapted
+ * only for documentary evidence and the existing POLITICS navigation.
+ * World country fills/hover/glows come from Healthcare Directory catalog. */
+.foreignInfluence .header{gap:16px}
+.foreignInfluence .header .titleBlock{flex:1 1 340px;min-width:275px}
+.foreignInfluence .header .eyebrow{font-size:10px;letter-spacing:.14em;margin-bottom:5px;display:block}
+.foreignInfluence .header .sub{max-width:550px;font-size:11px;line-height:1.55;margin:6px 0 0}
+.foreignInfluence .header h1{font-size:clamp(23px,2.2vw,33px)}
+.foreignInfluence .header .directorySwitch{flex:0 1 auto;flex-wrap:wrap;justify-content:flex-end}
+.foreignInfluence .header .directorySwitch a{font-size:11px;padding:7px 11px}
+.foreignInfluence .header .stats{flex:0 0 auto;gap:7px}
+.foreignInfluence .header .stat{white-space:normal;max-width:135px}
+.foreignInfluence .header .stat b{font-size:19px;display:block}
+.foreignInfluence .header .stat span{font-size:10px}
+.foreignInfluence .regionGrid{max-height:136px}
+.foreignInfluence .countryIndexCount{font-size:10px;line-height:1;color:#e8f8ff;margin-left:auto;font-variant-numeric:tabular-nums}
+.foreignInfluence .country{transition:fill .15s,stroke .15s,filter .15s}
+.foreignInfluence .country[role=button]:focus-visible{outline:none;stroke:#fff;stroke-width:2;filter:drop-shadow(0 0 10px var(--glow))}
+.foreignInfluence .mapShell{min-height:310px}
+.foreignInfluence .mapLabel{font-size:12px}
+.foreignInfluence .foreignFilters{display:grid;grid-template-columns:135px 1fr;gap:8px}
+.foreignInfluence .foreignFilters label{display:flex;flex-direction:column;min-width:0;gap:5px}
+.foreignInfluence .foreignFilters label span{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#a9c9d8;font-weight:750}
+.foreignInfluence .foreignFilters input,.foreignInfluence .foreignFilters select{padding:9px;font-size:12px;min-width:0}
+.foreignInfluence .faraCountryMetrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:12px 0 9px}
+.foreignInfluence .faraMetric{min-width:0;padding:10px 7px;border-radius:12px;background:rgba(0,10,30,.4);border:1px solid rgba(174,220,245,.12)}
+.foreignInfluence .faraMetric span{display:block;font-size:10px;color:#9ebbcf;line-height:1.25}
+.foreignInfluence .faraMetric strong{display:block;font-size:19px;margin-top:5px;font-variant-numeric:tabular-nums;color:#f3f9ff}
+.foreignInfluence .faraMoney{font-size:12px;color:#c2f1e4;font-weight:800;margin:9px 0}
+.foreignInfluence .selectedCard .note{font-size:11px;margin:0}
+.foreignInfluence .faraPrincipal{cursor:default;overflow:visible}
+.foreignInfluence .faraPrincipal h3{font-size:15px;line-height:1.4;overflow-wrap:anywhere}
+.foreignInfluence .faraAgent{font-size:12px;color:#e0ebf6;line-height:1.45;margin:7px 0}
+.foreignInfluence .faraDates{font-size:10px;color:#a0b9d5;line-height:1.6;margin:5px 0 9px}
+.foreignInfluence .faraDocsTitle{font-size:10px;font-weight:800;color:#9ec5dd;letter-spacing:.05em;text-transform:uppercase;padding-top:9px;border-top:1px solid rgba(180,205,238,.13)}
+.foreignInfluence .faraPrincipal a{display:block;font-size:11px;line-height:1.45;margin-top:6px;overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:3px}
+.foreignInfluence .facilityList{gap:9px}
+.foreignInfluence .facilitySection{gap:9px}
+.foreignInfluence .sourceFreshness{color:#b9eadb}
+.foreignInfluence .sidePanel{gap:11px}
+@media(max-width:1370px){
+ .foreignInfluence .header{flex-wrap:wrap}
+ .foreignInfluence .header .stats{order:3;flex:1}
+ .foreignInfluence .header .titleBlock{flex:1 1 490px}
+}
+@media(max-width:860px){
+ .foreignInfluence .header{gap:12px}
+ .foreignInfluence .header .directorySwitch{justify-content:flex-start;order:2}
+ .foreignInfluence .header .stats{order:3}
+ .foreignInfluence .mapPanel{height:55vh}
+ .foreignInfluence .regionGrid{max-height:175px}
+ .foreignInfluence .facilityList{max-height:62vh}
+}
+@media(max-width:430px){
+ .foreignInfluence .foreignFilters{grid-template-columns:1fr}
+ .foreignInfluence .faraCountryMetrics{gap:4px}
+ .foreignInfluence .faraMetric{padding:9px 5px}
+ .foreignInfluence .faraMetric strong{font-size:17px}
+}
