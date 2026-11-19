@@ -7,9 +7,9 @@ from scripts import update_congressional_boundaries as source
 
 class GeographySnapshotTests(unittest.TestCase):
     def test_census_requests_are_for_approved_layers_and_state(self):
-        self.assertIn("/5/query?", source.endpoint("house", "53"))
-        self.assertIn("returnCountOnly=true", source.endpoint("stateSenate", "53", count_only=True))
-        self.assertNotIn("returnCountOnly", source.endpoint("stateHouse", "53"))
+        self.assertIn("/0/query?", source.endpoint("house", "53"))\n        self.assertIn("TIGERweb/Legislative/MapServer", source.CENSUS)
+        self.assertIn("/9/query?", source.endpoint("stateSenate", "53", count_only=True))\n        self.assertIn("returnCountOnly=true", source.endpoint("stateSenate", "53", count_only=True))
+        self.assertIn("/10/query?", source.endpoint("stateHouse", "53"))\n        self.assertNotIn("returnCountOnly", source.endpoint("stateHouse", "53"))
         with self.assertRaises(AssertionError):
             source.endpoint("invalid", "53")
 
