@@ -93,7 +93,7 @@ function drawMap(){
   .attr('tabindex',d=>featureCountry(d)?0:null)
   .attr('role','button')
   .attr('aria-label',d=>'Inspect '+(featureCountry(d)?.name||d.properties?.name||'unknown country')+' FARA disclosures')
-  .on('click',(_event,feature)=>{const c=featureCountry(feature);if(c)choose(c.iso2);})
+  .on('click',(event,feature)=>{const c=featureCountry(feature);if(event.detail>0&&event.currentTarget?.blur)event.currentTarget.blur();if(c)choose(c.iso2);})
   .on('keydown',(event,feature)=>{
    if(event.key==='Enter'||event.key===' '){event.preventDefault();const c=featureCountry(feature);if(c)choose(c.iso2);}
   })
@@ -129,20 +129,71 @@ function drawMap(){
 function moveTooltip(event){
  const tip=$('tooltip');tip.style.left=(event.clientX+18)+'px';tip.style.top=(event.clientY+16)+'px';
 }
+// Official filings are backup evidence, never the default content of a card.
 function makeSourceLinks(record,container,group='all'){
  const docs=documentsForGroup(record.documents,group);
+ const details=el('details','faraDocuments');
+ const label=el('summary','','See '+docs.length+' original DOJ filing'+(docs.length===1?'':'s')+' and all source records');
+ details.append(label);
  if(docs.length){
-  const small=el('div','faraDocsTitle','Original DOJ filing documents');
-  container.append(small);
+  const small=el('p','faraDocsTitle','These documents support the registration; a document title alone does not establish payments or political contacts.');
+  details.append(small);
   for(const doc of docs){
    const url=safeFaraDocument(doc.url);if(!url)continue;
-   const link=sourceAnchor(url,(doc.type||'FARA document')+(doc.filed?' · '+doc.filed:'')+' ↗');
+   const guide=doc.type==='Supplemental Statement'?'Six-month services, activities and financial report':
+    /exhibit/i.test(doc.type)?'Registration relationship or agreement':
+    /informational/i.test(doc.type)?'Reported public-facing information':'DOJ registration document';
+   const link=sourceAnchor(url,guide+(doc.filed?' · '+doc.filed:'')+' ↗');
    link.className='faraDocumentLink';
-   container.append(link);
+   details.append(link);
   }
  }
  const url=safeFaraDocument(record.allRegistrantDocumentsUrl);
- if(url)container.append(sourceAnchor(url,'All DOJ filings for this registrant ↗'));
+ if(url)details.append(sourceAnchor(url,'Complete DOJ filing index for this agent ↗'));
+ container.append(details);
+}
+const insightRequests=new Map();
+function makeFilingExplanation(entry,container){
+ const block=el('section','faraExplanation');
+ block.append(el('p','faraMeaningLabel','What the disclosure tells us'));
+ const work=el('div','faraFact');
+ work.append(el('strong','','Reported services'),el('p','',
+  'This U.S. registrant has filed a FARA record for the named foreign principal. The particular services have not yet been extracted from its supplemental statement.'));
+ const money=el('div','faraFact');
+ money.append(el('strong','','Reported payments'),el('p','',
+  'A verified amount has not yet been extracted. This does not mean no money was received or spent.'));
+ const contact=el('div','faraFact');
+ contact.append(el('strong','','U.S. political contacts'),el('p','',
+  'No named officials or contacts have been verified from this record. Registration alone does not show that a U.S. official was approached.'));
+ block.append(work,money,contact);
+ container.append(block);
+ const id=String(entry.registrationNumber||'');
+ if(!/^\d{1,6}$/.test(id))return;
+ if(!insightRequests.has(id)){
+  insightRequests.set(id,fetch('assets/data/foreign-influence/filing-insights/'+id+'.json',{cache:'no-cache'})
+    .then(r=>r.ok?r.json():null).catch(()=>null));
+ }
+ insightRequests.get(id).then(summary=>{
+  if(!block.isConnected||!summary||summary.schemaVersion!==1||summary.registrationNumber!==id||
+     !safeFaraDocument(summary.sourceUrl))return;
+  // A registrant filing can cover several principals. Do not apply services
+  // or money to a different named foreign principal.
+  const names=Array.isArray(summary.namedPrincipals)?summary.namedPrincipals:[];
+  const applies=names.some(n=>String(n).trim().toLowerCase()===String(entry.principalName).trim().toLowerCase());
+  if(!applies)return;
+  if(typeof summary.servicesSummary==='string'&&summary.servicesSummary.trim())
+   work.querySelector('p').textContent=summary.servicesSummary;
+  if(summary.moneyStatus==='placeholder_not_actual'){
+   money.querySelector('p').textContent=summary.moneyExplanation;
+   money.classList.add('faraFactWarning');
+  }else if(typeof summary.moneyExplanation==='string'){
+   money.querySelector('p').textContent=summary.moneyExplanation;
+  }
+  if(typeof summary.contactsSummary==='string'&&summary.contactsSummary.trim())
+   contact.querySelector('p').textContent=summary.contactsSummary;
+  if(summary.periodEnd)block.append(el('p','faraReportingPeriod','Reporting period ending '+summary.periodEnd));
+  block.append(sourceAnchor(summary.sourceUrl,'Evidence: latest explained supplemental statement ↗'));
+ });
 }
 function renderPrincipals(){
  const list=$('facilityList');list.replaceChildren();
@@ -163,6 +214,7 @@ function renderPrincipals(){
     (entry.registeredAt?' · First registered '+entry.registeredAt:'')+
     (entry.terminatedAt?' · Terminated '+entry.terminatedAt:''));
   card.append(badge,title,registrant,meta);
+  makeFilingExplanation(entry,card);
   makeSourceLinks(entry,card,group);
   list.append(card);
  }
