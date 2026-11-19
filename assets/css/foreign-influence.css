@@ -255,3 +255,26 @@
  .foreignInfluence .moneyBreakdownTop{grid-template-columns:auto minmax(0,1fr)}
  .foreignInfluence .moneyAmount{grid-column:2}
 }
+
+
+/* Source-backed influence theme summary. */
+.foreignInfluence .themeMethod{margin:-2px 0 9px;color:#8ea9b8;font-size:9px;line-height:1.45}
+.foreignInfluence .influenceThemeList{display:grid;gap:7px}
+.foreignInfluence .influenceThemeRow{padding:10px 11px;border-radius:11px;background:rgba(7,17,35,.58);border:1px solid rgba(143,192,218,.13)}
+.foreignInfluence .influenceThemeHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.foreignInfluence .influenceThemeName{color:#e9f4f8;font-size:11px;line-height:1.35}
+.foreignInfluence .influenceThemeCount{color:#8ed8cf;font-size:8px;line-height:1.35;text-align:right;white-space:nowrap}
+.foreignInfluence .influenceThemeDescription{margin:4px 0 0;color:#9fb7c5;font-size:9px;line-height:1.42}
+.foreignInfluence .themeEvidence{margin-top:7px;border-top:1px solid rgba(144,190,214,.12);padding-top:6px}
+.foreignInfluence .themeEvidence>summary{cursor:pointer;color:#a9dce4;font-size:9px;font-weight:800}
+.foreignInfluence .themeEvidenceRow{padding:7px 0;border-top:1px solid rgba(145,188,211,.09)}
+.foreignInfluence .themeEvidenceRow:first-of-type{margin-top:5px}
+.foreignInfluence .themeEvidenceKind{display:block;color:#79bdb8;font-size:7px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.foreignInfluence .themeEvidencePrincipal{display:block;margin-top:2px;color:#dceaf0;font-size:9px;line-height:1.35}
+.foreignInfluence .themeEvidenceText{margin:3px 0 0;color:#b9ccd7;font-size:9px;line-height:1.48}
+.foreignInfluence .themeEvidenceContext{margin:3px 0 0;color:#819aa8;font-size:8px;line-height:1.4}
+.foreignInfluence .themeEvidenceRow>a{display:inline-block;margin-top:4px;font-size:8px}
+@media(max-width:560px){
+ .foreignInfluence .influenceThemeHead{display:block}
+ .foreignInfluence .influenceThemeCount{display:block;margin-top:3px;text-align:left;white-space:normal}
+}

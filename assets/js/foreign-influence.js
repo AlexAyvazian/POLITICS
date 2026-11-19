@@ -3,7 +3,7 @@
  * No lobbying dollar, campaign contribution or government contact is inferred. */
 import {COUNTRIES} from './foreign-world-catalog.js';
 import {countryStates} from './foreign-world-colors.js';
-import {countrySummary,selectedPrincipalRecords,verifiedSpending,safeFaraDocument,isIso2} from './foreign-influence-model.mjs';
+import {countrySummary,selectedPrincipalRecords,verifiedSpending,safeFaraDocument,isIso2,INFLUENCE_THEMES,classifyInfluenceText} from './foreign-influence-model.mjs';
 
 const $=id=>document.getElementById(id);
 const svg=d3.select('#mapSvg');
@@ -49,6 +49,7 @@ function resetSidebar(){
  $('countryOverview').replaceChildren(el('strong','','Choose a country'),
   el('p','muted','Select a country on the map to see its foreign principals, U.S. registrants, documented purpose and filing activity.'));
  $('coverageNote').textContent='Select a country to load its DOJ FARA relationships.';
+ $('influenceThemeList').replaceChildren(el('p','muted','Select a country to load source-backed influence themes.'));
  $('purposeList').replaceChildren(el('p','muted','Select a country to load reviewed filing summaries.'));
  $('moneyEvidenceList').replaceChildren(el('p','muted','Select a country to load verified filing totals.'));
  $('politicalContactList').replaceChildren(el('p','muted','Select a country to load named political contacts.'));
@@ -288,6 +289,80 @@ function principalMatches(summary,group){
  const names=new Set((Array.isArray(summary?.namedPrincipals)?summary.namedPrincipals:[]).map(n=>String(n).trim().toLowerCase()));
  return [...group.principals].filter(n=>names.has(String(n).trim().toLowerCase()));
 }
+function themeEvidence(results,query=''){
+ const needle=String(query||'').trim().toLowerCase();
+ const evidence=[];
+ const push=(row)=>{
+  const hay=[row.text,row.principal,row.registrant,row.context,row.kind].join(' ').toLowerCase();
+  if(needle&&!hay.includes(needle))return;
+  if(!row.text||!safeFaraDocument(row.sourceUrl))return;
+  evidence.push(row);
+ };
+ for(const {group,summary,principals} of results){
+  const principalLabel=principals.slice(0,3).join(' · ')+(principals.length>3?' · +'+(principals.length-3)+' more':'');
+  if(typeof summary.servicesSummary==='string'&&summary.servicesSummary.trim()){
+   push({kind:'Reported services',text:summary.servicesSummary,principal:principalLabel,
+    registrant:group.registrantName,context:'',sourceUrl:summary.sourceUrl});
+  }
+  const allowed=new Set(principals.map(x=>String(x).trim().toLowerCase()));
+  for(const contact of Array.isArray(summary.politicalContacts)?summary.politicalContacts:[]){
+   if(!allowed.has(String(contact.principal||'').trim().toLowerCase()))continue;
+   push({kind:'Political contact purpose',text:contact.purpose,principal:contact.principal,
+    registrant:group.registrantName,context:[contact.contact,contact.date,contact.method].filter(Boolean).join(' · '),
+    sourceUrl:summary.sourceUrl});
+  }
+  for(const row of Array.isArray(summary.financialRows)?summary.financialRows:[]){
+   if(!allowed.has(String(row.principal||'').trim().toLowerCase()))continue;
+   push({kind:row.direction==='receipt'?'Receipt purpose':'Spending purpose',text:row.purpose,
+    principal:row.principal,registrant:group.registrantName,
+    context:[row.date,row.counterparty,Number.isFinite(row.amountUsd)?moneyExact(row.amountUsd):''].filter(Boolean).join(' · '),
+    sourceUrl:summary.sourceUrl});
+  }
+ }
+ return evidence;
+}
+function renderInfluenceThemes(results,query){
+ const list=$('influenceThemeList');list.replaceChildren();
+ const observations=themeEvidence(results,query);
+ const definitions=new Map(INFLUENCE_THEMES.map(theme=>[theme.id,theme]));
+ const grouped=new Map();
+ const seen=new Set();
+ for(const observation of observations){
+  for(const id of classifyInfluenceText(observation.text)){
+   const key=[id,observation.sourceUrl,observation.kind,observation.principal,observation.text].join('|').toLowerCase();
+   if(seen.has(key))continue;seen.add(key);
+   if(!grouped.has(id))grouped.set(id,{theme:definitions.get(id),sources:new Set(),evidence:[]});
+   const bucket=grouped.get(id);bucket.sources.add(observation.sourceUrl);bucket.evidence.push(observation);
+  }
+ }
+ const rows=[...grouped.values()].filter(x=>x.theme)
+  .sort((a,b)=>b.sources.size-a.sources.size||b.evidence.length-a.evidence.length||a.theme.label.localeCompare(b.theme.label));
+ if(!rows.length){
+  list.append(el('p','muted','No explicit influence theme has been identified in the reviewed filing text for this view yet. This does not mean the country has no influence activity; it means the reviewed evidence does not support a topic label yet.'));
+  return;
+ }
+ for(const row of rows){
+  const item=el('article','influenceThemeRow');
+  const head=el('div','influenceThemeHead');
+  head.append(el('strong','influenceThemeName',row.theme.label),
+   el('span','influenceThemeCount',displayNumber(row.sources.size)+' reviewed filing'+(row.sources.size===1?'':'s')+' · '+displayNumber(row.evidence.length)+' evidence entr'+(row.evidence.length===1?'y':'ies')));
+  item.append(head,el('p','influenceThemeDescription',row.theme.description));
+  const details=el('details','themeEvidence');
+  details.append(el('summary','','See why this theme appears'));
+  for(const observation of row.evidence.slice(0,4)){
+   const ev=el('div','themeEvidenceRow');
+   ev.append(el('span','themeEvidenceKind',observation.kind),
+    el('strong','themeEvidencePrincipal',observation.principal||observation.registrant),
+    el('p','themeEvidenceText',observation.text));
+   if(observation.context)ev.append(el('p','themeEvidenceContext',observation.context));
+   ev.append(sourceAnchor(observation.sourceUrl,'Source filing ↗'));
+   details.append(ev);
+  }
+  if(row.evidence.length>4)details.append(el('p','intelFoot',displayNumber(row.evidence.length-4)+' additional evidence entries support this theme.'));
+  item.append(details);list.append(item);
+ }
+}
+
 function filingFinancialRows(summary,principals){
  const allowed=new Set(principals.map(x=>String(x).trim().toLowerCase()));
  return (Array.isArray(summary?.financialRows)?summary.financialRows:[])
@@ -377,9 +452,11 @@ function renderPoliticalContacts(results,query){
  if(rows.length>18)list.append(el('p','intelFoot',displayNumber(rows.length-18)+' additional named political-contact entries match this view.'));
 }
 async function renderExtractedInsights(records,token){
+ const themes=$('influenceThemeList');
  const purpose=$('purposeList');
  const moneyList=$('moneyEvidenceList');
  const contactList=$('politicalContactList');
+ themes.replaceChildren(el('p','muted','Classifying explicit topics in reviewed filings…'));
  purpose.replaceChildren(el('p','muted','Checking reviewed original filings…'));
  moneyList.replaceChildren(el('p','muted','Checking reviewed filing totals…'));
  contactList.replaceChildren(el('p','muted','Checking itemized political contacts…'));
@@ -410,6 +487,7 @@ async function renderExtractedInsights(records,token){
   purpose.append(item);shown++;if(shown>=8)break;
  }
  if(!shown)purpose.append(el('p','muted','No reviewed purpose summary matches this view yet. The relationship network and filing timeline still come directly from the DOJ registry.'));
+ renderInfluenceThemes(results,query);
  renderMoneyEvidence(results,query);
  renderPoliticalContacts(results,query);
 }
@@ -434,6 +512,7 @@ async function choose(iso){
  $('search').value='';
  $('countryOverview').replaceChildren(el('strong','','Loading '+country.name+'…'),el('p','muted','Retrieving foreign principals, U.S. registrants and filing activity.'));
  $('coverageNote').textContent='Loading the latest published DOJ registry snapshot…';
+ $('influenceThemeList').replaceChildren(el('p','muted','Loading source-backed influence themes…'));
  $('purposeList').replaceChildren(el('p','muted','Loading reviewed filing summaries…'));
  $('moneyEvidenceList').replaceChildren(el('p','muted','Loading verified filing totals…'));
  $('politicalContactList').replaceChildren(el('p','muted','Loading named political contacts…'));
@@ -455,6 +534,7 @@ async function choose(iso){
   $('coverageNote').textContent=snapshot?.countries?.[iso]?
    'Detailed country records could not be loaded from the latest published snapshot.':
    'No foreign-principal records for this country were indexed in the latest DOJ bulk snapshot.';
+  $('influenceThemeList').replaceChildren(el('p','muted','No reviewed influence themes loaded.'));
   $('purposeList').replaceChildren(el('p','muted','No detailed filing summaries loaded.'));
   $('moneyEvidenceList').replaceChildren(el('p','muted','No detailed filing totals loaded.'));
   $('politicalContactList').replaceChildren(el('p','muted','No detailed political contacts loaded.'));
