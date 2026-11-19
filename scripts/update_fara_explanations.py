@@ -134,13 +134,13 @@ def plan():
                         d.get('type','').lower().startswith('supplemental statement') and
                         re.fullmatch(r'https://efile\.fara\.gov/docs/'+re.escape(reg)+r'-Supplemental-Statement-[^\s?#]+\.pdf',str(d.get('url','')),re.I)]
             if not candidates:continue
-            chosen=max(candidates,key=lambda x:str(x.get('filed','')))
-            entry=choices.setdefault(reg,{'reg':reg,'doc':chosen,'names':set(),'active':False})
-            entry['names'].add(principal['principalName'])
-            entry['active']=entry['active'] or principal.get('status')=='active'
             def date(doc):
                 try:return datetime.strptime(doc.get('filed',''),'%m/%d/%Y')
                 except ValueError:return datetime.min
+            chosen=max(candidates,key=date)
+            entry=choices.setdefault(reg,{'reg':reg,'doc':chosen,'names':set(),'active':False})
+            entry['names'].add(principal['principalName'])
+            entry['active']=entry['active'] or principal.get('status')=='active'
             if date(chosen)>date(entry['doc']):entry['doc']=chosen
     sorted_choices=sorted(choices.values(),key=lambda e:(not e['active'],e['reg']))
     return sorted_choices
