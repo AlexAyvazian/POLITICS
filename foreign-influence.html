@@ -19,7 +19,7 @@
    <div class="titleBlock">
     <span class="eyebrow">POLITICS · PUBLIC DISCLOSURES</span>
     <h1>Foreign Influence</h1>
-    <p class="sub">Follow registered foreign principals, their U.S. agents, disclosure filings and documented activities. The map is a disclosure directory—not a claim that a country funded U.S. politicians.</p>
+    <p class="sub">Browse FARA-registered foreign principals, their U.S. registered agents / registrants, registration status and verified financial totals.</p>
    </div>
    <div class="stats" aria-label="FARA source coverage">
     <div class="stat"><b id="statCountries">—</b><span>countries with indexed records</span></div>
@@ -42,64 +42,41 @@
   <aside class="sidePanel glass" aria-labelledby="panelTitle">
    <div class="sideTitle">
     <div><h2 id="panelTitle">World</h2><div class="muted" id="panelMeta">United States · Department of Justice FARA</div></div>
-    <span class="modeBadge">FARA filings</span>
+    <span class="modeBadge">FARA registry</span>
    </div>
 
    <section class="selectedCard countryOverview" id="countryOverview" aria-live="polite">
     <strong>Choose a country</strong>
-    <p class="muted">Select a country on the map to see its foreign principals, U.S. registrants, documented purpose and filing activity.</p>
+    <p class="muted">Select a country to see its registered foreign principals and U.S. registrants.</p>
    </section>
 
    <section class="countryIntelTools" aria-label="Search the selected country">
-    <label for="search"><span>Find in this country</span><input id="search" type="search" placeholder="Search principal or U.S. registrant…" aria-label="Search principal or U.S. registrant"></label>
+    <label for="search"><span>Search registrations</span><input id="search" type="search" placeholder="Foreign principal, U.S. registrant or registration #…" aria-label="Search registrations"></label>
    </section>
 
-   <p class="coverageNote" id="coverageNote" aria-live="polite">Select a country to load its DOJ FARA relationships.</p>
-
-   <section class="evidenceCoverage" id="evidenceCoverage" aria-live="polite">
-    <strong>Reviewed evidence coverage</strong>
-    <p class="muted">Select a country to see how much of its indexed FARA network has been reviewed in detail.</p>
+   <section class="registrySection" aria-labelledby="registrationDirectoryTitle">
+    <div class="registrySectionHead">
+     <div><span class="intelKicker">REGISTERED RELATIONSHIPS</span><h3 id="registrationDirectoryTitle">Foreign principals and U.S. registrants</h3></div>
+     <span class="registryCount" id="registrationCount"></span>
+    </div>
+    <div class="registrationDirectory" id="registrationDirectory">
+     <p class="muted">Select a country to load registrations.</p>
+    </div>
    </section>
 
-   <section class="intelSection influenceThemesSection" aria-labelledby="influenceThemesTitle">
-    <div class="intelSectionHead"><div><span class="intelKicker">INFLUENCE THEMES</span><h3 id="influenceThemesTitle">What this country is trying to influence</h3></div></div>
-    <p class="themeMethod">Themes appear only when reviewed filing text explicitly matches the topic. Open the evidence beneath each theme to see why it was classified.</p>
-    <div class="influenceThemeList" id="influenceThemeList"><p class="muted">Select a country to load source-backed influence themes.</p></div>
+   <section class="registrySection" aria-labelledby="moneyRegistryTitle">
+    <div class="registrySectionHead">
+     <div><span class="intelKicker">VERIFIED MONEY</span><h3 id="moneyRegistryTitle">Financial totals by U.S. registrant</h3></div>
+     <span class="registryCount" id="moneyCount"></span>
+    </div>
+    <p class="moneyRegistryNote">Money is shown only when an original DOJ supplemental statement provides a verified registrant-level total. It is not assigned to one foreign principal when a registration covers several.</p>
+    <div class="moneyRegistry" id="moneyRegistry">
+     <p class="muted">Select a country to load verified financial totals.</p>
+    </div>
    </section>
 
-   <section class="intelSection purposeSection" id="purposeSection" aria-labelledby="purposeTitle">
-    <div class="intelSectionHead"><div><span class="intelKicker">DOCUMENTED PURPOSE</span><h3 id="purposeTitle">What they hired U.S. firms to do</h3></div></div>
-    <div class="purposeList" id="purposeList"><p class="muted">Select a country to load reviewed filing summaries.</p></div>
-   </section>
-
-   <section class="intelSection moneyEvidenceSection" aria-labelledby="moneyEvidenceTitle">
-    <div class="intelSectionHead"><div><span class="intelKicker">MONEY IN REVIEWED FILINGS</span><h3 id="moneyEvidenceTitle">What the U.S. registrant reported receiving or spending</h3></div></div>
-    <div class="moneyEvidenceList" id="moneyEvidenceList"><p class="muted">Select a country to load verified filing totals.</p></div>
-   </section>
-
-   <section class="intelSection politicalContactsSection" aria-labelledby="politicalContactsTitle">
-    <div class="intelSectionHead"><div><span class="intelKicker">U.S. POLITICAL CONTACTS</span><h3 id="politicalContactsTitle">Who was contacted, how, and about what</h3></div></div>
-    <div class="politicalContactList" id="politicalContactList"><p class="muted">Select a country to load named political contacts.</p></div>
-   </section>
-
-   <section class="intelSection relationshipsSection" aria-labelledby="relationshipsTitle">
-    <div class="intelSectionHead"><div><span class="intelKicker">WHO HIRED WHOM</span><h3 id="relationshipsTitle">Foreign principals → U.S. registrants</h3></div></div>
-    <div class="relationshipList" id="relationshipList"><p class="muted">Select a country to load relationships.</p></div>
-   </section>
-
-   <section class="intelSection timelineSection" aria-labelledby="timelineTitle">
-    <div class="intelSectionHead"><div><span class="intelKicker">ACTIVITY TIMELINE</span><h3 id="timelineTitle">When the network was active</h3></div></div>
-    <div class="activityTimeline" id="activityTimeline"><p class="muted">Select a country to load filing activity.</p></div>
-   </section>
-
-   <details class="historicalSection" id="historicalSection">
-    <summary>Historical / legacy records <span id="historicalCount"></span></summary>
-    <p class="historicalIntro">Older terminated or predecessor-state filings are separated from current and recent activity so they do not dominate the country view.</p>
-    <div class="historicalRecords" id="historicalRecords"></div>
-   </details>
-
-   <details class="foreignSourceDetails"><summary>Source and interpretation</summary>
-    <p class="attribution" id="sourceNote">Official source: <a href="https://efile.fara.gov/ords/fara/f?p=107:21:::NO::" target="_blank" rel="noopener noreferrer">DOJ FARA bulk data</a>. FARA registration identifies a disclosed foreign-principal relationship; it is not by itself evidence of an illegal donation, a payment to a U.S. official, or government ownership of a principal.</p>
+   <details class="foreignSourceDetails"><summary>Source</summary>
+    <p class="attribution" id="sourceNote">Official source: <a href="https://efile.fara.gov/ords/fara/f?p=107:21:::NO::" target="_blank" rel="noopener noreferrer">U.S. Department of Justice FARA</a>. Registry data refreshes daily.</p>
    </details>
   </aside>
  </div>
