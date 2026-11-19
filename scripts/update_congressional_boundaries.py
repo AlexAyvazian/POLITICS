@@ -130,6 +130,13 @@ def store(path: Path, data: dict) -> None:
     temp.replace(path)
 
 
+def build_jobs(layers) -> list[tuple[str, str]]:
+    selected = list(layers)
+    if not selected or any(layer not in LAYERS for layer in selected):
+        raise ValueError("Unknown or empty boundary layer selection")
+    return [(layer, fips) for layer in selected for fips in FIPS]
+
+
 def build_one(layer: str, state: str) -> tuple[str, str, int]:
     path = DATA / layer / f"{state}.geojson"
     if (layer, state) in NO_CHAMBER:
@@ -146,9 +153,11 @@ def build_one(layer: str, state: str) -> tuple[str, str, int]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--workers", type=int, default=3)
+    parser.add_argument("--layers", nargs="+", choices=list(LAYERS), default=list(LAYERS),
+                        help="Boundary layers to refresh; omitted means all cached layers")
     args = parser.parse_args()
     failures = []
-    jobs = [(layer, fips) for layer in LAYERS for fips in FIPS]
+    jobs = build_jobs(args.layers)
     with ThreadPoolExecutor(max_workers=min(4, max(1, args.workers))) as executor:
         tasks = {executor.submit(build_one, layer, fips): (layer, fips) for layer, fips in jobs}
         for future in as_completed(tasks):
