@@ -43,8 +43,8 @@ const meta=(feature,fips)=>{
 };
 function electionFor(which,stateCode){
  if(['senate','governor'].includes(which)){
-  const nationwide=window.US_ELECTION_2026?.[which]?.[stateCode];
-  if(nationwide)return nationwide;
+  const nationwide=window.US_ELECTION_2026;
+  if(nationwide)return nationwide?.[which]?.[stateCode]||null;
  }
  if(stateCode==='AK')return window.AK_STATEWIDE_ELECTION_RESULTS?.[which]||null;
  if(stateCode!=='CA')return null;
