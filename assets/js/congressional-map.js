@@ -84,7 +84,25 @@ function display(data){
  announce(data);
 }
 function hash(){try{history.replaceState(null,'','#'+[state||'US',layer,district?currentCode(district):null].filter(Boolean).join('/'));}catch{}}
+function updateLegend(){
+ const legend=$('atlasPartyLegend');
+ if(!legend)return;
+ if(layers[layer].type==='countyElection'){
+  legend.setAttribute('aria-label','County election winner color key');
+  legend.innerHTML=
+   '<span class="atlasLegendPair"><i class="atlasPartySwatch dem" aria-hidden="true"></i> Democratic county winner</span>'+
+   '<span class="atlasLegendPair"><i class="atlasPartySwatch rep" aria-hidden="true"></i> Republican county winner</span>'+
+   '<span class="atlasLegendPair"><i class="atlasPartySwatch vacant" aria-hidden="true"></i> Result unavailable</span>';
+ }else{
+  legend.setAttribute('aria-label','Current political party color key');
+  legend.innerHTML=
+   '<span class="atlasLegendPair"><i class="atlasPartySwatch dem" aria-hidden="true"></i> Democratic</span>'+
+   '<span class="atlasLegendPair"><i class="atlasPartySwatch rep" aria-hidden="true"></i> Republican</span>'+
+   '<span class="atlasLegendPair"><i class="atlasPartySwatch vacant" aria-hidden="true"></i> Vacant</span>';
+ }
+}
 function ui(){
+ updateLegend();
  $('congressState').value=state||'';
  $('congressBack').hidden=!state;
  $('districtMapLabel').textContent=stateName()+' · '+layers[layer].title;
