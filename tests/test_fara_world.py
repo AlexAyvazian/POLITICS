@@ -56,6 +56,27 @@ class FaraWorldTests(unittest.TestCase):
         self.assertEqual(country['principals'][0]['status'],'active')
         self.assertNotIn('foreignGovernment',country['principals'][0])
 
+    def test_same_country_does_not_authorize_another_principals_documents(self):
+        principals=[
+            {'Registration_Number':'7794','Foreign_Principal':'Principal A',
+             'Country_Location':'SINGAPORE','Registrant_Name':'Agency LLC'},
+            {'Registration_Number':'7794','Foreign_Principal':'Principal B',
+             'Country_Location':'SINGAPORE','Registrant_Name':'Agency LLC'},
+        ]
+        docs=[
+            {'Registration_Number':'7794','Foreign_Principal_Name':'Principal B',
+             'Foreign_Principal_Country':'SINGAPORE',
+             'Document_Type':'Exhibit AB','Document_URL':'https://efile.fara.gov/docs/7794-B-20261106.pdf'},
+            {'Registration_Number':'7794','Foreign_Principal_Name':'',
+             'Document_Type':'Supplemental Statement','Document_URL':'https://efile.fara.gov/docs/7794-Supplement-20261106.pdf'},
+        ]
+        report=build_country_snapshot('SG',principals,docs,country_index(CATALOG),'2026-11-18T18:00:00Z')
+        a=next(x for x in report['principals'] if x['principalName']=='Principal A')
+        b=next(x for x in report['principals'] if x['principalName']=='Principal B')
+        self.assertEqual(len(a['documents']),1)
+        self.assertEqual(a['documents'][0]['type'],'Supplemental Statement')
+        self.assertEqual(len(b['documents']),2)
+
     def test_malformed_documents_and_urls_are_excluded(self):
         self.assertIsNone(safe_fara_url('javascript:alert(1)'))
         self.assertIsNone(safe_fara_url('https://notdoj.example/123.pdf'))
