@@ -3,7 +3,7 @@
  * No lobbying dollar, campaign contribution or government contact is inferred. */
 import {COUNTRIES} from './foreign-world-catalog.js';
 import {countryStates} from './foreign-world-colors.js';
-import {countrySummary,selectedPrincipalRecords,verifiedSpending,safeFaraDocument,isIso2,INFLUENCE_THEMES,classifyInfluenceText} from './foreign-influence-model.mjs';
+import {countrySummary,selectedPrincipalRecords,verifiedSpending,safeFaraDocument,isIso2,INFLUENCE_THEMES,classifyInfluenceText,evidenceCoverage} from './foreign-influence-model.mjs';
 
 const $=id=>document.getElementById(id);
 const svg=d3.select('#mapSvg');
@@ -49,6 +49,7 @@ function resetSidebar(){
  $('countryOverview').replaceChildren(el('strong','','Choose a country'),
   el('p','muted','Select a country on the map to see its foreign principals, U.S. registrants, documented purpose and filing activity.'));
  $('coverageNote').textContent='Select a country to load its DOJ FARA relationships.';
+ $('evidenceCoverage').replaceChildren(el('strong','','Reviewed evidence coverage'),el('p','muted','Select a country to see how much of its indexed FARA network has been reviewed in detail.'));
  $('influenceThemeList').replaceChildren(el('p','muted','Select a country to load source-backed influence themes.'));
  $('purposeList').replaceChildren(el('p','muted','Select a country to load reviewed filing summaries.'));
  $('moneyEvidenceList').replaceChildren(el('p','muted','Select a country to load verified filing totals.'));
@@ -200,6 +201,29 @@ function renderCountryOverview(country,record,modern,historical){
  status.append(activity,reviewed);card.append(status);
  $('coverageNote').textContent='Money below is reported at the U.S.-registrant filing level and is not added into a country total unless it can be safely attributed. Political contacts appear only when a filing provides an itemized principal, date, contact, method and purpose.';
 }
+function renderEvidenceCoverage(records){
+ const container=$('evidenceCoverage');container.replaceChildren();
+ const coverage=evidenceCoverage(insightIndex,records);
+ const total=coverage.totalRegistrations;
+ const reviewed=coverage.reviewedRegistrations;
+ const pct=total?Math.round((reviewed/total)*100):0;
+ const head=el('div','evidenceCoverageHead');
+ const left=el('div','');
+ left.append(el('span','evidenceCoverageKicker','REVIEWED EVIDENCE COVERAGE'),
+  el('strong','evidenceCoverageHeadline',displayNumber(reviewed)+' of '+displayNumber(total)+' registrant registration'+(total===1?'':'s')+' reviewed'));
+ head.append(left,el('b','evidenceCoveragePercent',pct+'%'));
+ const track=el('div','evidenceCoverageTrack');
+ const fill=el('i','evidenceCoverageFill');fill.style.width=Math.max(0,Math.min(100,pct))+'%';track.append(fill);
+ const metrics=el('div','evidenceCoverageMetrics');
+ const add=(label,value)=>{const box=el('div','evidenceCoverageMetric');box.append(el('span','',label),el('b','',displayNumber(value)));metrics.append(box);};
+ add('Purpose summaries',coverage.purposeRegistrations);
+ add('Verified filing totals',coverage.verifiedMoneyRegistrations);
+ add('Political-contact rows',coverage.politicalContacts);
+ add('Itemized money rows',coverage.itemizedFinancialRows);
+ container.append(head,track,metrics,
+  el('p','evidenceCoverageNote','Missing extraction is not evidence of no activity. Counts reflect only the latest supplemental statements that the automated reviewer has successfully read and verified.'));
+}
+
 function renderRelationshipList(records){
  const list=$('relationshipList');list.replaceChildren();
  const groups=relationshipGroups(records,$('search').value);
@@ -497,6 +521,7 @@ function renderCountryIntel(){
  const {modern,historical}=splitHistoricalRecords(all,selected.iso2);
  const record=countrySummary(snapshot,selected.iso2);
  renderCountryOverview(selected,record,modern,historical);
+ renderEvidenceCoverage(modern);
  renderRelationshipList(modern);
  renderTimeline(modern);
  renderHistoricalRecords(historical);
@@ -512,6 +537,7 @@ async function choose(iso){
  $('search').value='';
  $('countryOverview').replaceChildren(el('strong','','Loading '+country.name+'…'),el('p','muted','Retrieving foreign principals, U.S. registrants and filing activity.'));
  $('coverageNote').textContent='Loading the latest published DOJ registry snapshot…';
+ $('evidenceCoverage').replaceChildren(el('strong','','Reviewed evidence coverage'),el('p','muted','Loading reviewed filing coverage…'));
  $('influenceThemeList').replaceChildren(el('p','muted','Loading source-backed influence themes…'));
  $('purposeList').replaceChildren(el('p','muted','Loading reviewed filing summaries…'));
  $('moneyEvidenceList').replaceChildren(el('p','muted','Loading verified filing totals…'));
@@ -534,6 +560,7 @@ async function choose(iso){
   $('coverageNote').textContent=snapshot?.countries?.[iso]?
    'Detailed country records could not be loaded from the latest published snapshot.':
    'No foreign-principal records for this country were indexed in the latest DOJ bulk snapshot.';
+  $('evidenceCoverage').replaceChildren(el('strong','','Reviewed evidence coverage'),el('p','muted','Detailed coverage could not be calculated because country records did not load.'));
   $('influenceThemeList').replaceChildren(el('p','muted','No reviewed influence themes loaded.'));
   $('purposeList').replaceChildren(el('p','muted','No detailed filing summaries loaded.'));
   $('moneyEvidenceList').replaceChildren(el('p','muted','No detailed filing totals loaded.'));

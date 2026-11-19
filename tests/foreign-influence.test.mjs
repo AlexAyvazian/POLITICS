@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {countrySummary,selectedPrincipalRecords,verifiedSpending,documentGroup,documentsForGroup,classifyInfluenceText} from '../assets/js/foreign-influence-model.mjs';
+import {countrySummary,selectedPrincipalRecords,verifiedSpending,documentGroup,documentsForGroup,classifyInfluenceText,evidenceCoverage} from '../assets/js/foreign-influence-model.mjs';
 
 test('FARA country summary never presents registry counts as spending',()=>{
  const summary={countries:{SG:{principals:17,activePrincipals:9,registrants:5,financialStatus:'not_extracted',verifiedDisbursementsUsd:null}}};
@@ -148,4 +148,33 @@ test('country inspector summarizes supported influence themes with evidence',()=
  assert.match(js,/classifyInfluenceText/);
  assert.match(js,/themeEvidence/);
  assert.match(css,/\.foreignInfluence \.influenceThemeRow/);
+});
+
+
+test('evidence coverage counts distinct registrants and reviewed evidence without double counting principals',()=>{
+ const records=[
+  {registrationNumber:'100',principalName:'A'},
+  {registrationNumber:'100',principalName:'B'},
+  {registrationNumber:'200',principalName:'C'},
+  {registrationNumber:'300',principalName:'D'}
+ ];
+ const index={registrations:[
+  {registrationNumber:'100',hasServices:true,moneyStatus:'verified_filing_totals',politicalContactCount:2,financialRowCount:3},
+  {registrationNumber:'200',hasServices:false,moneyStatus:'not_extracted',politicalContactCount:0,financialRowCount:0}
+ ]};
+ assert.deepEqual(evidenceCoverage(index,records),{
+  totalRegistrations:3,reviewedRegistrations:2,purposeRegistrations:1,
+  verifiedMoneyRegistrations:1,politicalContacts:2,itemizedFinancialRows:3
+ });
+});
+
+test('country inspector shows evidence completeness instead of treating missing extraction as absence',()=>{
+ const html=readFileSync(new URL('../foreign-influence.html',import.meta.url),'utf8');
+ const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
+ const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
+ assert.match(html,/id="evidenceCoverage"/);
+ assert.match(js,/function renderEvidenceCoverage/);
+ assert.match(js,/reviewedRegistrations/);
+ assert.match(js,/Missing extraction is not evidence of no activity/);
+ assert.match(css,/\.foreignInfluence \.evidenceCoverage/);
 });
