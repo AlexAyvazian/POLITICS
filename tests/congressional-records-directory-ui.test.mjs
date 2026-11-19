@@ -46,6 +46,7 @@ function build(){
   history:{replaceState(){}},location:{hash:'',pathname:'/records.html',search:''},
   URLSearchParams,encodeURIComponent,fetch,Date,Number,Array,Intl};
  vm.runInNewContext(read('assets/js/states.js'),ctx);
+ vm.runInNewContext(read('assets/js/state-silhouettes.js'),ctx);
  vm.runInNewContext(read('assets/js/geo-colors.js'),ctx);
  vm.runInNewContext(read('assets/js/records-model.js'),ctx);
  vm.runInNewContext(read('assets/js/records.js'),ctx);
