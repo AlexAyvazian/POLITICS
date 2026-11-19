@@ -18,7 +18,7 @@ const millerRaw=(lambda,phi)=>[lambda,1.25*Math.log(Math.tan(Math.PI/4+.4*phi))]
 millerRaw.invert=(x,y)=>[x,2.5*Math.atan(Math.exp(.8*y))-.625*Math.PI];
 const projection=d3.geoProjection(millerRaw);
 const geoPath=d3.geoPath(projection);
-let topologyFeatures=[],selected=null,snapshot=null,detail=null;
+let topologyFeatures=[],selected=null,snapshot=null,detail=null,insightIndex=null;
 let renderVersion=0,loadingSnapshot=false;
 
 function featureCountry(feature){
@@ -36,6 +36,7 @@ function sourceAnchor(url,title){
  return link;
 }
 const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n);
+const moneyExact=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
 const displayNumber=n=>Number.isFinite(n)?n.toLocaleString('en-US'):'Not yet available';
 function showLabel(name,count){
  const total=count===null?'not indexed':displayNumber(count)+' listed principals';
@@ -49,6 +50,8 @@ function resetSidebar(){
   el('p','muted','Select a country on the map to see its foreign principals, U.S. registrants, documented purpose and filing activity.'));
  $('coverageNote').textContent='Select a country to load its DOJ FARA relationships.';
  $('purposeList').replaceChildren(el('p','muted','Select a country to load reviewed filing summaries.'));
+ $('moneyEvidenceList').replaceChildren(el('p','muted','Select a country to load verified filing totals.'));
+ $('politicalContactList').replaceChildren(el('p','muted','Select a country to load named political contacts.'));
  $('relationshipList').replaceChildren(el('p','muted','Select a country to load relationships.'));
  $('activityTimeline').replaceChildren(el('p','muted','Select a country to load filing activity.'));
  $('historicalRecords').replaceChildren();
@@ -172,6 +175,11 @@ function relationshipGroups(records,search=''){
  }
  return [...groups.values()].sort((a,b)=>(b.active-a.active)||(b.latestValue-a.latestValue)||(b.rows.length-a.rows.length)||String(a.registrantName).localeCompare(String(b.registrantName)));
 }
+function reviewedRegistrationCount(records){
+ const available=new Set((insightIndex?.registrations||[]).map(x=>String(x.registrationNumber||'')));
+ if(!available.size)return 0;
+ return new Set(records.map(x=>String(x.registrationNumber||'')).filter(id=>available.has(id))).size;
+}
 function renderCountryOverview(country,record,modern,historical){
  const card=$('countryOverview');card.replaceChildren();
  card.style.setProperty('--cardGlow',countryStates(country).glow);
@@ -186,13 +194,10 @@ function renderCountryOverview(country,record,modern,historical){
  card.append(metrics);
  const status=el('div','countryIntelStatus');
  const latest=latestFiling(modern);
- const moneyValue=verifiedSpending(snapshot?.countries?.[country.iso2]||{});
  const activity=el('div','intelStatusItem');activity.append(el('span','','Latest indexed filing'),el('strong','',latest||'No dated filing'));
- const payment=el('div','intelStatusItem');payment.append(el('span','','Countrywide payment total'),el('strong','',moneyValue.value===null?'Not yet extracted':moneyValue.text));
- status.append(activity,payment);card.append(status);
- $('coverageNote').textContent=moneyValue.value===null?
-  'Countrywide dollar totals and named U.S. political contacts are not yet fully extracted from reviewed filings. Relationships and filing activity below come directly from the DOJ registry; purpose text appears only where an original filing has been reviewed.':
-  'Countrywide payment totals shown here require a reviewed original DOJ filing. Named U.S. political contacts appear only when a filing identifies them.';
+ const reviewed=el('div','intelStatusItem');reviewed.append(el('span','','Reviewed supplemental statements'),el('strong','',displayNumber(reviewedRegistrationCount(modern))));
+ status.append(activity,reviewed);card.append(status);
+ $('coverageNote').textContent='Money below is reported at the U.S.-registrant filing level and is not added into a country total unless it can be safely attributed. Political contacts appear only when a filing provides an itemized principal, date, contact, method and purpose.';
 }
 function renderRelationshipList(records){
  const list=$('relationshipList');list.replaceChildren();
@@ -274,38 +279,110 @@ function requestInsight(id){
  }
  return insightRequests.get(id);
 }
-async function renderExtractedInsights(records,token){
- const list=$('purposeList');list.replaceChildren(el('p','muted','Checking reviewed original filings…'));
- const byRegistration=new Map();
- for(const entry of records.slice().sort(sortRecent)){
-  const id=String(entry.registrationNumber||'');
-  if(/^\d{1,6}$/.test(id)&&!byRegistration.has(id))byRegistration.set(id,entry);
-  if(byRegistration.size>=18)break;
+function availableInsightGroups(records){
+ const groups=relationshipGroups(records,'');
+ const available=new Set((insightIndex?.registrations||[]).map(x=>String(x.registrationNumber||'')));
+ return (available.size?groups.filter(g=>available.has(String(g.registrationNumber))):groups).slice(0,60);
+}
+function principalMatches(summary,group){
+ const names=new Set((Array.isArray(summary?.namedPrincipals)?summary.namedPrincipals:[]).map(n=>String(n).trim().toLowerCase()));
+ return [...group.principals].filter(n=>names.has(String(n).trim().toLowerCase()));
+}
+function renderMoneyEvidence(results,query){
+ const list=$('moneyEvidenceList');list.replaceChildren();
+ const needle=String(query||'').trim().toLowerCase();
+ const rows=results.filter(({group,summary,principals})=>{
+  if(summary.moneyStatus!=='verified_filing_totals')return false;
+  if(!Number.isFinite(summary.totalReceivedUsd)&&!Number.isFinite(summary.totalDisbursedUsd))return false;
+  if(!needle)return true;
+  return [group.registrantName,...principals,summary.moneyExplanation].some(x=>String(x||'').toLowerCase().includes(needle));
+ });
+ if(!rows.length){
+  const excluded=results.filter(x=>x.summary?.moneyStatus==='placeholder_not_actual').length;
+  list.append(el('p','muted',excluded?
+   'No verified filing totals match this view. '+displayNumber(excluded)+' reviewed filing'+(excluded===1?' contains':'s contain')+' explicitly non-actual placeholder amounts, which are excluded.':
+   'No verified registrant-level filing totals are available in the reviewed statements for this country yet.'));
+  return;
  }
- const results=await Promise.all([...byRegistration.entries()].map(async([id,entry])=>({entry,summary:await requestInsight(id)})));
- if(token!==renderVersion||!list.isConnected)return;
- list.replaceChildren();
+ for(const {group,summary,principals} of rows.slice(0,12)){
+  const item=el('article','moneyEvidenceItem');
+  item.append(el('strong','moneyRegistrant',group.registrantName||'U.S. registrant'));
+  if(principals.length)item.append(el('span','moneyPrincipals','Foreign principal'+(principals.length===1?'':'s')+' named in filing: '+principals.slice(0,3).join(' · ')+(principals.length>3?' · +'+(principals.length-3)+' more':'')));
+  const totals=el('div','filingMoneyTotals');
+  const add=(label,value)=>{const box=el('div','filingMoneyMetric');box.append(el('span','',label),el('b','',Number.isFinite(value)?moneyExact(value):'Not reported'));totals.append(box);};
+  add('Total receipts',summary.totalReceivedUsd);add('Total disbursements',summary.totalDisbursedUsd);
+  item.append(totals);
+  item.append(el('p','filingScopeNote','Registrant-level total for this supplemental filing; not automatically a principal-specific payment.'));
+  const footer=el('div','purposeFooter');
+  if(summary.periodEnd)footer.append(el('span','','Period ending '+summary.periodEnd));
+  footer.append(sourceAnchor(summary.sourceUrl,'Reviewed DOJ filing ↗'));item.append(footer);
+  list.append(item);
+ }
+ if(rows.length>12)list.append(el('p','intelFoot',displayNumber(rows.length-12)+' additional reviewed filings contain verified totals.'));
+}
+function renderPoliticalContacts(results,query){
+ const list=$('politicalContactList');list.replaceChildren();
+ const needle=String(query||'').trim().toLowerCase(),rows=[],seen=new Set();
+ for(const {group,summary,principals} of results){
+  const principalSet=new Set(principals.map(x=>String(x).trim().toLowerCase()));
+  for(const contact of Array.isArray(summary.politicalContacts)?summary.politicalContacts:[]){
+   if(!principalSet.has(String(contact.principal||'').trim().toLowerCase()))continue;
+   const row={...contact,registrantName:group.registrantName,sourceUrl:summary.sourceUrl};
+   const key=[row.principal,row.date,row.contact,row.method,row.purpose,row.sourceUrl].join('|').toLowerCase();
+   if(seen.has(key))continue;seen.add(key);
+   if(needle&&![row.principal,row.contact,row.method,row.purpose,row.registrantName].some(x=>String(x||'').toLowerCase().includes(needle)))continue;
+   rows.push(row);
+  }
+ }
+ rows.sort((a,b)=>usDateValue(b.date)-usDateValue(a.date)||String(a.contact).localeCompare(String(b.contact)));
+ if(!rows.length){list.append(el('p','muted','No itemized U.S. political-contact rows are available in the reviewed filings for this country yet.'));return;}
+ for(const row of rows.slice(0,18)){
+  const item=el('article','politicalContactItem');
+  const flow=el('div','contactFlow');flow.append(el('strong','contactPrincipal',row.principal),el('span','relationArrow','→'),el('strong','contactName',row.contact));
+  item.append(flow);
+  item.append(el('p','contactMeta',[row.date,row.method,row.registrantName].filter(Boolean).join(' · ')));
+  if(row.purpose)item.append(el('p','contactPurpose',row.purpose));
+  item.append(sourceAnchor(row.sourceUrl,'Source filing ↗'));
+  list.append(item);
+ }
+ if(rows.length>18)list.append(el('p','intelFoot',displayNumber(rows.length-18)+' additional named political-contact entries match this view.'));
+}
+async function renderExtractedInsights(records,token){
+ const purpose=$('purposeList');
+ const moneyList=$('moneyEvidenceList');
+ const contactList=$('politicalContactList');
+ purpose.replaceChildren(el('p','muted','Checking reviewed original filings…'));
+ moneyList.replaceChildren(el('p','muted','Checking reviewed filing totals…'));
+ contactList.replaceChildren(el('p','muted','Checking itemized political contacts…'));
+ const query=$('search').value;
+ const groups=availableInsightGroups(records);
+ const loaded=await Promise.all(groups.map(async group=>({group,summary:await requestInsight(String(group.registrationNumber))})));
+ if(token!==renderVersion||query!==$('search').value||!purpose.isConnected)return;
+ const results=[];
+ for(const {group,summary} of loaded){
+  if(!summary||Number(summary.schemaVersion)<1||summary.registrationNumber!==String(group.registrationNumber)||!safeFaraDocument(summary.sourceUrl))continue;
+  const principals=principalMatches(summary,group);
+  if(!principals.length)continue;
+  results.push({group,summary,principals});
+ }
+ purpose.replaceChildren();
+ const needle=query.trim().toLowerCase();
  let shown=0;
- for(const {entry,summary} of results){
-  if(!summary||summary.schemaVersion!==1||summary.registrationNumber!==String(entry.registrationNumber)||!safeFaraDocument(summary.sourceUrl))continue;
-  const names=Array.isArray(summary.namedPrincipals)?summary.namedPrincipals.map(n=>String(n).trim().toLowerCase()):[];
-  if(!names.includes(String(entry.principalName||'').trim().toLowerCase()))continue;
+ for(const {group,summary,principals} of results){
   if(typeof summary.servicesSummary!=='string'||!summary.servicesSummary.trim())continue;
+  if(needle&&![group.registrantName,...principals,summary.servicesSummary].some(x=>String(x||'').toLowerCase().includes(needle)))continue;
   const item=el('article','purposeItem');
-  item.append(el('strong','purposePrincipal',entry.principalName),el('span','purposeAgent','U.S. registrant: '+entry.registrantName));
+  item.append(el('strong','purposePrincipal',principals.slice(0,3).join(' · ')+(principals.length>3?' · +'+(principals.length-3)+' more':'')),
+              el('span','purposeAgent','U.S. registrant: '+group.registrantName));
   item.append(el('p','purposeText',summary.servicesSummary));
-  if(typeof summary.moneyExplanation==='string'&&summary.moneyExplanation.trim()){
-   const p=el('p','purposeMoney','Money in reviewed filing: '+summary.moneyExplanation);item.append(p);
-  }
-  if(typeof summary.contactsSummary==='string'&&summary.contactsSummary.trim()){
-   item.append(el('p','purposeContacts','U.S. political contacts: '+summary.contactsSummary));
-  }
   const footer=el('div','purposeFooter');
   if(summary.periodEnd)footer.append(el('span','','Reporting period ending '+summary.periodEnd));
   footer.append(sourceAnchor(summary.sourceUrl,'Reviewed DOJ filing ↗'));item.append(footer);
-  list.append(item);shown++;if(shown>=6)break;
+  purpose.append(item);shown++;if(shown>=8)break;
  }
- if(!shown)list.append(el('p','muted','No reviewed purpose summary has been published yet for the current/recent records in this country. The relationship network and filing timeline below still come directly from DOJ registry data.'));
+ if(!shown)purpose.append(el('p','muted','No reviewed purpose summary matches this view yet. The relationship network and filing timeline still come directly from the DOJ registry.'));
+ renderMoneyEvidence(results,query);
+ renderPoliticalContacts(results,query);
 }
 function renderCountryIntel(){
  if(!detail||!selected)return;
@@ -329,6 +406,8 @@ async function choose(iso){
  $('countryOverview').replaceChildren(el('strong','','Loading '+country.name+'…'),el('p','muted','Retrieving foreign principals, U.S. registrants and filing activity.'));
  $('coverageNote').textContent='Loading the latest published DOJ registry snapshot…';
  $('purposeList').replaceChildren(el('p','muted','Loading reviewed filing summaries…'));
+ $('moneyEvidenceList').replaceChildren(el('p','muted','Loading verified filing totals…'));
+ $('politicalContactList').replaceChildren(el('p','muted','Loading named political contacts…'));
  $('relationshipList').replaceChildren(el('p','muted','Loading relationships…'));
  $('activityTimeline').replaceChildren(el('p','muted','Loading activity timeline…'));
  $('historicalRecords').replaceChildren();$('historicalSection').hidden=true;$('historicalSection').open=false;
@@ -348,6 +427,8 @@ async function choose(iso){
    'Detailed country records could not be loaded from the latest published snapshot.':
    'No foreign-principal records for this country were indexed in the latest DOJ bulk snapshot.';
   $('purposeList').replaceChildren(el('p','muted','No detailed filing summaries loaded.'));
+  $('moneyEvidenceList').replaceChildren(el('p','muted','No detailed filing totals loaded.'));
+  $('politicalContactList').replaceChildren(el('p','muted','No detailed political contacts loaded.'));
   $('relationshipList').replaceChildren(el('p','muted','No detailed relationships loaded.'));
   $('activityTimeline').replaceChildren(el('p','muted','No detailed filing activity loaded.'));
  }
@@ -361,7 +442,7 @@ function initEvents(){
  $('search').addEventListener('input',()=>{
   if(!detail||!selected)return;
   const {modern,historical}=splitHistoricalRecords(detail.principals,selected.iso2);
-  renderRelationshipList(modern);renderHistoricalRecords(historical);
+  renderRelationshipList(modern);renderHistoricalRecords(historical);renderExtractedInsights(modern,renderVersion);
  });
  window.addEventListener('resize',()=>{if(topologyFeatures.length)drawMap();});
  window.addEventListener('keydown',event=>{if(event.key==='Escape')reset();});
@@ -390,6 +471,13 @@ async function load(){
   $('statPrincipals').textContent='Pending';
   $('sourceNote').append(el('span','sourceFreshness',' · Daily registry snapshot has not been published yet.'));
  }
+ try{
+  const insightRes=await fetch('assets/data/foreign-influence/filing-insights/index.json',{cache:'no-cache'});
+  if(insightRes.ok){
+   const index=await insightRes.json();
+   if(index.schemaVersion===1&&Array.isArray(index.registrations))insightIndex=index;
+  }
+ }catch(_){insightIndex=null;}
  const route=decodeURIComponent(location.hash.split('/')[2]||'').toUpperCase();
  if(isIso2(route)&&byIso.has(route))choose(route);
 }
