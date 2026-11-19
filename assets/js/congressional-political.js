@@ -21,8 +21,12 @@ function resolveParty({layer,state,scope,district}){
  else if(layer==='stateSenate'||layer==='stateHouse')
   incumbentParty=scope==='district'?model.stateDistrictParty(stateData.get(state),layer,district):
    model.chamberMajority(NCSL?.states?.[state],layer);
- // Statewide election-result layers are colored by county winners in congressional-map.js,
- // never by the current officeholder's party.
+ else if(layer==='governor'&&scope==='state')
+  incumbentParty=model.partyClass(NCSL?.states?.[state]?.governor);
+ else if(layer==='senate'&&scope==='state')
+  incumbentParty=model.senateParty(federal,state);
+ // State drill-downs are still colored by election winners in congressional-map.js.
+ // These statewide values are only for the national U.S. overview.
  return model.districtPartyWithVacancies(incumbentParty,vacancy);
 }
 function repaint(){atlas?.setPartyResolver?.(resolveParty);}
