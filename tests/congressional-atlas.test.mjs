@@ -260,3 +260,49 @@ test('Alaska election-result joins normalize zero-padded House district IDs',()=
  assert.equal(c.electionDistrictKey('040'),'40');
  assert.equal(c.electionDistrictKey('A'),'A');
 });
+
+
+test('national statewide maps color states instead of forcing every state unknown',()=>{
+ const js=read('assets/js/congressional-map.js');
+ const political=read('assets/js/congressional-political.js');
+ assert.match(js,/function nationalStateParty/);
+ assert.match(js,/US_PRESIDENT_2024_STATE_WINNERS/);
+ assert.doesNotMatch(js,/if\(layers\[layer\]\.type==='countyElection'&&isState\)return 'unknown'/);
+ assert.match(political,/layer==='governor'&&scope==='state'/);
+ assert.match(political,/layer==='senate'&&scope==='state'/);
+ assert.match(political,/model\.senateParty\(federal,state\)/);
+});
+
+test('national statewide legends describe state-level meaning while drilldowns keep local winner legend',()=>{
+ const js=read('assets/js/congressional-map.js');
+ assert.match(js,/Democratic 2024 state winner/);
+ assert.match(js,/Republican 2024 state winner/);
+ assert.match(js,/Democratic governor/);
+ assert.match(js,/Republican governor/);
+ assert.match(js,/Democratic delegation/);
+ assert.match(js,/Republican delegation/);
+ assert.match(js,/Split delegation/);
+ assert.match(js,/Democratic '\+unit\+' winner/);
+});
+
+test('certified 2024 presidential state winner cache covers fifty states and DC',()=>{
+ const ctx={window:{}};
+ vm.runInNewContext(read('assets/data/elections/us-president-2024.js'),ctx);
+ const data=ctx.window.US_PRESIDENT_2024_STATE_WINNERS;
+ assert.equal(Object.keys(data.states).length,51);
+ assert.equal(data.states.CA,'democratic');
+ assert.equal(data.states.TX,'republican');
+ assert.equal(data.states.ME,'democratic');
+ assert.equal(data.states.NE,'republican');
+ assert.equal(data.states.DC,'democratic');
+ assert.equal(data.status,'certified');
+ assert.equal(data.electionDate,'2024-11-05');
+});
+
+test('national statewide map labels describe current control or statewide election winner',()=>{
+ const js=read('assets/js/congressional-map.js');
+ assert.match(js,/Current U\.S\. Senate delegation/);
+ assert.match(js,/Current governor party/);
+ assert.match(js,/2024 presidential statewide winner/);
+ assert.match(js,/Select a state to drill into election results/);
+});
