@@ -238,3 +238,20 @@
  .foreignInfluence .contactFlow{grid-template-columns:1fr}
  .foreignInfluence .contactFlow .relationArrow{transform:rotate(90deg);justify-self:start}
 }
+
+
+/* Itemized financial rows: explain the purpose of verified money without
+   collapsing registrant-level totals into unsupported country totals. */
+.foreignInfluence .moneyBreakdown{margin-top:9px;padding-top:8px;border-top:1px solid rgba(150,193,214,.14)}
+.foreignInfluence .moneyBreakdownTitle{display:block;color:#d9e8ef;font-size:9px;letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px}
+.foreignInfluence .moneyBreakdownRow{padding:7px 0;border-top:1px solid rgba(145,188,211,.1)}
+.foreignInfluence .moneyBreakdownRow:first-of-type{border-top:0}
+.foreignInfluence .moneyBreakdownTop{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:7px;align-items:start}
+.foreignInfluence .moneyDirection{font-size:7px;line-height:1.35;font-weight:900;letter-spacing:.08em;color:#88cfc8;background:rgba(71,150,141,.12);border:1px solid rgba(118,211,198,.17);border-radius:999px;padding:3px 5px}
+.foreignInfluence .moneyPurpose{font-size:10px;line-height:1.35;color:#dce9ef;overflow-wrap:anywhere}
+.foreignInfluence .moneyAmount{font-size:10px;line-height:1.35;color:#bdf0df;font-variant-numeric:tabular-nums;white-space:nowrap}
+.foreignInfluence .moneyBreakdownMeta{margin:3px 0 0;color:#829dac;font-size:8px;line-height:1.4;overflow-wrap:anywhere}
+@media(max-width:560px){
+ .foreignInfluence .moneyBreakdownTop{grid-template-columns:auto minmax(0,1fr)}
+ .foreignInfluence .moneyAmount{grid-column:2}
+}

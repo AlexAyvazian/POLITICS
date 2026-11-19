@@ -114,3 +114,14 @@ test('country inspector includes verified money evidence and named U.S. politica
  assert.match(js,/politicalContacts/);
  assert.match(js,/verified_filing_totals/);
 });
+
+
+test('money evidence explains what itemized filing money was for',()=>{
+ const js=readFileSync(new URL('../assets/js/foreign-influence.js',import.meta.url),'utf8');
+ const css=readFileSync(new URL('../assets/css/foreign-influence.css',import.meta.url),'utf8');
+ assert.match(js,/financialRows/);
+ assert.match(js,/moneyBreakdownRow/);
+ assert.match(js,/counterparty/);
+ assert.match(js,/purpose/);
+ assert.match(css,/\.foreignInfluence \.moneyBreakdownRow/);
+});

@@ -23,7 +23,7 @@ DATA=ROOT/'assets/data/foreign-influence'
 OUTPUT=DATA/'filing-insights'
 FAILED=OUTPUT/'unreadable.json'
 LIMIT_BYTES=12_000_000
-SCHEMA_VERSION=2
+SCHEMA_VERSION=3
 
 def compact(s,limit=520):
     return re.sub(r'\s+',' ',s or '').strip()[:limit]
@@ -78,6 +78,52 @@ def extract_money_totals(text,placeholder=False):
         r'15\.\s*\(?a\)?\s*DISBURSEMENTS\s*[-–]?\s*MONIES',
         r'(?:15\.\s*\(?b\)?|DISBURSEMENTS\s*[-–]\s*THINGS)')
     return _section_total(receipts),_section_total(disbursements)
+def _financial_section_rows(section,direction,known_principals):
+    principals=[compact(x,180) for x in (known_principals or []) if compact(x,180)]
+    if not section or not principals:return []
+    principal_pattern='|'.join(re.escape(x) for x in sorted(set(principals),key=len,reverse=True))
+    separator=r'(?:\s*\|\s*|\s{2,})'
+    row_pattern=re.compile(
+        rf'^\s*(?P<principal>{principal_pattern}){separator}'
+        rf'(?P<date>[01]?\d/[0-3]?\d/20\d{{2}}){separator}'
+        rf'(?P<counterparty>.+?){separator}'
+        rf'(?P<purpose>.+?){separator}'
+        rf'\x24\s*(?P<amount>[0-9][0-9,]*\.\d{{2}})\s*$',
+        re.I)
+    rows=[];seen=set()
+    for raw_line in section.splitlines():
+        line=raw_line.replace('\u00a0',' ').strip()
+        if not line:continue
+        match=row_pattern.match(line)
+        if not match:continue
+        amount=parse_usd(match.group('amount'))
+        if amount is None:continue
+        row={
+            'direction':direction,
+            'principal':compact(match.group('principal'),180),
+            'date':match.group('date'),
+            'counterparty':compact(match.group('counterparty'),180).strip(' |,-'),
+            'purpose':compact(match.group('purpose'),180).strip(' |,-'),
+            'amountUsd':amount
+        }
+        if not row['counterparty'] or not row['purpose']:continue
+        key=(row['direction'],row['principal'].casefold(),row['date'],
+             row['counterparty'].casefold(),row['purpose'].casefold(),row['amountUsd'])
+        if key in seen:continue
+        seen.add(key);rows.append(row)
+        if len(rows)>=500:break
+    return rows
+
+def extract_financial_rows(text,known_principals=None,placeholder=False):
+    if placeholder:return []
+    receipts=_section(text,
+        r'14\.\s*\(?a\)?\s*RECEIPTS\s*[-–]?\s*MONIES',
+        r'(?:14\.\s*\(?b\)?|RECEIPTS\s*[-–]\s*FUNDRAISING)')
+    disbursements=_section(text,
+        r'15\.\s*\(?a\)?\s*DISBURSEMENTS\s*[-–]?\s*MONIES',
+        r'(?:15\.\s*\(?b\)?|DISBURSEMENTS\s*[-–]\s*THINGS)')
+    return (_financial_section_rows(receipts,'receipt',known_principals)+
+            _financial_section_rows(disbursements,'disbursement',known_principals))
 
 _US_GOV_CONTACT=re.compile(
     r'(?:\bRep(?:resentative)?\.?|\bCongress(?:man|woman)?\b|\bSen(?:ator)?\.?|'
@@ -142,6 +188,7 @@ def publish_insight_index(now=None):
             'hasServices':bool(record.get('servicesSummary')),
             'moneyStatus':record.get('moneyStatus'),
             'politicalContactCount':len(record.get('politicalContacts') or []),
+            'financialRowCount':len(record.get('financialRows') or []),
             'namedPrincipals':record.get('namedPrincipals') or []
         })
     rows.sort(key=lambda x:int(x['registrationNumber']))
@@ -207,6 +254,7 @@ def explain_supplemental(text,reg,source_url,known_principals=None):
     normalized_text=re.sub(r'\s+',' ',text).casefold()
     names=[n for n in (known_principals or [])
            if re.sub(r'\s+',' ',str(n)).casefold() in normalized_text]
+    financial_rows=extract_financial_rows(text,names,placeholder)
     contacts=extract_political_contacts(text,names)
     contacts_summary=None
     if contacts:
@@ -218,9 +266,11 @@ def explain_supplemental(text,reg,source_url,known_principals=None):
         'periodEnd':parse_period(text),'servicesSummary':service,
         'moneyStatus':money_status,'moneyExplanation':money_note,
         'totalReceivedUsd':total_received,'totalDisbursedUsd':total_disbursed,
+        'financialRows':financial_rows,
         'contactsSummary':contacts_summary,'politicalContacts':contacts,'namedPrincipals':names,
         'extractionMethod':'Text of the original DOJ FARA supplemental filing; source-verified structured extraction',
         'coverage':'Registrant-level filing totals are reported only when the form provides an explicit total. '
+                   'Itemized financial rows require an exact known principal, real date, counterparty, purpose and amount. '
                    'U.S. political contacts require an itemized principal/date/contact/method/purpose row. '
                    'No payment to a politician or principal-specific share is inferred.'}
 
