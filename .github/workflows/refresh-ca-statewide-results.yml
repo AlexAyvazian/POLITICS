@@ -1,0 +1,48 @@
+name: Refresh California statewide county election results
+
+on:
+  schedule:
+    - cron: "18 10,18 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/update_ca_statewide_results.py"
+      - "assets/data/elections/ca-statewide.js"
+      - "assets/data/elections/ca-governor-2026.js"
+      - ".github/workflows/refresh-ca-statewide-results.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ca-statewide-election-results
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify parser
+        run: python -m unittest discover -s tests -p test_ca_statewide_results.py -v
+      - name: Fetch current California Secretary of State Governor county results
+        run: python scripts/update_ca_statewide_results.py
+      - name: Publish changed Governor county cache
+        shell: bash
+        run: |
+          git add assets/data/elections/ca-governor-2026.js
+          if git diff --cached --quiet; then
+            echo "No California Governor result changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh California Governor county results"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
