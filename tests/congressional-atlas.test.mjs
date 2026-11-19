@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const read=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
 function setup(){const ctx={window:{}};vm.runInNewContext(read('assets/js/congressional-model.js'),ctx);return ctx.window.CONGRESSIONAL_MODEL;}
 test('separate congressional atlas has selectable federal and both state legislative boundaries',()=>{
- const c=setup();assert.equal(c.LAYERS.house.id,5);assert.equal(c.LAYERS.stateSenate.id,8);assert.equal(c.LAYERS.stateHouse.id,9);
+ const c=setup();assert.equal(c.LAYERS.house.id,0);assert.equal(c.LAYERS.stateSenate.id,9);assert.equal(c.LAYERS.stateHouse.id,10);
  for(const name of ['house','stateSenate','stateHouse']) {
   const url=new URL(c.censusUrl(name,'06'));
   assert.equal(url.hostname,'tigerweb.geo.census.gov');
@@ -144,15 +144,14 @@ test('statewide elected offices drill into county election results instead of pa
  assert.match(html,/assets\/data\/elections\/ca-statewide\.js/);
 });
 
-test('statewide county maps use election winners rather than current officeholder party',()=>{
+test('statewide county maps use election winners while current officeholders remain separate context',()=>{
  const js=read('assets/js/congressional-map.js');
  const political=read('assets/js/congressional-political.js');
  assert.match(js,/data-election-party/);
  assert.match(js,/county winner/i);
- assert.doesNotMatch(political,/else if\(layer==='president'\)incumbentParty=model\.partyClass\('Republican'\)/);
- assert.doesNotMatch(political,/else if\(layer==='governor'\)incumbentParty=model\.partyClass\(NCSL/);
- assert.match(political,/scope==='county'\|\|scope==='electionDistrict'/);
- assert.match(political,/unit=scope==='electionDistrict'\?'House district':'County'/);
+ assert.match(js,/US_ELECTION_2026/);
+ assert.match(political,/2026 Governor election/);
+ assert.match(political,/Current U\.S\. senators — 119th Congress/);
 });
 
 test('California statewide election cache distinguishes certified historical results from live 2026 canvass',()=>{
@@ -262,26 +261,23 @@ test('Alaska election-result joins normalize zero-padded House district IDs',()=
 });
 
 
-test('national statewide maps color states instead of forcing every state unknown',()=>{
+test('national statewide maps color 2026 election states from the election cache instead of current officeholder control',()=>{
  const js=read('assets/js/congressional-map.js');
- const political=read('assets/js/congressional-political.js');
  assert.match(js,/function nationalStateParty/);
  assert.match(js,/US_PRESIDENT_2024_STATE_WINNERS/);
- assert.doesNotMatch(js,/if\(layers\[layer\]\.type==='countyElection'&&isState\)return 'unknown'/);
- assert.match(political,/layer==='governor'&&scope==='state'/);
- assert.match(political,/layer==='senate'&&scope==='state'/);
- assert.match(political,/currentSenateParty\(state\)/);
+ assert.match(js,/US_ELECTION_2026/);
+ assert.match(js,/\?\.\[which\]\?\.\[stateCode\]\?\.mapParty/);
+ assert.doesNotMatch(js,/partyResolver\(\{layer:which,state:stateCode,scope:'state'/);
 });
 
-test('national statewide legends describe state-level meaning while drilldowns keep local winner legend',()=>{
+test('national statewide legends describe 2026 outcomes and keep local winner legend',()=>{
  const js=read('assets/js/congressional-map.js');
  assert.match(js,/Democratic 2024 state winner/);
  assert.match(js,/Republican 2024 state winner/);
- assert.match(js,/Democratic governor/);
- assert.match(js,/Republican governor/);
- assert.match(js,/Democratic delegation/);
- assert.match(js,/Republican delegation/);
- assert.match(js,/Split delegation/);
+ assert.match(js,/Democratic winner/);
+ assert.match(js,/Republican winner/);
+ assert.match(js,/Pending \/ uncalled/);
+ assert.match(js,/No 2026 race \/ unavailable/);
  assert.match(js,/Democratic '\+unit\+' winner/);
 });
 
@@ -299,10 +295,11 @@ test('certified 2024 presidential state winner cache covers fifty states and DC'
  assert.equal(data.electionDate,'2024-11-05');
 });
 
-test('national statewide map labels describe current control or statewide election winner',()=>{
+test('national map labels distinguish incoming 120th Congress results from current-term records',()=>{
  const js=read('assets/js/congressional-map.js');
- assert.match(js,/Current U\.S\. Senate delegation/);
- assert.match(js,/Current governor party/);
+ assert.match(js,/Incoming 120th Congress/);
+ assert.match(js,/2026 U\.S\. Senate election results/);
+ assert.match(js,/2026 governor election results/);
  assert.match(js,/2024 presidential statewide winner/);
  assert.match(js,/Select a state to drill into election results/);
 });
