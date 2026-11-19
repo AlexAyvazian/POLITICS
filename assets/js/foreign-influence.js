@@ -3,7 +3,7 @@
  * No lobbying dollar, campaign contribution or government contact is inferred. */
 import {COUNTRIES} from './foreign-world-catalog.js';
 import {countryStates} from './foreign-world-colors.js';
-import {countrySummary,selectedPrincipalRecords,verifiedSpending,safeFaraDocument,isIso2,documentsForGroup} from './foreign-influence-model.mjs';
+import {countrySummary,selectedPrincipalRecords,verifiedSpending,safeFaraDocument,isIso2} from './foreign-influence-model.mjs';
 
 const $=id=>document.getElementById(id);
 const svg=d3.select('#mapSvg');
@@ -18,7 +18,7 @@ const millerRaw=(lambda,phi)=>[lambda,1.25*Math.log(Math.tan(Math.PI/4+.4*phi))]
 millerRaw.invert=(x,y)=>[x,2.5*Math.atan(Math.exp(.8*y))-.625*Math.PI];
 const projection=d3.geoProjection(millerRaw);
 const geoPath=d3.geoPath(projection);
-let topologyFeatures=[],selected=null,snapshot=null,detail=null,showCount=24;
+let topologyFeatures=[],selected=null,snapshot=null,detail=null;
 let renderVersion=0,loadingSnapshot=false;
 
 function featureCountry(feature){
@@ -41,37 +41,23 @@ function showLabel(name,count){
  const total=count===null?'not indexed':displayNumber(count)+' listed principals';
  $('mapLabel').textContent=name+' · '+total;
 }
+
 function resetSidebar(){
  $('panelTitle').textContent='World';
  $('panelMeta').textContent='Department of Justice · FARA';
- $('selectedCard').replaceChildren(el('strong','','Choose a country'),
-  el('p','muted','Select a country on the map or from the country list to view its FARA records.'));
- $('facilityList').replaceChildren();
- $('listLabel').textContent='Select a country to explore the source documents.';
- $('loadMore').hidden=true;
- $('search').value='';$('statusFilter').value='all';$('documentFilter').value='all';
+ $('countryOverview').replaceChildren(el('strong','','Choose a country'),
+  el('p','muted','Select a country on the map to see its foreign principals, U.S. registrants, documented purpose and filing activity.'));
+ $('coverageNote').textContent='Select a country to load its DOJ FARA relationships.';
+ $('purposeList').replaceChildren(el('p','muted','Select a country to load reviewed filing summaries.'));
+ $('relationshipList').replaceChildren(el('p','muted','Select a country to load relationships.'));
+ $('activityTimeline').replaceChildren(el('p','muted','Select a country to load filing activity.'));
+ $('historicalRecords').replaceChildren();
+ $('historicalCount').textContent='';
+ $('historicalSection').hidden=true;
+ $('historicalSection').open=false;
+ $('search').value='';
 }
-function renderCountryChips(){
- const term=$('regionFilter').value.toLowerCase().trim();
- const container=$('regionList');container.replaceChildren();
- for(const item of countries.filter(c=>!term||c.name.toLowerCase().includes(term))){
-  const button=el('button','chip');
-  button.type='button';button.setAttribute('role','listitem');
-  button.setAttribute('aria-pressed',String(selected?.iso2===item.iso2));
-  const colors=countryStates(item);
-  button.style.setProperty('--fill',colors.fill);
-  button.style.setProperty('--glow',colors.glow);
-  const swatch=el('i','swatch');swatch.setAttribute('aria-hidden','true');
-  button.append(swatch,el('span','',item.name));
-  if(snapshot?.countries?.[item.iso2]){
-   const n=el('small','countryIndexCount',String(snapshot.countries[item.iso2].principals));
-   button.append(n);
-  }
-  if(selected?.iso2===item.iso2)button.classList.add('sel');
-  button.addEventListener('click',()=>choose(item.iso2));
-  container.append(button);
- }
-}
+
 function drawMap(){
  const shell=$('mapShell'),width=Math.max(320,shell.clientWidth),height=Math.max(300,shell.clientHeight);
  svg.attr('viewBox','0 0 '+width+' '+height);
@@ -129,124 +115,223 @@ function drawMap(){
 function moveTooltip(event){
  const tip=$('tooltip');tip.style.left=(event.clientX+18)+'px';tip.style.top=(event.clientY+16)+'px';
 }
-// Official filings are backup evidence, never the default content of a card.
-function makeSourceLinks(record,container,group='all'){
- const docs=documentsForGroup(record.documents,group);
- const details=el('details','faraDocuments');
- const label=el('summary','','See '+docs.length+' original DOJ filing'+(docs.length===1?'':'s')+' and all source records');
- details.append(label);
- if(docs.length){
-  const small=el('p','faraDocsTitle','These documents support the registration; a document title alone does not establish payments or political contacts.');
-  details.append(small);
-  for(const doc of docs){
-   const url=safeFaraDocument(doc.url);if(!url)continue;
-   const guide=doc.type==='Supplemental Statement'?'Six-month services, activities and financial report':
-    /exhibit/i.test(doc.type)?'Registration relationship or agreement':
-    /informational/i.test(doc.type)?'Reported public-facing information':'DOJ registration document';
-   const link=sourceAnchor(url,guide+(doc.filed?' · '+doc.filed:'')+' ↗');
-   link.className='faraDocumentLink';
-   details.append(link);
+
+
+function usDateValue(value){
+ const match=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(value||'').trim());
+ if(!match)return 0;
+ return Date.UTC(Number(match[3]),Number(match[1])-1,Number(match[2]));
+}
+function recordYear(value){
+ const match=String(value||'').match(/(?:19|20)\d{2}/g);
+ return match?.length?Number(match[match.length-1]):null;
+}
+function splitHistoricalRecords(records=[],iso=selected?.iso2){
+ const modern=[],historical=[];
+ for(const entry of Array.isArray(records)?records:[]){
+  const terminatedYear=recordYear(entry.terminatedAt);
+  const legacyRussia=iso==='RU'&&/(?:\bussr\b|u\.?s\.?s\.?r\.?|soviet|union of soviet socialist republics)/i.test(String(entry.principalName||''));
+  const oldTerminated=entry.status==='terminated'&&Number.isFinite(terminatedYear)&&terminatedYear<2000;
+  (legacyRussia||oldTerminated?historical:modern).push(entry);
+ }
+ return {modern,historical};
+}
+function latestFiling(records=[]){
+ let best=null,bestValue=0;
+ const seen=new Set();
+ for(const entry of records){
+  for(const doc of Array.isArray(entry.documents)?entry.documents:[]){
+   if(!safeFaraDocument(doc?.url)||seen.has(doc.url))continue;
+   seen.add(doc.url);
+   const value=usDateValue(doc.filed);
+   if(value>bestValue){bestValue=value;best=doc.filed;}
   }
  }
- const url=safeFaraDocument(record.allRegistrantDocumentsUrl);
- if(url)details.append(sourceAnchor(url,'Complete DOJ filing index for this agent ↗'));
- container.append(details);
+ return best;
+}
+function sortRecent(a,b){
+ if(a.status!==b.status)return a.status==='active'?-1:1;
+ return (usDateValue(b.registeredAt)||0)-(usDateValue(a.registeredAt)||0)||
+  String(a.principalName||'').localeCompare(String(b.principalName||''));
+}
+function relationshipGroups(records,search=''){
+ const filtered=selectedPrincipalRecords({principals:records},search).slice().sort(sortRecent);
+ const groups=new Map();
+ for(const entry of filtered){
+  const key=String(entry.registrationNumber||'')+'|'+String(entry.registrantName||'');
+  if(!groups.has(key))groups.set(key,{registrationNumber:entry.registrationNumber,registrantName:entry.registrantName,rows:[],principals:new Set(),active:0,latestFiling:null,latestValue:0,source:null});
+  const group=groups.get(key);
+  group.rows.push(entry);group.principals.add(entry.principalName);
+  if(entry.status==='active')group.active++;
+  if(!group.source&&safeFaraDocument(entry.allRegistrantDocumentsUrl))group.source=entry.allRegistrantDocumentsUrl;
+  for(const doc of Array.isArray(entry.documents)?entry.documents:[]){
+   if(!safeFaraDocument(doc?.url))continue;
+   const value=usDateValue(doc.filed);
+   if(value>group.latestValue){group.latestValue=value;group.latestFiling=doc.filed;}
+  }
+ }
+ return [...groups.values()].sort((a,b)=>(b.active-a.active)||(b.latestValue-a.latestValue)||(b.rows.length-a.rows.length)||String(a.registrantName).localeCompare(String(b.registrantName)));
+}
+function renderCountryOverview(country,record,modern,historical){
+ const card=$('countryOverview');card.replaceChildren();
+ card.style.setProperty('--cardGlow',countryStates(country).glow);
+ card.append(el('div','faraSectionLabel','COUNTRY NETWORK'));
+ card.append(el('p','countryNetworkHeadline',displayNumber(record.principals)+' foreign-principal records · '+displayNumber(record.registrants)+' U.S. registrant entities'));
+ const metrics=el('div','faraCountryMetrics');
+ const addStat=(title,value)=>{const x=el('div','faraMetric');x.append(el('span','',title),el('strong','',value));metrics.append(x);};
+ addStat('Total principals',displayNumber(record.principals));
+ addStat('Current principals',displayNumber(record.active));
+ addStat('U.S. registrants',displayNumber(record.registrants));
+ addStat('Historical separated',displayNumber(historical.length));
+ card.append(metrics);
+ const status=el('div','countryIntelStatus');
+ const latest=latestFiling(modern);
+ const moneyValue=verifiedSpending(snapshot?.countries?.[country.iso2]||{});
+ const activity=el('div','intelStatusItem');activity.append(el('span','','Latest indexed filing'),el('strong','',latest||'No dated filing'));
+ const payment=el('div','intelStatusItem');payment.append(el('span','','Countrywide payment total'),el('strong','',moneyValue.value===null?'Not yet extracted':moneyValue.text));
+ status.append(activity,payment);card.append(status);
+ $('coverageNote').textContent=moneyValue.value===null?
+  'Countrywide dollar totals and named U.S. political contacts are not yet fully extracted from reviewed filings. Relationships and filing activity below come directly from the DOJ registry; purpose text appears only where an original filing has been reviewed.':
+  'Countrywide payment totals shown here require a reviewed original DOJ filing. Named U.S. political contacts appear only when a filing identifies them.';
+}
+function renderRelationshipList(records){
+ const list=$('relationshipList');list.replaceChildren();
+ const groups=relationshipGroups(records,$('search').value);
+ if(!groups.length){list.append(el('p','muted','No current or recent relationships match this search.'));return;}
+ for(const group of groups.slice(0,14)){
+  const row=el('article','relationshipRow');
+  const principals=[...group.principals];
+  const principalLabel=principals.length===1?principals[0]:principals[0]+' + '+(principals.length-1)+' more';
+  const flow=el('div','relationshipFlow');
+  flow.append(el('strong','relationPrincipal',principalLabel),el('span','relationArrow','→'),el('strong','relationRegistrant',group.registrantName||'Registrant not named'));
+  row.append(flow);
+  if(principals.length>1)row.append(el('p','relationPrincipalList',principals.slice(0,4).join(' · ')+(principals.length>4?' · +'+(principals.length-4)+' more':'')));
+  const bits=['DOJ #'+group.registrationNumber];
+  if(group.active)bits.push(group.active+' current principal'+(group.active===1?'':'s'));
+  else bits.push('terminated');
+  if(group.latestFiling)bits.push('latest filing '+group.latestFiling);
+  row.append(el('p','relationMeta',bits.join(' · ')));
+  if(group.source){const link=sourceAnchor(group.source,'DOJ filing index ↗');link.className='relationSource';row.append(link);}
+  list.append(row);
+ }
+ if(groups.length>14)list.append(el('p','intelFoot',displayNumber(groups.length-14)+' additional registrant relationships match this view. Use search to narrow the network.'));
+}
+function renderTimeline(records){
+ const container=$('activityTimeline');container.replaceChildren();
+ const years=new Map(),seenDocs=new Set();
+ const bucket=year=>{
+  if(!Number.isFinite(year))return null;
+  if(!years.has(year))years.set(year,{year,registrations:0,terminations:0,filings:0});
+  return years.get(year);
+ };
+ for(const entry of records){
+  const r=bucket(recordYear(entry.registeredAt));if(r)r.registrations++;
+  const t=bucket(recordYear(entry.terminatedAt));if(t)t.terminations++;
+  for(const doc of Array.isArray(entry.documents)?entry.documents:[]){
+   const url=safeFaraDocument(doc?.url);if(!url||seenDocs.has(url))continue;
+   seenDocs.add(url);const f=bucket(recordYear(doc.filed));if(f)f.filings++;
+  }
+ }
+ const rows=[...years.values()].sort((a,b)=>b.year-a.year).slice(0,10);
+ if(!rows.length){container.append(el('p','muted','No dated registration or filing activity is available in this country snapshot.'));return;}
+ for(const item of rows){
+  const row=el('div','timelineRow');
+  row.append(el('strong','timelineYear',item.year));
+  const events=[];
+  if(item.filings)events.push(item.filings+' DOJ filing'+(item.filings===1?'':'s'));
+  if(item.registrations)events.push(item.registrations+' principal registration'+(item.registrations===1?'':'s'));
+  if(item.terminations)events.push(item.terminations+' termination'+(item.terminations===1?'':'s'));
+  row.append(el('span','timelineEvents',events.join(' · ')));
+  container.append(row);
+ }
+}
+function renderHistoricalRecords(records){
+ const details=$('historicalSection'),container=$('historicalRecords');
+ container.replaceChildren();$('historicalCount').textContent=records.length?'('+displayNumber(records.length)+')':'';
+ details.hidden=!records.length;
+ if(!records.length)return;
+ const matches=selectedPrincipalRecords({principals:records},$('search').value).slice().sort(sortRecent);
+ if($('search').value.trim()&&matches.length)details.open=true;
+ if(!matches.length){container.append(el('p','muted','No historical records match this search.'));return;}
+ for(const entry of matches.slice(0,12)){
+  const row=el('article','historicalRow');
+  row.append(el('strong','',entry.principalName));
+  row.append(el('p','',entry.registrantName||'Registrant not named'));
+  const dates=[entry.registeredAt?'registered '+entry.registeredAt:null,entry.terminatedAt?'terminated '+entry.terminatedAt:null].filter(Boolean).join(' · ');
+  row.append(el('small','',dates+' · DOJ #'+entry.registrationNumber));
+  const source=safeFaraDocument(entry.allRegistrantDocumentsUrl);
+  if(source){const link=sourceAnchor(source,'Source ↗');link.className='historicalSource';row.append(link);}
+  container.append(row);
+ }
+ if(matches.length>12)container.append(el('p','intelFoot',displayNumber(matches.length-12)+' additional historical records are retained in the DOJ snapshot.'));
 }
 const insightRequests=new Map();
-function makeFilingExplanation(entry,container){
- const block=el('section','faraExplanation');
- block.append(el('p','faraMeaningLabel','What the disclosure tells us'));
- const work=el('div','faraFact');
- work.append(el('strong','','Reported services'),el('p','',
-  'This U.S. registrant has filed a FARA record for the named foreign principal. The particular services have not yet been extracted from its supplemental statement.'));
- const money=el('div','faraFact');
- money.append(el('strong','','Reported payments'),el('p','',
-  'A verified amount has not yet been extracted. This does not mean no money was received or spent.'));
- const contact=el('div','faraFact');
- contact.append(el('strong','','U.S. political contacts'),el('p','',
-  'No named officials or contacts have been verified from this record. Registration alone does not show that a U.S. official was approached.'));
- block.append(work,money,contact);
- container.append(block);
- const id=String(entry.registrationNumber||'');
- if(!/^\d{1,6}$/.test(id))return;
+function requestInsight(id){
+ if(!/^\d{1,6}$/.test(String(id||'')))return Promise.resolve(null);
  if(!insightRequests.has(id)){
   insightRequests.set(id,fetch('assets/data/foreign-influence/filing-insights/'+id+'.json',{cache:'no-cache'})
-    .then(r=>r.ok?r.json():null).catch(()=>null));
+   .then(r=>r.ok?r.json():null).catch(()=>null));
  }
- insightRequests.get(id).then(summary=>{
-  if(!block.isConnected||!summary||summary.schemaVersion!==1||summary.registrationNumber!==id||
-     !safeFaraDocument(summary.sourceUrl))return;
-  // A registrant filing can cover several principals. Do not apply services
-  // or money to a different named foreign principal.
-  const names=Array.isArray(summary.namedPrincipals)?summary.namedPrincipals:[];
-  const applies=names.some(n=>String(n).trim().toLowerCase()===String(entry.principalName).trim().toLowerCase());
-  if(!applies)return;
-  if(typeof summary.servicesSummary==='string'&&summary.servicesSummary.trim())
-   work.querySelector('p').textContent=summary.servicesSummary;
-  if(summary.moneyStatus==='placeholder_not_actual'){
-   money.querySelector('p').textContent=summary.moneyExplanation;
-   money.classList.add('faraFactWarning');
-  }else if(typeof summary.moneyExplanation==='string'){
-   money.querySelector('p').textContent=summary.moneyExplanation;
-  }
-  if(typeof summary.contactsSummary==='string'&&summary.contactsSummary.trim())
-   contact.querySelector('p').textContent=summary.contactsSummary;
-  if(summary.periodEnd)block.append(el('p','faraReportingPeriod','Reporting period ending '+summary.periodEnd));
-  block.append(sourceAnchor(summary.sourceUrl,'Evidence: latest explained supplemental statement ↗'));
- });
+ return insightRequests.get(id);
 }
-function renderPrincipals(){
- const list=$('facilityList');list.replaceChildren();
- $('loadMore').hidden=true;
+async function renderExtractedInsights(records,token){
+ const list=$('purposeList');list.replaceChildren(el('p','muted','Checking reviewed original filings…'));
+ const byRegistration=new Map();
+ for(const entry of records.slice().sort(sortRecent)){
+  const id=String(entry.registrationNumber||'');
+  if(/^\d{1,6}$/.test(id)&&!byRegistration.has(id))byRegistration.set(id,entry);
+  if(byRegistration.size>=18)break;
+ }
+ const results=await Promise.all([...byRegistration.entries()].map(async([id,entry])=>({entry,summary:await requestInsight(id)})));
+ if(token!==renderVersion||!list.isConnected)return;
+ list.replaceChildren();
+ let shown=0;
+ for(const {entry,summary} of results){
+  if(!summary||summary.schemaVersion!==1||summary.registrationNumber!==String(entry.registrationNumber)||!safeFaraDocument(summary.sourceUrl))continue;
+  const names=Array.isArray(summary.namedPrincipals)?summary.namedPrincipals.map(n=>String(n).trim().toLowerCase()):[];
+  if(!names.includes(String(entry.principalName||'').trim().toLowerCase()))continue;
+  if(typeof summary.servicesSummary!=='string'||!summary.servicesSummary.trim())continue;
+  const item=el('article','purposeItem');
+  item.append(el('strong','purposePrincipal',entry.principalName),el('span','purposeAgent','U.S. registrant: '+entry.registrantName));
+  item.append(el('p','purposeText',summary.servicesSummary));
+  if(typeof summary.moneyExplanation==='string'&&summary.moneyExplanation.trim()){
+   const p=el('p','purposeMoney','Money in reviewed filing: '+summary.moneyExplanation);item.append(p);
+  }
+  if(typeof summary.contactsSummary==='string'&&summary.contactsSummary.trim()){
+   item.append(el('p','purposeContacts','U.S. political contacts: '+summary.contactsSummary));
+  }
+  const footer=el('div','purposeFooter');
+  if(summary.periodEnd)footer.append(el('span','','Reporting period ending '+summary.periodEnd));
+  footer.append(sourceAnchor(summary.sourceUrl,'Reviewed DOJ filing ↗'));item.append(footer);
+  list.append(item);shown++;if(shown>=6)break;
+ }
+ if(!shown)list.append(el('p','muted','No reviewed purpose summary has been published yet for the current/recent records in this country. The relationship network and filing timeline below still come directly from DOJ registry data.'));
+}
+function renderCountryIntel(){
  if(!detail||!selected)return;
- const status=$('statusFilter').value;
- const group=$('documentFilter').value;
- const filtered=selectedPrincipalRecords(detail,$('search').value)
-  .filter(p=>status==='all'||p.status===status)
-  .filter(p=>group==='all'||documentsForGroup(p.documents,group).length>0);
- $('listLabel').textContent=displayNumber(filtered.length)+(group==='all'?' principal records':' records with matching indexed filing links')+' · Showing '+Math.min(showCount,filtered.length);
- for(const entry of filtered.slice(0,showCount)){
-  const card=el('article','facility faraPrincipal');
-  const badge=el('span','badge',entry.status==='active'?'Active in registry':'Terminated');
-  const title=el('h3','',entry.principalName);
-  const registrant=el('p','faraAgent','Registrant: '+entry.registrantName);
-  const meta=el('p','faraDates','DOJ registration #'+entry.registrationNumber+
-    (entry.registeredAt?' · First registered '+entry.registeredAt:'')+
-    (entry.terminatedAt?' · Terminated '+entry.terminatedAt:''));
-  card.append(badge,title,registrant,meta);
-  makeFilingExplanation(entry,card);
-  makeSourceLinks(entry,card,group);
-  list.append(card);
- }
- $('loadMore').hidden=filtered.length<=showCount;
- if(!filtered.length){
-  list.append(el('p','muted',group==='all'?'No entries match these filters in the available DOJ registry snapshot.':'No matching links in the displayed filing sample. This does not mean no such filings exist. Use each registrant’s complete DOJ filing index.'));
- }
+ const all=Array.isArray(detail.principals)?detail.principals:[];
+ const {modern,historical}=splitHistoricalRecords(all,selected.iso2);
+ const record=countrySummary(snapshot,selected.iso2);
+ renderCountryOverview(selected,record,modern,historical);
+ renderRelationshipList(modern);
+ renderTimeline(modern);
+ renderHistoricalRecords(historical);
+ renderExtractedInsights(modern,renderVersion);
 }
 async function choose(iso){
  if(!isIso2(iso)||!byIso.has(iso))return;
  const country=byIso.get(iso),token=++renderVersion;
- selected=country;detail=null;showCount=24;
+ selected=country;detail=null;
  const record=countrySummary(snapshot,iso);
  $('panelTitle').textContent=country.name;
- $('panelMeta').textContent='Foreign principals registered under U.S. FARA';
- const card=$('selectedCard');card.replaceChildren();
- card.style.setProperty('--cardGlow',countryStates(country).glow);
- card.append(el('div','faraSectionLabel','DOJ FARA registry snapshot'));
- const metrics=el('div','faraCountryMetrics');
- const addStat=(title,value)=>{const x=el('div','faraMetric');x.append(el('span','',title),el('strong','',value));metrics.append(x);};
- addStat('Principals indexed',displayNumber(record.principals));
- addStat('Current in registry',displayNumber(record.active));
- addStat('Registrant entities',displayNumber(record.registrants));
- card.append(metrics);
- const moneyValue=verifiedSpending(snapshot?.countries?.[iso]||{});
- const cash=el('p','faraMoney','Disclosed financial totals: '+moneyValue.text);
- card.append(cash);
- $('facilityList').replaceChildren(el('p','muted','Retrieving documented foreign-principal relationships…'));
- $('listLabel').textContent='Loading records for '+country.name+'…';
- $('statusFilter').value='all';$('documentFilter').value='all';$('search').value='';
- $('countryChooser').open=false;
- renderCountryChips();
+ $('panelMeta').textContent='Loading DOJ FARA relationships…';
+ $('search').value='';
+ $('countryOverview').replaceChildren(el('strong','','Loading '+country.name+'…'),el('p','muted','Retrieving foreign principals, U.S. registrants and filing activity.'));
+ $('coverageNote').textContent='Loading the latest published DOJ registry snapshot…';
+ $('purposeList').replaceChildren(el('p','muted','Loading reviewed filing summaries…'));
+ $('relationshipList').replaceChildren(el('p','muted','Loading relationships…'));
+ $('activityTimeline').replaceChildren(el('p','muted','Loading activity timeline…'));
+ $('historicalRecords').replaceChildren();$('historicalSection').hidden=true;$('historicalSection').open=false;
  drawMap();showLabel(country.name,record.principals);
  history.replaceState(null,'','#/country/'+encodeURIComponent(iso));
  try{
@@ -254,32 +339,35 @@ async function choose(iso){
   if(!response.ok)throw Error('No published country dataset');
   const json=await response.json();
   if(token!==renderVersion||json.countryCode!==iso)return;
-  detail=json;renderPrincipals();
+  detail=json;renderCountryIntel();
   $('panelMeta').textContent='DOJ source checked '+new Date(json.checkedAt).toLocaleDateString('en-US');
  }catch(_){
   if(token!==renderVersion)return;
-  $('facilityList').replaceChildren(el('p','muted',snapshot?.countries?.[iso]?
-   'This country’s latest registry detail could not be loaded. The country summary remains available.':
-   'No foreign-principal records for this country were indexed in the latest available FARA bulk snapshot. This is not proof of no foreign lobbying.'));
-  $('listLabel').textContent='No verified country records loaded';
+  $('countryOverview').replaceChildren(el('strong','',country.name),el('p','muted','The country summary is available, but the detailed relationship file could not be loaded.'));
+  $('coverageNote').textContent=snapshot?.countries?.[iso]?
+   'Detailed country records could not be loaded from the latest published snapshot.':
+   'No foreign-principal records for this country were indexed in the latest DOJ bulk snapshot.';
+  $('purposeList').replaceChildren(el('p','muted','No detailed filing summaries loaded.'));
+  $('relationshipList').replaceChildren(el('p','muted','No detailed relationships loaded.'));
+  $('activityTimeline').replaceChildren(el('p','muted','No detailed filing activity loaded.'));
  }
 }
 function reset(){
  selected=null;detail=null;++renderVersion;
- history.replaceState(null,'','#/world');resetSidebar();$('countryChooser').open=true;renderCountryChips();drawMap();
+ history.replaceState(null,'','#/world');resetSidebar();drawMap();
  $('mapLabel').textContent='Choose a country to inspect DOJ FARA registrations';
 }
 function initEvents(){
- $('regionFilter').addEventListener('input',renderCountryChips);
- $('statusFilter').addEventListener('change',()=>{showCount=24;renderPrincipals();});
- $('documentFilter').addEventListener('change',()=>{showCount=24;renderPrincipals();});
- $('search').addEventListener('input',()=>{showCount=24;renderPrincipals();});
- $('loadMore').addEventListener('click',()=>{showCount+=24;renderPrincipals();});
+ $('search').addEventListener('input',()=>{
+  if(!detail||!selected)return;
+  const {modern,historical}=splitHistoricalRecords(detail.principals,selected.iso2);
+  renderRelationshipList(modern);renderHistoricalRecords(historical);
+ });
  window.addEventListener('resize',()=>{if(topologyFeatures.length)drawMap();});
  window.addEventListener('keydown',event=>{if(event.key==='Escape')reset();});
 }
 async function load(){
- initEvents();resetSidebar();$('countryChooser').open=true;
+ initEvents();resetSidebar();
  try{
   const topoResponse=await fetch('assets/vendor/foreign-countries-50m.json',{cache:'force-cache'});
   if(!topoResponse.ok)throw Error('World geography unavailable');
@@ -287,7 +375,7 @@ async function load(){
   topologyFeatures=topojson.feature(topology,topology.objects.countries).features;
   $('loading').hidden=true;
   drawMap();
- }catch(_){$('loading').textContent='Could not load world outlines. You can still browse countries by name.';}
+ }catch(_){$('loading').textContent='Could not load world outlines.';}
  try{
   const res=await fetch('assets/data/foreign-influence/latest.json',{cache:'no-cache'});
   if(!res.ok)throw Error('FARA snapshot missing');
@@ -302,7 +390,6 @@ async function load(){
   $('statPrincipals').textContent='Pending';
   $('sourceNote').append(el('span','sourceFreshness',' · Daily registry snapshot has not been published yet.'));
  }
- renderCountryChips();
  const route=decodeURIComponent(location.hash.split('/')[2]||'').toUpperCase();
  if(isIso2(route)&&byIso.has(route))choose(route);
 }

@@ -65,7 +65,7 @@
 
 /* Country selections stay on the WORLD map. Evidence, not navigation, owns the
    sidebar. Optional country search and methodology are collapsed below it. */
-.foreignInfluence .app{grid-template-columns:minmax(360px,1fr) minmax(425px,470px)}
+.foreignInfluence .app{grid-template-columns:minmax(360px,1fr) minmax(520px,44vw)}
 .foreignInfluence .sidePanel{gap:9px;padding:16px}
 .foreignInfluence .selectedCard{padding:10px 13px;border-radius:16px}
 .foreignInfluence .faraSectionLabel{font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;color:#9bcfe5}
@@ -136,3 +136,79 @@
 .foreignInfluence .faraDocuments .faraDocumentLink{display:block;font-size:10px;line-height:1.45;margin:7px 0}
 .foreignInfluence .faraDocuments .faraDocsTitle{margin:9px 0;font-size:10px;line-height:1.5;text-transform:none;letter-spacing:normal;font-weight:500}
 .foreignInfluence .faraPrincipal{min-height:0}
+
+
+/* Information hierarchy: the map selects a country; the inspector explains
+   the network. Controls and raw filing navigation no longer dominate. */
+.foreignInfluence .sidePanel{overflow-y:auto;overflow-x:hidden;padding:18px 18px 16px;gap:13px}
+.foreignInfluence .countryOverview{padding:14px 15px}
+.foreignInfluence .countryNetworkHeadline{margin:7px 0 10px;color:#e8f5fb;font-size:12px;line-height:1.45;font-weight:750}
+.foreignInfluence .countryOverview .faraCountryMetrics{grid-template-columns:repeat(4,minmax(0,1fr));margin:8px 0 10px}
+.foreignInfluence .countryIntelStatus{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.foreignInfluence .intelStatusItem{padding:9px 10px;border:1px solid rgba(163,205,232,.14);background:rgba(3,10,27,.42);border-radius:11px;min-width:0}
+.foreignInfluence .intelStatusItem span{display:block;color:#9eb9cd;font-size:9px;line-height:1.35;text-transform:uppercase;letter-spacing:.07em;font-weight:800}
+.foreignInfluence .intelStatusItem strong{display:block;color:#f1f8fc;font-size:12px;line-height:1.35;margin-top:4px;overflow-wrap:anywhere}
+
+.foreignInfluence .countryIntelTools{flex:0 0 auto}
+.foreignInfluence .countryIntelTools label{display:block}
+.foreignInfluence .countryIntelTools label>span{display:block;color:#a7c9d9;font-size:9px;letter-spacing:.09em;text-transform:uppercase;font-weight:800;margin:0 0 5px}
+.foreignInfluence .countryIntelTools input{width:100%;box-sizing:border-box;padding:10px 11px;font-size:12px}
+.foreignInfluence .coverageNote{margin:0;padding:9px 11px;border-radius:11px;background:rgba(40,67,88,.22);border:1px solid rgba(145,190,216,.16);color:#a9c1d0;font-size:10px;line-height:1.5}
+
+.foreignInfluence .intelSection{flex:0 0 auto;padding:12px 13px;border:1px solid rgba(148,197,221,.16);border-radius:15px;background:rgba(3,10,28,.34)}
+.foreignInfluence .intelSectionHead{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:9px}
+.foreignInfluence .intelKicker{display:block;color:#8bded8;font-size:9px;line-height:1.2;letter-spacing:.11em;font-weight:850}
+.foreignInfluence .intelSection h3{margin:3px 0 0;color:#f0f6fb;font-size:14px;line-height:1.3}
+
+.foreignInfluence .purposeList,.foreignInfluence .relationshipList,.foreignInfluence .activityTimeline,.foreignInfluence .historicalRecords{display:grid;gap:7px}
+.foreignInfluence .purposeItem{padding:10px 11px;border-radius:11px;background:rgba(9,20,40,.62);border:1px solid rgba(135,195,214,.13)}
+.foreignInfluence .purposePrincipal{display:block;color:#f4f8fb;font-size:12px;line-height:1.35}
+.foreignInfluence .purposeAgent{display:block;color:#a8c6d7;font-size:10px;line-height:1.4;margin-top:2px}
+.foreignInfluence .purposeText{margin:7px 0 0;color:#c9dae5;font-size:11px;line-height:1.55}
+.foreignInfluence .purposeMoney,.foreignInfluence .purposeContacts{margin:7px 0 0;padding-top:7px;border-top:1px solid rgba(150,193,214,.12);color:#b7cbd8;font-size:10px;line-height:1.5}
+.foreignInfluence .purposeFooter{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;color:#91adbd;font-size:9px}
+.foreignInfluence .purposeFooter a{font-size:10px}
+
+.foreignInfluence .relationshipRow{padding:10px 11px;border-radius:11px;background:rgba(7,17,35,.58);border:1px solid rgba(143,192,218,.13)}
+.foreignInfluence .relationshipFlow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px}
+.foreignInfluence .relationPrincipal,.foreignInfluence .relationRegistrant{font-size:11px;line-height:1.35;overflow-wrap:anywhere}
+.foreignInfluence .relationPrincipal{color:#e7f2f8}
+.foreignInfluence .relationRegistrant{color:#9ee1d6}
+.foreignInfluence .relationArrow{color:#7597ad;font-size:14px;font-weight:900}
+.foreignInfluence .relationPrincipalList{margin:6px 0 0;color:#9db8c8;font-size:9px;line-height:1.45}
+.foreignInfluence .relationMeta{margin:7px 0 0;color:#8faabd;font-size:9px;line-height:1.4}
+.foreignInfluence .relationSource,.foreignInfluence .historicalSource{display:inline-block;margin-top:6px;font-size:9px}
+
+.foreignInfluence .timelineRow{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;align-items:start;padding:7px 0;border-top:1px solid rgba(145,188,211,.12)}
+.foreignInfluence .timelineRow:first-child{border-top:0}
+.foreignInfluence .timelineYear{color:#f0f7fb;font-size:12px;font-variant-numeric:tabular-nums}
+.foreignInfluence .timelineEvents{color:#abc1cf;font-size:10px;line-height:1.45}
+.foreignInfluence .intelFoot{margin:3px 0 0;color:#849ead;font-size:9px;line-height:1.45}
+
+.foreignInfluence .historicalSection{flex:0 0 auto;border:1px solid rgba(148,190,216,.16);border-radius:13px;background:rgba(4,11,27,.42);padding:0}
+.foreignInfluence .historicalSection>summary{cursor:pointer;padding:10px 12px;color:#c2d7e4;font-size:11px;font-weight:800;list-style-position:inside}
+.foreignInfluence .historicalSection[open]>summary{border-bottom:1px solid rgba(149,189,211,.13)}
+.foreignInfluence .historicalIntro{margin:9px 12px;color:#91a9b8;font-size:9px;line-height:1.5}
+.foreignInfluence .historicalRecords{padding:0 12px 12px}
+.foreignInfluence .historicalRow{padding:8px 9px;border-radius:9px;background:rgba(10,18,34,.55);border:1px solid rgba(137,179,203,.1)}
+.foreignInfluence .historicalRow strong{display:block;color:#dce7ed;font-size:10px;line-height:1.35}
+.foreignInfluence .historicalRow p{margin:3px 0;color:#9eb4c0;font-size:9px;line-height:1.35}
+.foreignInfluence .historicalRow small{display:block;color:#7f99a9;font-size:8px;line-height:1.4}
+
+.foreignInfluence .foreignSourceDetails{flex:0 0 auto;margin-top:0}
+.foreignInfluence .foreignSourceDetails>summary{padding:8px 10px}
+@media(max-width:1120px){
+ .foreignInfluence .app{grid-template-columns:minmax(340px,1fr) minmax(500px,48vw)}
+ .foreignInfluence .countryOverview .faraCountryMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:960px){
+ .foreignInfluence .app{grid-template-columns:1fr}
+ .foreignInfluence .sidePanel{max-height:none;overflow:visible}
+ .foreignInfluence .countryOverview .faraCountryMetrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:560px){
+ .foreignInfluence .countryOverview .faraCountryMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .foreignInfluence .countryIntelStatus{grid-template-columns:1fr}
+ .foreignInfluence .relationshipFlow{grid-template-columns:1fr}
+ .foreignInfluence .relationArrow{transform:rotate(90deg);justify-self:start}
+}
