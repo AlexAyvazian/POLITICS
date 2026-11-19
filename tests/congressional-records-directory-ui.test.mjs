@@ -49,10 +49,10 @@ function build(){
  vm.runInNewContext(read('assets/js/geo-colors.js'),ctx);
  vm.runInNewContext(read('assets/js/records-model.js'),ctx);
  vm.runInNewContext(read('assets/js/records.js'),ctx);
- return {el,requests};
+ return {el,requests,geoColors:ctx.window.GEO_COLORS};
 }
 test('state tiles are the default directory, choosing Colorado exposes the delegation and a working voting profile',async()=>{
- const {el,requests}=build();
+ const {el,requests,geoColors}=build();
  await tick();await tick();await tick();
  assert.equal(el.stateGrid.children.length,51);
  assert.equal(el.stateDirectory.hidden,false);
@@ -62,7 +62,8 @@ test('state tiles are the default directory, choosing Colorado exposes the deleg
  const alaska=el.stateGrid.children.find(c=>c.attributes['aria-label']==='Browse Alaska congressional delegation');
  const florida=el.stateGrid.children.find(c=>c.attributes['aria-label']==='Browse Florida congressional delegation');
  assert.ok(alaska&&florida);
- assert.equal(alaska.style['--records-state-hover'],'hsl(207 61% 83%)');
+ assert.equal(alaska.style['--records-state-hover'],geoColors.state('02').hover);
+ assert.equal(florida.style['--records-state-hover'],geoColors.state('12').hover);
  assert.notEqual(alaska.style['--records-state-hover'],florida.style['--records-state-hover']);
  assert.match(alaska.children[0].innerHTML,/viewBox="12 28 176 104"/);
  assert.match(co.children[0].innerHTML,/viewBox="0 0 200 160"/);
