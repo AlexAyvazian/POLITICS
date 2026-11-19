@@ -8,6 +8,7 @@ import {countrySummary,selectedPrincipalRecords,verifiedSpending,safeFaraDocumen
 const $=id=>document.getElementById(id);
 const svg=d3.select('#mapSvg');
 const countryLayer=svg.append('g').attr('class','countries');
+const selectionLayer=svg.append('g').attr('class','foreignMapSelection');
 const byNumeric=new Map(COUNTRIES.filter(c=>c.numeric).map(c=>[String(c.numeric).padStart(3,'0'),c]));
 const byName=new Map(COUNTRIES.flatMap(c=>[c.name,...(c.atlasNames||[])].map(n=>[n.toLowerCase(),c])));
 const byIso=new Map(COUNTRIES.map(c=>[c.iso2,c]));
@@ -103,6 +104,26 @@ function drawMap(){
   })
   .on('mousemove',moveTooltip)
   .on('mouseleave',()=>{$('tooltip').style.display='none';});
+ // World-scale small countries still need a readable selection target.
+ // This label does not distort their geographic size or move the map.
+ selectionLayer.selectAll('*').remove();
+ if(selected&&topologyFeatures.length){
+  const feature=topologyFeatures.find(f=>featureCountry(f)?.iso2===selected.iso2);
+  if(feature){
+   const point=geoPath.centroid(feature);
+   if(point.every(Number.isFinite)){
+    const colors=countryStates(selected),isRight=point[0]>width-155;
+    const marker=selectionLayer.append('g').attr('class','foreignSelectedMarker')
+     .attr('transform','translate('+point[0]+','+point[1]+')')
+     .style('--markerColor',colors.selected).style('--markerGlow',colors.glow)
+     .attr('aria-hidden','true');
+    marker.append('circle').attr('class','foreignSelectionHalo').attr('r',12);
+    marker.append('circle').attr('class','foreignSelectionDot').attr('r',4);
+    marker.append('text').attr('x',isRight?-21:21).attr('y',-12)
+     .attr('text-anchor',isRight?'end':'start').text(selected.name);
+   }
+  }
+ }
  $('mapSvg').style.setProperty('--k','1');
 }
 function moveTooltip(event){
