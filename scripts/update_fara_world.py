@@ -127,6 +127,14 @@ def extract_principal(row):
         'terminatedAt':text(pick(row,'Foreign_Principal_Termination_Date','Principal_Termination_Date','Termination_Date'),30)
     }
 
+def filing_date_order(raw):
+    """Compare DOJ MM/DD/YYYY and ISO dates chronologically, not alphabetically."""
+    raw=text(raw,30)
+    for fmt in ('%m/%d/%Y','%Y-%m-%d','%Y-%m-%dT%H:%M:%S'):
+        try:return datetime.strptime(raw,fmt).date().isoformat()
+        except ValueError:pass
+    return ''
+
 def build_country_snapshot(iso,principals,docs,index,now,catalog=None):
     names={c['iso2']:c['name'] for c in (catalog or [])}
     index_docs=docs if isinstance(docs,dict) else join_documents(docs)
@@ -158,7 +166,7 @@ def build_country_snapshot(iso,principals,docs,index,now,catalog=None):
         def document_priority(doc):
             kind=doc['type'].casefold()
             return 0 if 'supplemental' in kind else 1 if 'exhibit' in kind else 2 if 'informational' in kind else 3
-        related=sorted(related,key=lambda x:x['filed'],reverse=True)
+        related=sorted(related,key=lambda x:filing_date_order(x['filed']),reverse=True)
         related=sorted(related,key=document_priority)[:10]
         items.append({
             'registrationNumber':registration,'principalName':p['principalName'],
