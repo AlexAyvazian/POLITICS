@@ -38,7 +38,8 @@ def endpoint(layer: str, state: str, count_only: bool = False) -> str:
         params.update({"outFields": "GEOID,BASENAME,STATE",
                        "outSR": "4326", "returnGeometry": "true",
                        "geometryPrecision": "4"})
-    base, layer_id = LAYERS[layer]\n    return f"{base}/{layer_id}/query?{urlencode(params)}"
+    base, layer_id = LAYERS[layer]
+    return f"{base}/{layer_id}/query?{urlencode(params)}"
 
 
 def request_json(url: str, attempts: int = 3) -> dict:
