@@ -3,7 +3,7 @@
  * No lobbying dollar, campaign contribution or government contact is inferred. */
 import {COUNTRIES} from './foreign-world-catalog.js';
 import {countryStates} from './foreign-world-colors.js';
-import {countrySummary,selectedPrincipalRecords,verifiedSpending,safeFaraDocument,isIso2} from './foreign-influence-model.mjs';
+import {countrySummary,selectedPrincipalRecords,verifiedSpending,safeFaraDocument,isIso2,documentsForGroup} from './foreign-influence-model.mjs';
 
 const $=id=>document.getElementById(id);
 const svg=d3.select('#mapSvg');
@@ -48,7 +48,7 @@ function resetSidebar(){
  $('facilityList').replaceChildren();
  $('listLabel').textContent='Select a country to explore the source documents.';
  $('loadMore').hidden=true;
- $('search').value='';$('statusFilter').value='all';
+ $('search').value='';$('statusFilter').value='all';$('documentFilter').value='all';
 }
 function renderCountryChips(){
  const term=$('regionFilter').value.toLowerCase().trim();
@@ -115,8 +115,8 @@ function drawMap(){
 function moveTooltip(event){
  const tip=$('tooltip');tip.style.left=(event.clientX+18)+'px';tip.style.top=(event.clientY+16)+'px';
 }
-function makeSourceLinks(record,container){
- const docs=Array.isArray(record.documents)?record.documents:[];
+function makeSourceLinks(record,container,group='all'){
+ const docs=documentsForGroup(record.documents,group);
  if(docs.length){
   const small=el('div','faraDocsTitle','Original DOJ filing documents');
   container.append(small);
@@ -135,9 +135,11 @@ function renderPrincipals(){
  $('loadMore').hidden=true;
  if(!detail||!selected)return;
  const status=$('statusFilter').value;
+ const group=$('documentFilter').value;
  const filtered=selectedPrincipalRecords(detail,$('search').value)
-  .filter(p=>status==='all'||p.status===status);
- $('listLabel').textContent=displayNumber(filtered.length)+' principal records in selection · Showing '+Math.min(showCount,filtered.length);
+  .filter(p=>status==='all'||p.status===status)
+  .filter(p=>group==='all'||documentsForGroup(p.documents,group).length>0);
+ $('listLabel').textContent=displayNumber(filtered.length)+(group==='all'?' principal records':' records with matching indexed filing links')+' · Showing '+Math.min(showCount,filtered.length);
  for(const entry of filtered.slice(0,showCount)){
   const card=el('article','facility faraPrincipal');
   const badge=el('span','badge',entry.status==='active'?'Active in registry':'Terminated');
@@ -147,12 +149,12 @@ function renderPrincipals(){
     (entry.registeredAt?' · First registered '+entry.registeredAt:'')+
     (entry.terminatedAt?' · Terminated '+entry.terminatedAt:''));
   card.append(badge,title,registrant,meta);
-  makeSourceLinks(entry,card);
+  makeSourceLinks(entry,card,group);
   list.append(card);
  }
  $('loadMore').hidden=filtered.length<=showCount;
  if(!filtered.length){
-  list.append(el('p','muted','No entries match these filters in the available DOJ registry snapshot.'));
+  list.append(el('p','muted',group==='all'?'No entries match these filters in the available DOJ registry snapshot.':'No matching links in the displayed filing sample. This does not mean no such filings exist. Use each registrant’s complete DOJ filing index.'));
  }
 }
 async function choose(iso){
@@ -176,7 +178,7 @@ async function choose(iso){
  card.append(cash,el('p','note','DOJ registries do not identify all amounts spent, lobbying targets or any payment to a member of Congress. Source PDFs remain essential for those claims.'));
  $('facilityList').replaceChildren(el('p','muted','Retrieving documented foreign-principal relationships…'));
  $('listLabel').textContent='Loading records for '+country.name+'…';
- $('statusFilter').value='all';$('search').value='';
+ $('statusFilter').value='all';$('documentFilter').value='all';$('search').value='';
  renderCountryChips();
  drawMap();showLabel(country.name,record.principals);
  history.replaceState(null,'','#/country/'+encodeURIComponent(iso));
@@ -203,6 +205,7 @@ function reset(){
 function initEvents(){
  $('regionFilter').addEventListener('input',renderCountryChips);
  $('statusFilter').addEventListener('change',()=>{showCount=24;renderPrincipals();});
+ $('documentFilter').addEventListener('change',()=>{showCount=24;renderPrincipals();});
  $('search').addEventListener('input',()=>{showCount=24;renderPrincipals();});
  $('loadMore').addEventListener('click',()=>{showCount+=24;renderPrincipals();});
  window.addEventListener('resize',()=>{if(topologyFeatures.length)drawMap();});

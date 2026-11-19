@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {countrySummary,selectedPrincipalRecords,verifiedSpending} from '../assets/js/foreign-influence-model.mjs';
+import {countrySummary,selectedPrincipalRecords,verifiedSpending,documentGroup,documentsForGroup} from '../assets/js/foreign-influence-model.mjs';
 
 test('FARA country summary never presents registry counts as spending',()=>{
  const summary={countries:{SG:{principals:17,activePrincipals:9,registrants:5,financialStatus:'not_extracted',verifiedDisbursementsUsd:null}}};
@@ -23,4 +23,20 @@ test('verified spending requires signed numeric amount and original document',()
  assert.equal(verifiedSpending({verifiedDisbursementsUsd:null}).text,'Not yet verified');
  assert.equal(verifiedSpending({verifiedDisbursementsUsd:12345,spendingSourceUrl:null}).text,'Not yet verified');
  assert.equal(verifiedSpending({verifiedDisbursementsUsd:12345,spendingSourceUrl:'https://efile.fara.gov/docs/7794-Money-20261106.pdf'}).value,12345);
+});
+
+test('FARA filing categories make receipts and activities discoverable but do not infer amounts',()=>{
+ const docs=[
+  {type:'Supplemental Statement',url:'https://efile.fara.gov/docs/7000-Supplemental-Statement-20261001.pdf'},
+  {type:'Exhibit AB',url:'https://efile.fara.gov/docs/7000-Exhibit-AB-20261001.pdf'},
+  {type:'Informational Materials',url:'https://efile.fara.gov/docs/7000-Informational-20261001.pdf'},
+  {type:'Short-Form',url:'https://efile.fara.gov/docs/7000-Short-Form-20261001.pdf'}
+ ];
+ assert.equal(documentGroup(docs[0]),'supplemental');
+ assert.equal(documentGroup(docs[1]),'contracts');
+ assert.equal(documentGroup(docs[2]),'communications');
+ assert.equal(documentGroup(docs[3]),'other');
+ assert.equal(documentsForGroup(docs,'supplemental').length,1);
+ assert.equal(documentsForGroup(docs,'all').length,4);
+ assert.equal(documentsForGroup(docs,'unknown').length,0);
 });

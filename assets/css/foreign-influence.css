@@ -57,3 +57,7 @@
  .foreignInfluence .faraMetric{padding:9px 5px}
  .foreignInfluence .faraMetric strong{font-size:17px}
 }
+
+.foreignInfluence .foreignFilters{grid-template-columns:repeat(2,minmax(0,1fr))}
+.foreignInfluence .foreignFilters label:last-child{grid-column:1/-1}
+@media(max-width:430px){.foreignInfluence .foreignFilters{grid-template-columns:1fr}.foreignInfluence .foreignFilters label:last-child{grid-column:auto}}
