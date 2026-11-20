@@ -62,28 +62,76 @@
     </div>
    </div>
 
-   <section class="recordsDashboard" id="memberDashboard" aria-labelledby="memberDashboardTitle">
-    <div class="recordsDashboardHeading">
-     <div><span class="recordsKicker">THE PUBLIC RECORD, WITHOUT THE SCAVENGER HUNT</span><h3 id="memberDashboardTitle">At a glance</h3><p>Real records from the available sources. Missing information stays marked as unavailable—not zero, and not a political rating.</p></div>
-     <span class="recordsDashboardSource">119th Congress · 2025–2026</span>
+   <div class="recordsProfileTabs" id="profileOverviewNav" role="tablist" aria-label="Member record sections">
+    <button type="button" class="recordsProfileTab" id="profileTabOverview" role="tab" aria-selected="true" aria-controls="profilePanelOverview" tabindex="0" data-profile-tab="overview">Overview</button>
+    <button type="button" class="recordsProfileTab" id="profileTabVotes" role="tab" aria-selected="false" aria-controls="profilePanelVotes" tabindex="-1" data-profile-tab="votes">Voting Record</button>
+    <button type="button" class="recordsProfileTab" id="profileTabFunding" role="tab" aria-selected="false" aria-controls="profilePanelFunding" tabindex="-1" data-profile-tab="funding">Funding &amp; Influence</button>
+   </div>
+
+   <section class="recordsProfilePanel" id="profilePanelOverview" role="tabpanel" aria-labelledby="profileTabOverview" data-profile-panel="overview">
+    <section class="recordsDashboard" id="memberDashboard" aria-labelledby="memberDashboardTitle">
+     <div class="recordsDashboardHeading">
+      <div><span class="recordsKicker">THE PUBLIC RECORD, WITHOUT THE SCAVENGER HUNT</span><h3 id="memberDashboardTitle">At a glance</h3><p>Real records from the available sources. Missing information stays marked as unavailable—not zero, and not a political rating.</p></div>
+      <span class="recordsDashboardSource">119th Congress · 2025–2026</span>
+     </div>
+     <div class="recordsDashboardMetrics">
+      <article class="recordsDashboardMetric"><span>Campaign receipts</span><strong id="statCampaign">Loading…</strong><small>FEC · 2025–2026 cycle, when matched</small></article>
+      <article class="recordsDashboardMetric"><span>Captured roll calls</span><strong id="statVotes">Loading…</strong><small>Published votes in our current record</small></article>
+      <article class="recordsDashboardMetric"><span>Measures on those votes</span><strong id="statMeasures">Loading…</strong><small>Distinct bill identifiers; not bills sponsored</small></article>
+      <article class="recordsDashboardMetric"><span>Travel disclosure filings</span><strong id="statTravel">Loading…</strong><small>Member or office-associated; see attribution</small></article>
+     </div>
+     <div class="recordsDecisionsHeader"><div><span class="recordsKicker">RECENT DOCUMENTED ACTIONS</span><h4>Recent recorded decisions</h4></div><p>Latest three captured roll calls, not a complete career or an ideological score.</p></div>
+     <div id="recentDecisions" class="recordsRecentDecisions" aria-live="polite"><p class="recordsStatus">Loading recorded decisions…</p></div>
+    </section>
+    <div class="recordsEvidence recordsOverviewEvidence" aria-label="Member legislative activity">
+     <section class="recordsPanel recordsEvidencePanel recordsSponsoredPanel" id="sponsoredLinks">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">OFFICIAL MEMBER ACTIONS · CONGRESS.GOV</span><h3>Legislation sponsored and cosponsored</h3></div></div>
+      <p class="recordsHelp">Bills introduced as sponsor and bills publicly supported as cosponsor are different from floor votes. This separate Congress.gov source is collected into Cloudflare, not fetched from Congress.gov when you select a person. Recent collection is a partial sample of the 119th Congress, not a lifetime total.</p>
+      <div id="sponsorVisualization" class="recordsSponsorVisualization" aria-live="polite">Loading stored sponsorship records…</div>
+     </section>
+     <section class="recordsPanel recordsTransparency" aria-label="Data methodology">
+      <h3>Data and methodology</h3>
+      <p id="recordUpdated"></p>
+      <p>Voting positions: Voteview congressional roll calls. Campaign finances: FEC candidate totals and limited itemized receipt/expenditure aggregates. Bill sponsorships: Congress.gov. Lobbying overlap: LobbyView research-coded records. Travel: official congressional disclosures. The page never assigns a lawmaker a financial total or a trip without an identified record.</p>
+     </section>
     </div>
-    <nav class="recordsOverviewNav" id="profileOverviewNav" aria-label="Jump to representative evidence">
-     <a href="#moneyNetwork">Follow the money</a><a href="#financeLinks">Campaign finances</a>
-     <a href="#sponsoredLinks">Legislation</a><a href="#lobbyLinks">Lobbying research</a>
-     <a href="#travelLinks">Travel disclosures</a>
-     <a href="#votesArchivePanel">Voting records</a>
-    </nav>
-    <div class="recordsDashboardMetrics">
-     <article class="recordsDashboardMetric"><span>Campaign receipts</span><strong id="statCampaign">Loading…</strong><small>FEC · 2025–2026 cycle, when matched</small></article>
-     <article class="recordsDashboardMetric"><span>Captured roll calls</span><strong id="statVotes">Loading…</strong><small>Published votes in our current record</small></article>
-     <article class="recordsDashboardMetric"><span>Measures on those votes</span><strong id="statMeasures">Loading…</strong><small>Distinct bill identifiers; not bills sponsored</small></article>
-     <article class="recordsDashboardMetric"><span>Travel disclosure filings</span><strong id="statTravel">Loading…</strong><small>Member or office-associated; see attribution</small></article>
-    </div>
-    <div class="recordsDecisionsHeader"><div><span class="recordsKicker">RECENT DOCUMENTED ACTIONS</span><h4>Recent recorded decisions</h4></div><p>Latest three captured roll calls, not a complete career or an ideological score.</p></div>
-    <div id="recentDecisions" class="recordsRecentDecisions" aria-live="polite"><p class="recordsStatus">Loading recorded decisions…</p></div>
    </section>
-   <div class="recordsPanels">
-    <div class="recordsEvidence" aria-label="Congressional disclosure data">
+
+   <section class="recordsProfilePanel" id="profilePanelVotes" role="tabpanel" aria-labelledby="profileTabVotes" data-profile-panel="votes" hidden>
+    <div class="recordsTabIntro"><span class="recordsKicker">HOW THIS MEMBER VOTED</span><h3>Voting Record</h3><p>Recorded floor votes are kept separate from campaign funding and influence records.</p></div>
+    <div class="recordsEvidence recordsVotingEvidence">
+     <section class="recordsPanel recordsEvidencePanel" id="legislationLinks">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">LEGISLATIVE ACTIVITY</span><h3>Measures appearing on this member's voting record</h3></div></div>
+      <p class="recordsHelp">A measure may receive multiple procedural votes. The totals here count recorded votes, not laws enacted or bills sponsored.</p>
+      <div id="legislationVisualization" class="recordsMeasuresViz"></div>
+     </section>
+    </div>
+    <section class="recordsPanel recordsVotesPanel" id="votesArchivePanel" aria-label="Recorded floor votes">
+     <div class="recordsSectionHead"><div><span class="recordsKicker">THE RECORD</span><h3>Recorded votes</h3></div><span class="recordsSectionMeta" id="votePeriod"></span></div>
+     <p class="recordsHelp">Recorded roll calls only. Voice votes and uncollected records are not counted as missed votes. Yes/No refers to a procedural or legislative question—not whether someone supports a political party.</p>
+     <div id="voteStatus" class="recordsStatus" role="status">Loading official roll calls…</div>
+     <div class="recordsVoteSummary" id="voteSummary" hidden></div>
+     <div class="recordsDistribution" id="voteDistribution" aria-label="Distribution of recorded votes, not party affiliations"></div>
+     <details class="recordsVoteArchive" id="voteArchive"><summary>Explore the individual roll-call record <span id="voteArchiveCount"></span></summary>
+      <div class="recordsVoteArchiveBody">
+       <div class="recordsVoteTools">
+        <div class="recordsVotePills" role="group" aria-label="Filter by recorded vote position">
+         <button id="voteFilterAll" type="button" aria-pressed="true">All votes</button>
+         <button id="voteFilterYea" type="button" aria-pressed="false">Voted yes</button>
+         <button id="voteFilterNay" type="button" aria-pressed="false">Voted no</button>
+         <button id="voteFilterAbsent" type="button" aria-pressed="false">Not voting</button>
+        </div>
+        <label class="recordsVoteFilter" for="votesQuery"><span>Find a bill or issue</span><input id="votesQuery" type="search" placeholder="Search bills, issues, dates…"></label>
+       </div>
+       <div id="memberVotes" class="recordsVoteList"></div>
+      </div>
+     </details>
+    </section>
+   </section>
+
+   <section class="recordsProfilePanel" id="profilePanelFunding" role="tabpanel" aria-labelledby="profileTabFunding" data-profile-panel="funding" hidden>
+    <div class="recordsTabIntro"><span class="recordsKicker">FOLLOW THE MONEY</span><h3>Funding &amp; Influence</h3><p>Campaign finance, committee networks, lobbying research and privately sponsored travel are grouped here so they do not crowd the voting record.</p></div>
+    <div class="recordsEvidence recordsFundingEvidence" aria-label="Campaign funding and influence records">
      <section class="recordsPanel recordsEvidencePanel recordsMoneyNetworkPanel" id="moneyNetwork">
       <div class="recordsSectionHead"><div><span class="recordsKicker">FOLLOW THE MONEY · VERIFIED FEC FILINGS</span><h3>Who gave money to whom?</h3></div></div>
       <p class="recordsHelp">Explore committee-to-committee transactions automatically connected using official FEC IDs. Select a PAC to follow its own recorded receipts and disbursements. Each connection links to the source record. We do not assume that money a PAC received was necessarily the money it later sent to someone else.</p>
@@ -96,53 +144,17 @@
       <p id="financePrimarySource" class="recordsEvidenceNote" hidden></p>
       <div id="financeDetailViz" class="recordsFinanceDetail" aria-live="polite"></div>
      </section>
-     <section class="recordsPanel recordsEvidencePanel recordsSponsoredPanel" id="sponsoredLinks">
-      <div class="recordsSectionHead"><div><span class="recordsKicker">OFFICIAL MEMBER ACTIONS · CONGRESS.GOV</span><h3>Legislation sponsored and cosponsored</h3></div></div>
-      <p class="recordsHelp">Bills introduced as sponsor and bills publicly supported as cosponsor are different from floor votes. This separate Congress.gov source is collected into Cloudflare, not fetched from Congress.gov when you select a person. Recent collection is a partial sample of the 119th Congress, not a lifetime total.</p>
-      <div id="sponsorVisualization" class="recordsSponsorVisualization" aria-live="polite">Loading stored sponsorship records…</div>
-     </section>
      <section class="recordsPanel recordsEvidencePanel" id="lobbyLinks">
       <div class="recordsSectionHead"><div><span class="recordsKicker">RESEARCH LINKS · LOBBYVIEW</span><h3>Lobbying and legislative overlap</h3></div></div>
       <p class="recordsHelp">LobbyView links organizations and legislators through research-coded lobbying and bill data. These associations do not show that a client donated to, paid, contacted, or personally influenced a lawmaker. Published coverage may be partial.</p>
       <div id="lobbyVisualization" class="recordsLobbyVisualization" aria-live="polite"></div>
      </section>
-     <section class="recordsPanel recordsEvidencePanel" id="legislationLinks">
-      <div class="recordsSectionHead"><div><span class="recordsKicker">LEGISLATIVE ACTIVITY</span><h3>Measures appearing on this member's voting record</h3></div></div>
-      <p class="recordsHelp">A measure may receive multiple procedural votes. The totals here count recorded votes, not laws enacted or bills sponsored.</p>
-      <div id="legislationVisualization" class="recordsMeasuresViz"></div>
-     </section>
      <section class="recordsPanel recordsEvidencePanel" id="travelLinks">
       <div class="recordsSectionHead"><div><span class="recordsKicker">DISCLOSED EXPENSES</span><h3>Privately sponsored travel</h3></div></div>
       <div id="travelVisualization" class="recordsTravelViz" role="region" aria-label="Privately funded travel amounts" aria-live="polite"></div>
      </section>
-     <section class="recordsPanel recordsTransparency" aria-label="Data methodology">
-      <h3>Data and methodology</h3>
-      <p id="recordUpdated"></p>
-      <p>Voting positions: Voteview congressional roll calls. Campaign finances: FEC candidate totals and limited itemized receipt/expenditure aggregates. Bill sponsorships: Congress.gov. Lobbying overlap: LobbyView research-coded records. Travel: official congressional disclosures. The page never assigns a lawmaker a financial total or a trip without an identified record.</p>
-     </section>
     </div>
-    <section class="recordsPanel recordsVotesPanel" id="votesArchivePanel" aria-label="Recorded floor votes">
-     <div class="recordsSectionHead"><div><span class="recordsKicker">THE RECORD</span><h3>Recorded votes</h3></div><span class="recordsSectionMeta" id="votePeriod"></span></div>
-     <p class="recordsHelp">Recorded roll calls only. Voice votes and uncollected records are not counted as missed votes. Yes/No refers to a procedural or legislative question—not whether someone supports a political party.</p>
-     <div id="voteStatus" class="recordsStatus" role="status">Loading official roll calls…</div>
-     <div class="recordsVoteSummary" id="voteSummary" hidden></div>
-     <div class="recordsDistribution" id="voteDistribution" aria-label="Distribution of recorded votes, not party affiliations"></div>
-     <details class="recordsVoteArchive" id="voteArchive"><summary>Explore the individual roll-call record <span id="voteArchiveCount"></span></summary>
-     <div class="recordsVoteArchiveBody">
-     <div class="recordsVoteTools">
-       <div class="recordsVotePills" role="group" aria-label="Filter by recorded vote position">
-        <button id="voteFilterAll" type="button" aria-pressed="true">All votes</button>
-        <button id="voteFilterYea" type="button" aria-pressed="false">Voted yes</button>
-        <button id="voteFilterNay" type="button" aria-pressed="false">Voted no</button>
-        <button id="voteFilterAbsent" type="button" aria-pressed="false">Not voting</button>
-       </div>
-       <label class="recordsVoteFilter" for="votesQuery"><span>Find a bill or issue</span><input id="votesQuery" type="search" placeholder="Search bills, issues, dates…"></label>
-     </div>
-     <div id="memberVotes" class="recordsVoteList"></div>
-     </div>
-     </details>
-    </section>
-   </div>
+   </section>
   </section>
   <section id="recordsStart" class="recordsEmpty" hidden><strong>Choose a representative to view their public record.</strong></section>
  </main>
