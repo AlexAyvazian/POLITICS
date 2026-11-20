@@ -3,30 +3,30 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
-test('Infrastructure & Environment loads and renders stored EPA annual county AQI',()=>{
+test('Infrastructure & Environment loads official EPA 2025 county monitoring statistics',()=>{
  const map=read('assets/js/map.js'),cache=read('assets/js/county-cache.js'),sources=read('assets/js/sources.js');
  assert.match(map,/Infrastructure & Environment/);
- assert.match(cache,/assets\/data\/county\/epa-aqi-2025\.json/);
- assert.match(cache,/epaAqi/);
- assert.match(map,/function renderEpaCountyAqi/);
- assert.match(map,/Days with AQI/);
- assert.match(map,/Unhealthy or worse days/);
- assert.match(map,/Median AQI/);
- assert.match(map,/tab==='infrastructure'[\s\S]*renderEpaCountyAqi/);
- assert.match(sources,/epa_aqi_county_2025/);
+ assert.match(cache,/assets\/data\/county\/epa-air-quality-2025\.json/);
+ assert.match(cache,/epaAirQuality/);
+ assert.match(map,/function renderEpaCountyAirQuality/);
+ for(const label of ['Ozone · 8-hour','PM2.5 · weighted annual mean','PM2.5 · 24-hour','PM10 · 24-hour','NO₂ · 1-hour'])
+  assert.ok(map.includes(label),label);
+ assert.match(map,/tab==='infrastructure'[\s\S]*renderEpaCountyAirQuality/);
+ assert.match(sources,/epa_air_quality_county_2025/);
 });
 
-test('EPA AQI panel never treats missing monitoring coverage as a zero',()=>{
+test('EPA panel preserves monitoring limits instead of converting missing counties or ND values to zero',()=>{
  const map=read('assets/js/map.js');
- assert.match(map,/annual county AQI row/i);
- assert.match(map,/not a zero/i);
- assert.match(map,/monitoring/i);
- assert.match(map,/highest daily monitor AQI/i);
+ assert.match(map,/no 2025 EPA county monitoring row/i);
+ assert.match(map,/not a zero pollution value/i);
+ assert.match(map,/highest values among monitoring sites/i);
+ assert.match(map,/not intended to numerically rank counties/i);
+ assert.match(map,/may not represent county-wide air quality/i);
 });
 
-test('EPA source health is based on the stored annual snapshot',()=>{
+test('EPA source health is based on the stored official county workbook snapshot',()=>{
  const sources=read('assets/js/sources.js');
- assert.match(sources,/epa-aqi-2025\.json/);
- assert.match(sources,/epa_aqi_county_2025/);
+ assert.match(sources,/epa-air-quality-2025\.json/);
+ assert.match(sources,/epa_air_quality_county_2025/);
  assert.match(sources,/County Atlas · Infrastructure & Environment/);
 });
