@@ -37,6 +37,8 @@ def _iso_date(value):
     return None
 
 def normalize_location(row: dict):
+    if isinstance(row.get("data"),dict):
+        row=row["data"]
     raw_fips=_text(row.get("STCNTY"))
     if not raw_fips or not raw_fips.isdigit():
         return None
