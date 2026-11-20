@@ -426,7 +426,7 @@ function renderPacFunding(data,m){
  const metrics=document.createElement('div');metrics.className='recordsPacMetrics';
  for(const [label,value,kind] of [
   ['Direct committee contributions',data.directCommitteeTotal,'money'],
-  ['Named PACs / committees',top.length,'number'],
+  ['Named PACs / committees',Number.isInteger(data.contributorCount)?data.contributorCount:top.length,'number'],
   ['Funding sectors',sectors.length,'number'],
   ['Member leadership PACs',own.length,'number']
  ]){
