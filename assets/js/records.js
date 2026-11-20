@@ -1062,9 +1062,17 @@ async function loadVotes(m){
  renderVotes();
  refreshDashboard();renderRecentDecisions();
 }
+const PROFILE_TAB_ORDER=['overview','votes','legislation','campaign','networks','lobbying','travel'];
 function activateProfileTab(name,focus=false){
- const tabs={overview:'profileTabOverview',votes:'profileTabVotes',funding:'profileTabFunding'};
- const panels={overview:'profilePanelOverview',votes:'profilePanelVotes',funding:'profilePanelFunding'};
+ if(name==='funding')name='campaign';
+ const tabs={
+  overview:'profileTabOverview',votes:'profileTabVotes',legislation:'profileTabLegislation',
+  campaign:'profileTabCampaign',networks:'profileTabNetworks',lobbying:'profileTabLobbying',travel:'profileTabTravel'
+ };
+ const panels={
+  overview:'profilePanelOverview',votes:'profilePanelVotes',legislation:'profilePanelLegislation',
+  campaign:'profilePanelCampaign',networks:'profilePanelNetworks',lobbying:'profilePanelLobbying',travel:'profilePanelTravel'
+ };
  if(!tabs[name])name='overview';
  for(const key of Object.keys(tabs)){
   const active=key===name;
@@ -1128,7 +1136,8 @@ async function begin(){
   else if(stateCode&&stateByCode[stateCode.toUpperCase()])showState(stateCode.toUpperCase());
   if(target){
    select(target.bioguide);
-   if(['overview','votes','funding'].includes(requestedTab))activateProfileTab(requestedTab);
+   if(requestedTab==='funding')activateProfileTab('campaign');
+   else if(PROFILE_TAB_ORDER.includes(requestedTab))activateProfileTab(requestedTab);
   }
  }catch(_){
   rosterStatus.textContent='The cached congressional roster is temporarily unavailable. Reopen the page to retry.';
@@ -1147,17 +1156,19 @@ $('backToDelegation').addEventListener('click',()=>{
  }
  $('delegationDirectory').scrollIntoView?.({behavior:'smooth',block:'start'});
 });
-for(const [id,key] of [['profileTabOverview','overview'],['profileTabVotes','votes'],['profileTabFunding','funding']]){
+for(const [id,key] of [
+ ['profileTabOverview','overview'],['profileTabVotes','votes'],['profileTabLegislation','legislation'],
+ ['profileTabCampaign','campaign'],['profileTabNetworks','networks'],['profileTabLobbying','lobbying'],['profileTabTravel','travel']
+]){
  const tab=$(id);if(!tab)continue;
  tab.addEventListener('click',()=>{activateProfileTab(key);setProfileTabRoute(key);});
  tab.addEventListener('keydown',event=>{
-  const order=['overview','votes','funding'];
-  const currentIndex=order.indexOf(key);
+  const currentIndex=PROFILE_TAB_ORDER.indexOf(key);
   let next=null;
-  if(event.key==='ArrowRight')next=order[(currentIndex+1)%order.length];
-  else if(event.key==='ArrowLeft')next=order[(currentIndex+order.length-1)%order.length];
-  else if(event.key==='Home')next=order[0];
-  else if(event.key==='End')next=order[order.length-1];
+  if(event.key==='ArrowRight')next=PROFILE_TAB_ORDER[(currentIndex+1)%PROFILE_TAB_ORDER.length];
+  else if(event.key==='ArrowLeft')next=PROFILE_TAB_ORDER[(currentIndex+PROFILE_TAB_ORDER.length-1)%PROFILE_TAB_ORDER.length];
+  else if(event.key==='Home')next=PROFILE_TAB_ORDER[0];
+  else if(event.key==='End')next=PROFILE_TAB_ORDER[PROFILE_TAB_ORDER.length-1];
   if(next){event.preventDefault();activateProfileTab(next,true);setProfileTabRoute(next);}
  });
 }
