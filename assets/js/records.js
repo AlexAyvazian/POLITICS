@@ -705,9 +705,69 @@ async function loadMoneyNetwork(m,committeeId=null,trail=[]){
  root.append(collection);
 }
 
+function renderIndividualDonors(data,m){
+ const root=$('individualDonorVisualization');if(!root)return;
+ root.replaceChildren();
+ if(state.member?.bioguide!==m.bioguide)return;
+ const donors=Array.isArray(data?.topIndividualContributors)?
+  data.topIndividualContributors.filter(x=>x&&typeof x.name==='string'&&typeof x.amount==='number'&&x.amount>0):null;
+ if(!donors){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='Itemized individual contributor records have not been collected for this member yet. This does not mean the campaign had no individual donors.';
+  root.append(p);return;
+ }
+ if(!donors.length){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='No qualifying itemized individual receipt records were returned in the current FEC sample. This is not a verified zero for individual contributions.';
+  root.append(p);return;
+ }
+ const intro=document.createElement('div');intro.className='recordsIndividualDonorIntro';
+ const label=document.createElement('strong');label.textContent='Top itemized individual contributors in the retrieved FEC sample';
+ const source=document.createElement('a');
+ source.href=typeof data.sourceUrl==='string'&&/^https:\/\/www\.fec\.gov\//.test(data.sourceUrl)?
+  data.sourceUrl:'https://www.fec.gov/data/receipts/individual-contributions/';
+ source.target='_blank';source.rel='noopener noreferrer';source.textContent='FEC source ↗';
+ intro.append(label,source);root.append(intro);
+ const list=document.createElement('div');list.className='recordsIndividualDonorList';
+ for(const [index,item] of donors.slice(0,20).entries()){
+  const row=document.createElement('article');row.className='recordsIndividualDonor';
+  const rank=document.createElement('span');rank.className='recordsIndividualDonorRank';rank.textContent=String(index+1).padStart(2,'0');
+  const identity=document.createElement('div');identity.className='recordsIndividualDonorIdentity';
+  const name=document.createElement('strong');name.textContent=item.name;
+  identity.append(name);
+  const details=[item.city,item.state].filter(Boolean).join(', ');
+  const work=[item.occupation,item.employer].filter(Boolean).join(' · ');
+  if(details||work){
+   const meta=document.createElement('span');meta.textContent=[details,work].filter(Boolean).join(' · ');
+   identity.append(meta);
+  }
+  const money=document.createElement('div');money.className='recordsIndividualDonorMoney';
+  const aggregate=typeof item.aggregate==='number'&&Number.isFinite(item.aggregate)&&item.aggregate>=0?item.aggregate:null;
+  const total=document.createElement('strong');total.textContent=moneyLabel(aggregate??item.amount);
+  const caption=document.createElement('small');
+  caption.textContent=aggregate!==null?'FEC-reported aggregate on this record':'Itemized receipt amount';
+  money.append(total,caption);
+  const receipt=document.createElement('small');receipt.className='recordsIndividualDonorReceipt';
+  receipt.textContent='Displayed receipt '+moneyLabel(item.amount)+(item.date?' · '+formatDate(item.date):'');
+  money.append(receipt);
+  row.append(rank,identity,money);
+  if(typeof item.pdfUrl==='string'&&/^https:\/\/(?:docquery\.fec\.gov|www\.fec\.gov)\//.test(item.pdfUrl)){
+   const link=document.createElement('a');link.href=item.pdfUrl;link.target='_blank';link.rel='noopener noreferrer';
+   link.textContent='Filing ↗';link.setAttribute('aria-label','FEC filing for '+item.name);row.append(link);
+  }
+  list.append(row);
+ }
+ root.append(list);
+ const scope=document.createElement('p');scope.className='recordsEvidenceNote recordsIndividualDonorScope';
+ scope.textContent=data.individualContributorScope||
+  'Principal campaign committee; itemized individual records only. Employer and occupation are contributor-reported fields and do not establish a corporate contribution.';
+ root.append(scope);
+}
 async function loadFinanceDetail(m){
  const root=$('financeDetailViz');if(!root)return;
  root.textContent='Checking detailed FEC breakdowns…';
+ const donorRoot=$('individualDonorVisualization');
+ if(donorRoot)donorRoot.textContent='Loading itemized individual contributors…';
  let data=null;
  try{
   const r=await fetch(readerBase+'/api/member-finance-detail?bioguide='+encodeURIComponent(m.bioguide),
@@ -715,6 +775,7 @@ async function loadFinanceDetail(m){
   if(r.ok)data=await r.json();
  }catch(_){}
  if(state.member?.bioguide!==m.bioguide)return;
+ renderIndividualDonors(data,m);
  root.replaceChildren();
  if(!data||data.bioguide!==m.bioguide||data.cycle!==2026||
    !/^[HS][A-Z0-9]{8}$/.test(String(data.candidateId||''))){
