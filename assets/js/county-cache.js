@@ -4,7 +4,7 @@
  'use strict';
  const ROOT='https://politics-daily-snapshot.alxayvazian.workers.dev';
  const cats=['housing','jobs','income','healthcare','education','families','infrastructure'];
- const data={core:null,categories:{},states:null,places:null,congress:null,federalMoney:null,bea:null,bills:{},billStatus:{},openstates:{},openstatesStatus:{},houseVotes:null,houseVotesStatus:'loading'};
+ const data={core:null,categories:{},states:null,places:null,congress:null,federalMoney:null,bea:null,bls:null,bills:{},billStatus:{},openstates:{},openstatesStatus:{},houseVotes:null,houseVotesStatus:'loading'};
  const billJobs=new Map(),openstatesJobs=new Map();
  let job=null;
  const notify=()=>window.dispatchEvent(new Event('politics-county-snapshot-ready'));
@@ -88,6 +88,10 @@
     if(value?.states&&value?.count)data.congress=value;
     notify();
    }).catch(error=>{console.warn('Congressional delegation snapshot unavailable:',error.message);notify();});
+   const bls=fetchLocal('assets/data/county/bls-laus.json').then(value=>{
+    if(value?.source==='U.S. Bureau of Labor Statistics'&&value?.counties&&value?.count)data.bls=value;
+    notify();
+   }).catch(error=>{console.warn('Stored BLS county labor-market snapshot unavailable:',error.message);notify();});
    const federalMoney=fetchLocal('assets/data/county/usaspending.json').then(value=>{
     if(value?.source==='USAspending.gov'&&value?.counties&&value?.states&&value?.count)data.federalMoney=value;
     notify();
@@ -103,7 +107,7 @@
     console.warn('Stored House vote data unavailable:',error.message);
     notify();
    });
-   job=Promise.allSettled([core,...other,bea,states,places,congress,federalMoney,houseVotes]).then(()=>data);
+   job=Promise.allSettled([core,...other,bea,bls,states,places,congress,federalMoney,houseVotes]).then(()=>data);
    return job;
   }
  };
