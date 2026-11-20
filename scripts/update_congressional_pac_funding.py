@@ -28,8 +28,11 @@ ROOT = Path(__file__).resolve().parents[1]
 FINANCE_DIR = ROOT / "assets" / "data" / "records" / "finance"
 OUTPUT_DIR = ROOT / "assets" / "data" / "records" / "pac-funding"
 PAS2_URL = "https://www.fec.gov/files/bulk-downloads/2026/pas226.zip"
+COMMITTEE_URL = "https://www.fec.gov/files/bulk-downloads/2026/cm26.zip"
 LEADERSHIP_URL = "https://www.fec.gov/files/bulk-downloads/data.fec.gov/leadership2026.csv"
 FEC_BROWSE_URL = "https://www.fec.gov/data/browse-data/?tab=bulk-data"
+DIRECT_TRANSACTION_TYPES = {"24K", "24P", "24Z"}
+INDEPENDENT_OR_COMMUNICATION_TYPES = {"24A", "24C", "24E", "24F", "24N"}
 
 COMMITTEE_ID = re.compile(r"^C\d{8}$")
 CANDIDATE_ID = re.compile(r"^[HSP]\d[A-Z]{2}\d{5}$")
@@ -180,16 +183,25 @@ def _amendment_rank(row: list[str]) -> int:
     return {"A": 3, "T": 2, "N": 1}.get(value, 0)
 
 
-def aggregate_candidate_rows(rows: list[list[str]], leadership_map: dict[str, dict]) -> dict:
-    """Deduplicate amendments and aggregate direct committee contributions.
+def aggregate_candidate_rows(
+    rows: list[list[str]],
+    leadership_map: dict[str, dict],
+    committee_metadata: dict[str, dict] | None = None,
+) -> dict:
+    """Aggregate direct spender-side committee contributions to a candidate.
 
-    PAS2 also contains independent expenditures (transaction types beginning 24).
-    Those are counted as excluded rows here because they are not money received by
-    the candidate committee. Memo rows marked X are preserved as a coverage count
-    but not added to direct contribution totals.
+    PAS2 identifies the committee *making* the expenditure in CMTE_ID. Its NAME
+    field describes the recipient on spender-side records, so donor names come
+    from the FEC committee master file rather than being inferred from NAME.
+
+    Direct contributions are the 24K/24P/24Z transaction types. Independent
+    expenditures, coordinated expenditures and communication costs are kept out
+    of direct campaign-contribution totals.
     """
+    committee_metadata = committee_metadata or {}
     latest: dict[tuple[str, str], list[str]] = {}
     excluded_ie = 0
+    excluded_other = 0
     excluded_memo = 0
     malformed = 0
 
@@ -199,8 +211,11 @@ def aggregate_candidate_rows(rows: list[list[str]], leadership_map: dict[str, di
             continue
         source_id = row[PAS2["committee_id"]].strip()
         transaction_type = row[PAS2["transaction_type"]].strip().upper()
-        if transaction_type.startswith("24"):
+        if transaction_type in INDEPENDENT_OR_COMMUNICATION_TYPES:
             excluded_ie += 1
+            continue
+        if transaction_type not in DIRECT_TRANSACTION_TYPES:
+            excluded_other += 1
             continue
         if not COMMITTEE_ID.match(source_id):
             malformed += 1
@@ -221,22 +236,30 @@ def aggregate_candidate_rows(rows: list[list[str]], leadership_map: dict[str, di
         amount = _number(row[PAS2["amount"]])
         if amount is None or amount <= 0:
             continue
-        entity = row[PAS2["entity_type"]].strip().upper()
-        if entity not in {"PAC", "COM", "CCM", "PTY"}:
-            continue
         source_id = row[PAS2["committee_id"]].strip()
-        name = re.sub(r"\s+", " ", row[PAS2["name"]].strip()) or source_id
+        meta = committee_metadata.get(source_id) or {}
         leadership = leadership_map.get(source_id)
-        sector = "Party Committees" if entity == "PTY" else (
-            "Leadership PACs" if leadership else classify_sector(name)
+        name = (
+            (leadership or {}).get("name")
+            or meta.get("name")
+            or source_id
+        )
+        connected = meta.get("connectedOrganization")
+        party_committee = str(meta.get("committeeType") or "").upper() in {"X", "Y", "Z"}
+        sector = "Party Committees" if party_committee else (
+            "Leadership PACs" if leadership else classify_sector(
+                " ".join(x for x in [name, connected] if x)
+            )
         )
         item = grouped.setdefault(source_id, {
             "committeeId": source_id,
             "name": name,
+            "connectedOrganization": connected,
             "total": 0.0,
             "transactions": 0,
             "latestDate": None,
-            "entityType": entity,
+            "committeeType": meta.get("committeeType"),
+            "designation": meta.get("designation"),
             "sector": sector,
             "leadershipPac": bool(leadership),
             "leadershipSponsor": leadership.get("sponsorName") if leadership else None,
@@ -258,6 +281,7 @@ def aggregate_candidate_rows(rows: list[list[str]], leadership_map: dict[str, di
         "directTotal": round(direct_total, 2),
         "contributors": contributors,
         "excludedIndependentExpenditureRows": excluded_ie,
+        "excludedOtherTransactionRows": excluded_other,
         "excludedMemoRows": excluded_memo,
         "malformedRows": malformed,
         "deduplicatedRows": len(latest),
@@ -288,6 +312,31 @@ def parse_leadership_csv(text: str) -> list[dict]:
         }
         rows.append(item)
     return rows
+
+
+def parse_committee_master(zip_bytes: bytes) -> dict[str, dict]:
+    committees: dict[str, dict] = {}
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+        names = [n for n in archive.namelist() if n.lower().endswith((".txt", ".csv"))]
+        if not names:
+            raise RuntimeError("FEC committee master archive contains no delimited file")
+        with archive.open(names[0]) as raw:
+            wrapper = io.TextIOWrapper(raw, encoding="latin-1", newline="")
+            for row in csv.reader(wrapper, delimiter="|"):
+                if len(row) < 14:
+                    continue
+                committee_id = row[0].strip()
+                if not COMMITTEE_ID.match(committee_id):
+                    continue
+                committees[committee_id] = {
+                    "name": re.sub(r"\s+", " ", row[1].strip()) or committee_id,
+                    "designation": row[8].strip() or None,
+                    "committeeType": row[9].strip() or None,
+                    "party": row[10].strip() or None,
+                    "organizationType": row[12].strip() or None,
+                    "connectedOrganization": re.sub(r"\s+", " ", row[13].strip()) or None,
+                }
+    return committees
 
 
 def _download(url: str) -> bytes:
@@ -363,9 +412,15 @@ def _sector_summary(contributors: list[dict]) -> list[dict]:
     return sorted(result, key=lambda x: (-x["total"], x["sector"]))
 
 
-def build_snapshot(identity: dict, rows: list[list[str]], leadership_rows: list[dict], retrieved_at: str) -> dict:
+def build_snapshot(
+    identity: dict,
+    rows: list[list[str]],
+    leadership_rows: list[dict],
+    committee_metadata: dict[str, dict],
+    retrieved_at: str,
+) -> dict:
     leadership_map = {row["committeeId"]: row for row in leadership_rows}
-    aggregated = aggregate_candidate_rows(rows, leadership_map)
+    aggregated = aggregate_candidate_rows(rows, leadership_map, committee_metadata)
     contributors = aggregated["contributors"]
     own_leadership = leadership_for_candidate(identity["candidateName"], leadership_rows)
     return {
@@ -385,14 +440,16 @@ def build_snapshot(identity: dict, rows: list[list[str]], leadership_rows: list[
             "sourceFile": "FEC 2025-2026 contributions from committees to candidates (PAS2)",
             "deduplicatedRows": aggregated["deduplicatedRows"],
             "excludedIndependentExpenditureRows": aggregated["excludedIndependentExpenditureRows"],
+            "excludedOtherTransactionRows": aggregated["excludedOtherTransactionRows"],
             "excludedMemoRows": aggregated["excludedMemoRows"],
             "malformedRows": aggregated["malformedRows"],
             "completeBulkSnapshot": True,
         },
         "methodology": (
-            "Direct committee-to-candidate transactions are aggregated after keeping the latest filing "
-            "version for each FEC transaction ID. Independent expenditures (24-series transaction types) "
-            "are excluded from direct contribution totals. Memo rows marked X are not added to totals. "
+            "Direct committee-to-candidate transactions use FEC spender-side 24K, 24P and 24Z records "
+            "after keeping the latest filing version for each FEC transaction ID. Independent expenditures, "
+            "coordinated expenditures and communication costs are excluded from direct contribution totals. "
+            "Memo rows marked X are not added to totals. "
             "Sector labels are a POLITICS browsing taxonomy based on committee names, not FEC industry classifications."
         ),
     }
@@ -404,6 +461,9 @@ def main() -> int:
         raise RuntimeError(f"Only {len(identities)} verified 2026 candidate mappings; refusing to publish partial national cache")
 
     pas2_bytes = _download(PAS2_URL)
+    committee_metadata = parse_committee_master(_download(COMMITTEE_URL))
+    if len(committee_metadata) < 5000:
+        raise RuntimeError(f"FEC committee master unexpectedly small: {len(committee_metadata)}")
     leadership_text = _download(LEADERSHIP_URL).decode("utf-8-sig", errors="replace")
     leadership_rows = parse_leadership_csv(leadership_text)
     if len(leadership_rows) < 50:
@@ -420,7 +480,7 @@ def main() -> int:
     with_rows = 0
     with_leadership = 0
     for candidate_id, identity in sorted(identities.items(), key=lambda x: x[1]["bioguide"]):
-        snapshot = build_snapshot(identity, relevant.get(candidate_id, []), leadership_rows, retrieved_at)
+        snapshot = build_snapshot(identity, relevant.get(candidate_id, []), leadership_rows, committee_metadata, retrieved_at)
         if snapshot["topContributors"]:
             with_rows += 1
         if snapshot["memberLeadershipPacs"]:
