@@ -88,7 +88,7 @@
     if(value?.states&&value?.count)data.congress=value;
     notify();
    }).catch(error=>{console.warn('Congressional delegation snapshot unavailable:',error.message);notify();});
-   const bls=fetchLocal('assets/data/county/bls-laus.json').then(value=>{
+   const bls=fetchSnapshot('/api/bls-snapshot').then(value=>{
     if(value?.source==='U.S. Bureau of Labor Statistics'&&value?.counties&&value?.count)data.bls=value;
     notify();
    }).catch(error=>{console.warn('Stored BLS county labor-market snapshot unavailable:',error.message);notify();});
