@@ -168,10 +168,11 @@ def fetch_county_lookup():
 
 def fetch_arcgis_mirror():
     params=urllib.parse.urlencode({
-        "where":f"Date >= DATE '{YEAR}-01-01' AND Date < DATE '{YEAR+1}-01-01'",
+        "where":"1=1",
         "outFields":"FIPS_County,Date,Days_with_AQI,Good_Days,Moderate_Days,Unhealthy_for_Sensitive_Groups_,Unhealthy_Days,Very_Unhealthy_Days,Hazardous_Days,Max_AQI,F90th_Percentile_AQI,Median_AQI,Days_CO,Days_NO2,Days_Ozone,Days_PM2_5,Days_PM10",
         "returnGeometry":"false",
-        "resultRecordCount":"2000",
+        "orderByFields":"Date DESC",
+        "resultRecordCount":"1000",
         "f":"json",
     })
     req=urllib.request.Request(ARCGIS_MIRROR+"?"+params,headers={"Accept":"application/json","User-Agent":USER_AGENT})
@@ -180,9 +181,25 @@ def fetch_arcgis_mirror():
             raise RuntimeError(f"EPA-derived ArcGIS mirror HTTP {response.status}")
         body=json.load(response)
     features=body.get("features") if isinstance(body,dict) else None
-    if not isinstance(features,list) or len(features)<850:
-        raise RuntimeError(f"EPA-derived ArcGIS mirror returned {len(features) if isinstance(features,list) else 0} rows")
-    return [feature.get("attributes") or {} for feature in features]
+    if not isinstance(features,list):
+        raise RuntimeError("EPA-derived ArcGIS mirror returned no feature list")
+    rows=[]
+    for feature in features:
+        attrs=feature.get("attributes") or {}
+        value=attrs.get("Date")
+        year=None
+        if isinstance(value,(int,float)):
+            try: year=datetime.fromtimestamp(value/1000,tz=timezone.utc).year
+            except Exception: year=None
+        elif value is not None:
+            text=str(value)
+            if text[:4].isdigit(): year=int(text[:4])
+        if year==YEAR:
+            rows.append(attrs)
+    if len(rows)<850:
+        sample=[(feature.get("attributes") or {}).get("Date") for feature in features[:5]]
+        raise RuntimeError(f"EPA-derived ArcGIS mirror returned {len(rows)} rows for {YEAR}; sample dates={sample}")
+    return rows
 
 def fetch_rows():
     local=os.environ.get("EPA_AQI_ZIP","").strip()
