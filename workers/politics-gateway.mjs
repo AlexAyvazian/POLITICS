@@ -26,7 +26,17 @@ function publicRoute(id,p){
    ...(zip?{zip_code:zip}:{}),...(query('q')?{search_term:query('q')}:{ }),
    ...(dateMin?{date_received_min:dateMin}:{}),...(dateMax?{date_received_max:dateMax}:{})
   });break;}
- case 'cms':u=make('https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data',{size:limit,offset:0,'filter[STATE_CD]':state.toUpperCase()});break;
+ case 'cms':{
+  const record=p.get('record')||'enrollment';
+  if(record==='physician_stats'){
+   u=make('https://data.cms.gov/data-api/v1/dataset/4d0b2df0-1e99-4db7-a574-a571d99217f1/data-viewer/stats',{
+    'filter[Rndrng_Prvdr_State_Abrvtn]':state.toUpperCase()
+   });
+  }else if(record==='enrollment'){
+   u=make('https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data',{size:limit,offset:0,'filter[STATE_CD]':state.toUpperCase()});
+  }else throw Error('Invalid CMS record type');
+  break;
+ }
  case 'hmda':{
   const year=Number(p.get('year')||2025);if(!Number.isInteger(year)||year<2018||year>2025)throw Error('HMDA year must be 2018–2025');
   u=make('https://ffiec.cfpb.gov/v2/data-browser-api/view/aggregations',{

@@ -305,6 +305,29 @@ function renderCdcPlaces(data,scope,selected){
   ' CDC PLACES 2025 release (mostly 2023 BRFSS data). Not a happiness index or measure of policy effects. '+
   '<a href="https://data.cdc.gov/d/i46a-9kgh" target="_blank" rel="noopener noreferrer">CDC source</a>.</p></section>';
 }
+function renderCmsPartB(data,state,stateMode,base){
+ const ds=data?.cmsPartB,row=ds?.states?.[state.abbr];
+ if(!row||typeof row.publishedProviderRows!=='number')
+  return '<p class="categoryNote">State Medicare Part B provider-activity context has not been stored yet.</p>';
+ let population=0,countiesUsed=0;
+ for(const [fips,item] of Object.entries(base?.counties||{})){
+  if(!fips.startsWith(state.fips)||typeof item?.population!=='number'||item.population<0)continue;
+  population+=item.population;countiesUsed++;
+ }
+ const rate=population>0?row.publishedProviderRows/population*100000:null;
+ const metrics=[['Published Medicare Part B rendering-provider records',row.publishedProviderRows,'count']];
+ if(Number.isFinite(rate))metrics.push(['Published provider records per 100k residents',Math.round(rate*10)/10,'decimal']);
+ const scope=stateMode?'Statewide Medicare Part B provider-activity context.':
+  'Statewide context for '+state.name+' — not a county estimate.';
+ return '<section class="countyMetricSection cmsPartBSection" aria-label="CMS Medicare Part B provider activity">'+
+  '<h3 class="countyFactsTitle">Medicare Part B provider activity · statewide context</h3>'+
+  '<p class="categoryNote">'+esc(scope)+'</p>'+metricGrid(metrics)+
+  '<p class="countyFactSource">CMS Medicare Physician &amp; Other Practitioners — by Provider · '+esc(String(ds.reportingYear||2024))+
+  '. The count is published provider-level records with Medicare Part B activity; it is not all licensed clinicians, not all Medicare-enrolled providers, not a count of providers accepting new patients, and not guaranteed access. '+
+  'CMS redacts physician data elements representing fewer than 11 beneficiaries, so displayed counts cover the remaining published provider records. '+
+  (Number.isFinite(rate)?'The per-100k figure divides the published provider-row count by the Census ACS county populations summed across '+esc(state.name)+' ('+countiesUsed+' counties/jurisdictions represented). ':'')+
+  '<a href="'+esc(ds.sourceUrl||'https://data.cms.gov/provider-summary-by-type-of-service/medicare-physician-other-practitioners/medicare-physician-other-practitioners-by-provider')+'" target="_blank" rel="noopener noreferrer">Official CMS source</a>.</p></section>';
+}
 function renderCongressionalDelegation(data,state,stateMode){
  const ds=data?.congress,entry=ds?.states?.[state.abbr];
  const title='<h3 class="countyFactsTitle">Congressional delegation · political representation</h3>';
@@ -493,7 +516,7 @@ function countyTabBody(tab,data,base,state,county,stateMode,selected){
  if(tab==='economy')return categorySections(data,stateMode?'state':'county',selected,['jobs','income'])+
   renderBlsLaborMarket(data,stateMode,selected)+renderBeaIncome(data,stateMode,selected);
  if(tab==='health')return categorySections(data,stateMode?'state':'county',selected,['healthcare'])+
-  renderCdcPlaces(data,stateMode?'state':'county',selected);
+  renderCdcPlaces(data,stateMode?'state':'county',selected)+renderCmsPartB(data,state,stateMode,base);
  if(tab==='community')return categorySections(data,stateMode?'state':'county',selected,['education','families']);
  if(tab==='infrastructure')return categorySections(data,stateMode?'state':'county',selected,['infrastructure'])+
   stateElectricityPanel(data,state);
