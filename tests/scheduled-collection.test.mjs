@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes,refreshMemberLegislation,refreshMemberFinanceDetail,refreshMemberFinanceRosterBatch,refreshMemberLobby,refreshBeaCountyIncome} from '../workers/politics-gateway.mjs';
+import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes,refreshMemberLegislation,refreshMemberFinanceDetail,refreshMemberFinanceRosterBatch,refreshMemberLobby,refreshBeaCountyIncome,refreshBlsCountyLaborBatch} from '../workers/politics-gateway.mjs';
 
 const specs=COUNTY_CATEGORY_CONFIG.specs;
 const expectedCategories=['housing','jobs','income','healthcare','education','families','infrastructure'];
@@ -361,4 +361,42 @@ test('BEA county per-capita income collector uses the county CAINC1 table and st
  assert.equal(saved.counties['01001'].perCapitaPersonalIncome,55432);
  assert.equal(saved.fields.perCapitaPersonalIncome.unit,'currency');
  assert.ok(!JSON.stringify(saved).includes('test-bea'));
+});
+
+
+test('BLS collector batches registered LAUS county series and merges current monthly measures into jobs D1',async()=>{
+ const fips=Array.from({length:80},(_,i)=>'06'+String(i+1).padStart(3,'0'));
+ const census={counties:Object.fromEntries(fips.map(id=>[id,{unemploymentRatePct:5}]))};
+ const writes=[];
+ const store={prepare(sql){return {bind(...args){return {
+  first:async()=>{
+   if(sql.includes("source=?")&&args[0]==='census_jobs')return {snapshot_json:JSON.stringify(census)};
+   if(sql.includes("source=?")&&args[0]==='bls_laus_county')return null;
+   return null;
+  },
+  run:async()=>{writes.push(args);return{};}
+ }}}}};
+ const requests=[];
+ const mock=async(_url,options={})=>{
+  const body=JSON.parse(options.body);requests.push(body);
+  assert.ok(body.seriesid.length<=50);
+  assert.equal(body.registrationkey,'test-bls');
+  return new Response(JSON.stringify({status:'REQUEST_SUCCEEDED',Results:{series:body.seriesid.map(seriesID=>{
+   const measure=seriesID.slice(-2),value={03:'8.9',04:'41000',05:'421000',06:'462000'}[measure];
+   return {seriesID,data:[{year:'2026',period:'M09',periodName:'September',value}]};
+  })}}));
+ };
+ const out=await refreshBlsCountyLaborBatch({CATEGORY_DB_JOBS:store,BLS_API_KEY:'test-bls'},0,mock,new Date('2026-11-20T10:00:00Z'));
+ assert.equal(out.attempted,72);
+ assert.equal(requests.length,6);
+ assert.equal(writes[0][0],'bls_laus_county');
+ const saved=JSON.parse(writes[0][1]);
+ assert.equal(saved.count,72);
+ assert.equal(saved.counties['06001'].unemploymentRatePct,8.9);
+ assert.equal(saved.counties['06001'].laborForce,462000);
+ assert.equal(saved.counties['06001'].employed,421000);
+ assert.equal(saved.counties['06001'].unemployed,41000);
+ assert.equal(saved.counties['06001'].period,'2026-09');
+ assert.equal(saved.seasonalAdjustment,'Not seasonally adjusted');
+ assert.ok(!JSON.stringify(saved).includes('test-bls'));
 });
