@@ -1,7 +1,10 @@
 import unittest
-from scripts.update_fdic_county_banking import normalize_location, build_snapshot
+from scripts.update_fdic_county_banking import normalize_location, build_snapshot, state_filter
 
 class FdicCountyBankingTests(unittest.TestCase):
+    def test_state_filter_quotes_oregon_boolean_keyword(self):
+        self.assertEqual(state_filter("OR"), 'STALP:"OR"')
+
     def test_normalize_location_preserves_county_and_office_type(self):
         row={"STCNTY":"06019","STALP":"CA","COUNTY":"Fresno","CERT":"1768","NAME":"Mechanics Bank",
              "SERVTYPE":"11","SERVTYPE_DESC":"FULL SERVICE - BRICK AND MORTAR","MAINOFF":"0","RUNDATE":"11/13/2026"}
