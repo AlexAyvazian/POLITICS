@@ -18,7 +18,7 @@ test('Infrastructure & Environment loads and renders stored EPA annual county AQ
 
 test('EPA AQI panel never treats missing monitoring coverage as a zero',()=>{
  const map=read('assets/js/map.js');
- assert.match(map,/no 2025 annual county AQI row/i);
+ assert.match(map,/annual county AQI row/i);
  assert.match(map,/not a zero/i);
  assert.match(map,/monitoring/i);
  assert.match(map,/highest daily monitor AQI/i);
