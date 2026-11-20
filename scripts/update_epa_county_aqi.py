@@ -6,7 +6,7 @@ contains counties with monitoring data sufficient for an annual AQI row.
 Missing counties are omitted, never converted to zero.
 """
 from __future__ import annotations
-import csv, io, json, sys, time, urllib.request, zipfile
+import csv, io, json, os, sys, time, urllib.request, zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -160,22 +160,27 @@ def fetch_county_lookup():
     return {k:v for k,v in lookup.items() if v}
 
 def fetch_rows():
-    payload=None
-    last=None
-    for attempt in range(5):
-        try:
-            req=urllib.request.Request(URL,headers={"Accept":"application/zip","User-Agent":USER_AGENT})
-            with urllib.request.urlopen(req,timeout=90) as response:
-                if response.status!=200:
-                    raise RuntimeError(f"EPA AirData HTTP {response.status}")
-                payload=response.read()
-            break
-        except Exception as exc:
-            last=exc
-            if attempt<4:
-                time.sleep(2*(attempt+1))
+    local=os.environ.get("EPA_AQI_ZIP","").strip()
+    if local and Path(local).is_file():
+        payload=Path(local).read_bytes()
+    else:
+        payload=None
     if payload is None:
-        raise RuntimeError(f"EPA AirData download failed after retries: {last}")
+        last=None
+        for attempt in range(5):
+            try:
+                req=urllib.request.Request(URL,headers={"Accept":"application/zip","User-Agent":USER_AGENT})
+                with urllib.request.urlopen(req,timeout=90) as response:
+                    if response.status!=200:
+                        raise RuntimeError(f"EPA AirData HTTP {response.status}")
+                    payload=response.read()
+                break
+            except Exception as exc:
+                last=exc
+                if attempt<4:
+                    time.sleep(2*(attempt+1))
+        if payload is None:
+            raise RuntimeError(f"EPA AirData download failed after retries: {last}")
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         names=[n for n in archive.namelist() if n.lower().endswith(".csv")]
         if not names:
