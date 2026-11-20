@@ -37,6 +37,17 @@ for(const [id,[path,host]] of Object.entries(cases)){
   if(id==='sec')assert.equal(called.url.pathname,'/submissions/CIK0000320193.json');
  });
 }
+test('CMS adapter exposes filtered 2024 Medicare Part B provider stats without paging provider rows',async()=>{
+ let called;
+ const fake=async (url,opts)=>{called={url:new URL(url),opts};return new Response(JSON.stringify({meta:{success:true},data:{found_rows:105363,total_rows:1296739}}));};
+ const r=await handle(request('/api/cms?record=physician_stats&state=CA'),{}, {},fake);
+ assert.equal(r.status,200);
+ assert.equal(called.url.hostname,'data.cms.gov');
+ assert.equal(called.url.pathname,'/data-api/v1/dataset/4d0b2df0-1e99-4db7-a574-a571d99217f1/data-viewer/stats');
+ assert.equal(called.url.searchParams.get('filter[Rndrng_Prvdr_State_Abrvtn]'),'CA');
+ const body=await r.json();
+ assert.equal(body.data.data.found_rows,105363);
+});
 test('EPA AQS and FCC are explicitly held pending credentials, not called anonymously',async()=>{
  let calls=0;
  for(const id of ['epa_aqs','fcc_broadband']){
