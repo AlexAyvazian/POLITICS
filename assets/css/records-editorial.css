@@ -681,3 +681,8 @@ body[data-view="records"] .recordsProfile{
 .recordsLdaFiling>a{display:inline-block;margin-top:7px;font-size:9px;color:#92e4e8;text-decoration:none}
 @media(max-width:900px){.recordsLdaSearchForm{grid-template-columns:1fr 1fr}.recordsLdaQuery{grid-column:1/-1}}
 @media(max-width:560px){.recordsLdaSearchForm{grid-template-columns:1fr}.recordsLdaQuery{grid-column:auto}.recordsLdaFilingTop{display:grid}}
+
+.recordsLdaSearchStatus{min-height:16px;margin:4px 0 9px;font-size:9px;color:#91adbe}
+.recordsLdaSearchStatus[data-state="loading"]{color:#a7dce4}
+.recordsLdaSearchStatus[data-state="complete"]{color:#a9dfc2}
+.recordsLdaSearchStatus[data-state="error"]{color:#f2a3aa}

@@ -1050,6 +1050,11 @@ function renderLdaResults(payload,query,mode,year){
  root.append(caveat);
 }
 let ldaSearchRequest=0;
+function setLdaSearchStatus(message,stateName=''){
+ const el=$('ldaSearchStatus');if(!el)return;
+ el.textContent=message||'';
+ el.dataset.state=stateName;
+}
 async function runLdaSearch(options=null){
  const root=$('ldaSearchResults');if(!root)return;
  const mode=options?.mode||$('ldaSearchMode')?.value||'issue';
@@ -1065,14 +1070,32 @@ async function runLdaSearch(options=null){
  }
  const requestId=++ldaSearchRequest;
  root.textContent='Searching official Senate LDA filings…';
- let payload=null;
+ setLdaSearchStatus('Searching official Senate LDA filings…','loading');
+ let payload=null,errorMessage='';
  try{
   const params=new URLSearchParams({mode,q:query,year:String(year),limit:'12'});
   const response=await fetch(gatewayBase+'/api/lda?'+params.toString(),{headers:{Accept:'application/json'},credentials:'omit'});
   if(response.ok)payload=await response.json();
- }catch(_){}
+  else{
+   let detail='';
+   try{const body=await response.json();detail=typeof body?.error==='string'?body.error:'';}catch{}
+   errorMessage='Official LDA search failed (HTTP '+response.status+')'+(detail?': '+detail:'');
+  }
+ }catch(error){errorMessage='Official LDA search failed: '+String(error?.message||'network error').slice(0,160);}
  if(requestId!==ldaSearchRequest)return;
- renderLdaResults(payload,query,mode,year);
+ if(errorMessage){
+  root.innerHTML='<p class="recordsEvidenceNote">'+esc(errorMessage)+'.</p>';
+  setLdaSearchStatus(errorMessage,'error');return;
+ }
+ try{
+  renderLdaResults(payload,query,mode,year);
+  const count=Number(payload?.data?.count);
+  setLdaSearchStatus(Number.isFinite(count)?count.toLocaleString('en-US')+' official filing match'+(count===1?'':'es')+' found.':'Search completed.','complete');
+ }catch(_){
+  const message='Official LDA search failed while displaying results';
+  root.innerHTML='<p class="recordsEvidenceNote">'+esc(message)+'.</p>';
+  setLdaSearchStatus(message,'error');
+ }
 }
 
 async function loadSponsored(m){
@@ -1307,6 +1330,8 @@ for(const [name,key] of [['voteFilterAll','all'],['voteFilterYea','yes'],['voteF
  });
 }
 $('votesQuery').addEventListener('input',()=>{if(state.member)renderVotes();});
-$('ldaSearchForm')?.addEventListener('submit',event=>{event.preventDefault();runLdaSearch();});
+const submitLdaSearch=event=>{event?.preventDefault?.();runLdaSearch();};
+$('ldaSearchForm')?.addEventListener('submit',submitLdaSearch);
+$('ldaSearchSubmit')?.addEventListener('click',submitLdaSearch);
 begin();
 })();
