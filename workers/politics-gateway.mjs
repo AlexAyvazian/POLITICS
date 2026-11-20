@@ -692,11 +692,12 @@ async function refreshMemberFinanceDetail(env,bioguide,fetchImpl=fetch,now=new D
   if(total===null||!['S','O','SUPPORT','OPPOSE'].includes(side))return null;
   return {side:side.startsWith('S')?'support':'oppose',total,count:safePositiveNumber(x.count)};
  }):null;
- let reportedEmployers=null,employerScope=null;
+ let reportedEmployers=null,employerScope=null,topIndividualContributors=null,individualContributorScope=null;
  const committees=data.committee?.filter(x=>x?.designation==='P'&&/^C[0-9]{8}$/.test(String(x.committee_id||'')))||[];
  if(committees.length===1){
+  const principalCommitteeId=committees[0].committee_id;
   try{
-   const rows=await fec('schedules/schedule_a/by_employer/',{committee_id:committees[0].committee_id});
+   const rows=await fec('schedules/schedule_a/by_employer/',{committee_id:principalCommitteeId});
    reportedEmployers=list(rows,x=>{
     const employer=safeBillText(x.employer,90),total=safePositiveNumber(x.total);
     if(!employer||total===null)return null;
@@ -704,12 +705,41 @@ async function refreshMemberFinanceDetail(env,bioguide,fetchImpl=fetch,now=new D
    });
    employerScope='Principal campaign committee only; employer is self-reported and does not establish a corporate contribution.';
   }catch(_){}
+  try{
+   const rows=await fec('schedules/schedule_a/',{
+    committee_id:principalCommitteeId,is_individual:true,sort:'-contribution_receipt_amount',per_page:100
+   });
+   const donors=new Map();
+   for(const row of rows){
+    if(row?.memoed_subtotal===true||String(row?.memo_code||'').toUpperCase()==='X')continue;
+    const name=safeBillText(row?.contributor_name,120);
+    const amount=safePositiveNumber(row?.contribution_receipt_amount);
+    if(!name||amount===null||amount<=0)continue;
+    const city=safeBillText(row?.contributor_city,80);
+    const stateCode=String(row?.contributor_state||'').toUpperCase();
+    const state=/^[A-Z]{2}$/.test(stateCode)?stateCode:null;
+    const aggregate=safePositiveNumber(row?.contributor_aggregate_ytd);
+    const employer=safeBillText(row?.contributor_employer,100);
+    const occupation=safeBillText(row?.contributor_occupation,100);
+    const date=typeof row?.contribution_receipt_date==='string'?row.contribution_receipt_date.slice(0,10):null;
+    const pdfUrl=typeof row?.pdf_url==='string'&&/^https:\/\/(?:docquery\.fec\.gov|www\.fec\.gov)\//.test(row.pdf_url)?row.pdf_url:null;
+    const donorKey=[name.toUpperCase(),(city||'').toUpperCase(),state||''].join('|');
+    const item={name,city,state,employer,occupation,amount,aggregate,date,pdfUrl};
+    const prior=donors.get(donorKey);
+    const itemRank=aggregate??amount,priorRank=prior?(prior.aggregate??prior.amount):-1;
+    if(!prior||itemRank>priorRank||(itemRank===priorRank&&amount>prior.amount))donors.set(donorKey,item);
+   }
+   topIndividualContributors=[...donors.values()]
+    .sort((a,b)=>(b.aggregate??b.amount)-(a.aggregate??a.amount)||b.amount-a.amount||a.name.localeCompare(b.name))
+    .slice(0,20);
+   individualContributorScope='Principal campaign committee; itemized individuals only. Ranked from the 100 largest individual receipt transactions returned by FEC; aggregate is the FEC-reported election-cycle-to-date amount on that contributor record.';
+  }catch(_){}
  }
- const sections=[contributionSizes,byState,outsideSpending,reportedEmployers].filter(x=>x!==null).length;
+ const sections=[contributionSizes,byState,outsideSpending,reportedEmployers,topIndividualContributors].filter(x=>x!==null).length;
  const doc={source:'Federal Election Commission',bioguide,candidateId:id,cycle:2026,retrievedAt:now.toISOString(),
   coverage:'Limited itemized FEC aggregate breakdowns for the 2025–2026 cycle. These summaries do not exhaust all contributions, committees or transfers.',
   sourceUrl:'https://www.fec.gov/data/candidate/'+id+'/?cycle=2026',
-  contributionSizes,byState,outsideSpending,reportedEmployers,employerScope,sections};
+  contributionSizes,byState,outsideSpending,reportedEmployers,employerScope,topIndividualContributors,individualContributorScope,sections};
  await politicalSnapshotWrite(db,'member_finance_detail_'+bioguide,doc,now,sections);
  return {bioguide,candidateId:id,sections};
 }
