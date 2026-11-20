@@ -375,6 +375,7 @@ const COUNTY_DATA_TABS=[
  ['health','Health & Well-Being'],
  ['community','Education & Families'],
  ['infrastructure','Infrastructure'],
+ ['federal','Federal Money'],
  ['representation','Representation']
 ];
 let lastCardSelection=null,activeCountyTab='overview';
@@ -390,6 +391,21 @@ function stateElectricityPanel(data,state){
   metricGrid([['Residential electricity price',row.residentialElectricityCentsKwh,'decimal']])+
   '<p class="countyFactSource">U.S. Energy Information Administration · '+esc(row.period||'latest reporting month')+
   ' · cents per kWh. This is a statewide measure, not a county estimate.</p></section>';
+}
+function renderFederalMoney(data,state,stateMode,selected){
+ const ds=data?.federalMoney;
+ if(!ds?.counties||!ds?.states)return '<p class="categoryNote">Federal spending data is still loading or has not been refreshed yet.</p>';
+ const row=stateMode?ds.states?.[state.fips]:ds.counties?.[selected];
+ if(!row||typeof row.obligations!=='number')return '<p class="categoryNote">No stored USAspending county obligation figure is available for this geography.</p>';
+ const heading=stateMode?'Federal prime award obligations in '+state.name:'Federal prime award obligations in this county';
+ const period=(ds.period?.start&&ds.period?.end)?formatDate(ds.period.start)+' – '+formatDate(ds.period.end):'latest stored 24-month window';
+ const metrics=[['Federal prime award obligations',row.obligations,'currency']];
+ if(stateMode&&Number.isFinite(row.countyCount))metrics.push(['Counties represented in state total',row.countyCount,'count']);
+ return '<section class="countyMetricSection federalMoneySection" aria-label="Federal award obligations">'+
+  '<h3 class="countyFactsTitle">'+esc(heading)+' · USAspending.gov</h3>'+
+  metricGrid(metrics)+
+  '<p class="countyFactSource">Place of performance · '+esc(period)+'. These are federal prime award obligations (government commitments), not household income, not a household benefit, and not a measure of total local economic impact. '+
+  '<a href="'+esc(ds.sourceUrl||'https://www.usaspending.gov/')+'" target="_blank" rel="noopener noreferrer">USAspending source</a>.</p></section>';
 }
 function countyTabBody(tab,data,base,state,county,stateMode,selected){
  if(tab==='representation'){
@@ -410,6 +426,7 @@ function countyTabBody(tab,data,base,state,county,stateMode,selected){
  if(tab==='community')return categorySections(data,stateMode?'state':'county',selected,['education','families']);
  if(tab==='infrastructure')return categorySections(data,stateMode?'state':'county',selected,['infrastructure'])+
   stateElectricityPanel(data,state);
+ if(tab==='federal')return renderFederalMoney(data,state,stateMode,selected);
  const control=renderStatePoliticalControl(state,stateMode);
  if(stateMode){
   const avg=window.POLITICS_GEO_STATS.getStateAverages(data,state.fips).overview;
