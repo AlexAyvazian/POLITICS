@@ -13,6 +13,7 @@ from pathlib import Path
 YEAR=2025
 URL=f"https://aqs.epa.gov/aqsweb/airdata/annual_aqi_by_county_{YEAR}.zip"
 CENSUS_COUNTIES="https://api.census.gov/data/2024/acs/acs5?get=NAME&for=county:*&in=state:*"
+ARCGIS_MIRROR="https://services1.arcgis.com/x5wCko8UnSi4h0CB/ArcGIS/rest/services/Air_Quality_Index_By_County_1980_2025/FeatureServer/0/query"
 OUTPUT=Path(f"assets/data/county/epa-aqi-{YEAR}.json")
 USER_AGENT="POLITICS civic transparency project (+https://politics-e5yt.onrender.com)"
 STATE_FIPS={
@@ -53,8 +54,13 @@ def _strip_county_suffix(value):
     return text.strip()
 
 def normalize_row(row: dict, name_lookup=None):
-    state=str(_lookup(row,"State Code","state_code","state fips") or "").strip().zfill(2)
-    county=str(_lookup(row,"County Code","county_code","county fips") or "").strip().zfill(3)
+    fips_value=_int(_lookup(row,"FIPS_County","FIPS County"))
+    if fips_value is not None:
+        fips=str(fips_value).zfill(5)
+        state,county=fips[:2],fips[2:]
+    else:
+        state=str(_lookup(row,"State Code","state_code","state fips") or "").strip().zfill(2)
+        county=str(_lookup(row,"County Code","county_code","county fips") or "").strip().zfill(3)
     if state not in STATE_FIPS or len(county)!=3 or not county.isdigit():
         state_name=_name(_lookup(row,"State"))
         county_name=_name(_lookup(row,"County"))
@@ -71,7 +77,7 @@ def normalize_row(row: dict, name_lookup=None):
         return None
     good=_int(_lookup(row,"Good Days","Days Good")) or 0
     moderate=_int(_lookup(row,"Moderate Days","Days Moderate")) or 0
-    sensitive=_int(_lookup(row,"Unhealthy for Sensitive Groups Days","Days Unhealthy for Sensitive Groups")) or 0
+    sensitive=_int(_lookup(row,"Unhealthy for Sensitive Groups Days","Days Unhealthy for Sensitive Groups","Unhealthy_for_Sensitive_Groups_")) or 0
     unhealthy=_int(_lookup(row,"Unhealthy Days","Days Unhealthy")) or 0
     very=_int(_lookup(row,"Very Unhealthy Days","Days Very Unhealthy")) or 0
     hazardous=_int(_lookup(row,"Hazardous Days","Days Hazardous")) or 0
@@ -88,11 +94,11 @@ def normalize_row(row: dict, name_lookup=None):
         "hazardousDays":hazardous,
         "unhealthyOrWorseDays":sensitive+unhealthy+very+hazardous,
         "maxAqi":_int(_lookup(row,"Max AQI","Maximum AQI")),
-        "p90Aqi":_int(_lookup(row,"90th Percentile AQI","90th percentile AQI")),
+        "p90Aqi":_int(_lookup(row,"90th Percentile AQI","90th percentile AQI","F90th_Percentile_AQI")),
         "medianAqi":_int(_lookup(row,"Median AQI")),
     }
 
-def build_snapshot(rows, retrieved_at: str, min_count: int=850, name_lookup=None):
+def build_snapshot(rows, retrieved_at: str, min_count: int=850, name_lookup=None, access_path="EPA AirData annual county ZIP"):
     counties={}
     for raw in rows:
         item=normalize_row(raw,name_lookup)
@@ -108,6 +114,7 @@ def build_snapshot(rows, retrieved_at: str, min_count: int=850, name_lookup=None
         "year":YEAR,
         "sourceUrl":"https://www.epa.gov/outdoor-air-quality-data/air-quality-index-report",
         "sourceFileUrl":URL,
+        "accessPath":access_path,
         "retrievedAt":retrieved_at,
         "count":len(counties),
         "scope":"counties with annual AQI monitoring data",
@@ -159,6 +166,24 @@ def fetch_county_lookup():
             lookup[simple]=None
     return {k:v for k,v in lookup.items() if v}
 
+def fetch_arcgis_mirror():
+    params=urllib.parse.urlencode({
+        "where":f"Date >= DATE '{YEAR}-01-01' AND Date < DATE '{YEAR+1}-01-01'",
+        "outFields":"FIPS_County,Date,Days_with_AQI,Good_Days,Moderate_Days,Unhealthy_for_Sensitive_Groups_,Unhealthy_Days,Very_Unhealthy_Days,Hazardous_Days,Max_AQI,F90th_Percentile_AQI,Median_AQI,Days_CO,Days_NO2,Days_Ozone,Days_PM2_5,Days_PM10",
+        "returnGeometry":"false",
+        "resultRecordCount":"2000",
+        "f":"json",
+    })
+    req=urllib.request.Request(ARCGIS_MIRROR+"?"+params,headers={"Accept":"application/json","User-Agent":USER_AGENT})
+    with urllib.request.urlopen(req,timeout=90) as response:
+        if response.status!=200:
+            raise RuntimeError(f"EPA-derived ArcGIS mirror HTTP {response.status}")
+        body=json.load(response)
+    features=body.get("features") if isinstance(body,dict) else None
+    if not isinstance(features,list) or len(features)<850:
+        raise RuntimeError(f"EPA-derived ArcGIS mirror returned {len(features) if isinstance(features,list) else 0} rows")
+    return [feature.get("attributes") or {} for feature in features]
+
 def fetch_rows():
     local=os.environ.get("EPA_AQI_ZIP","").strip()
     if local and Path(local).is_file():
@@ -180,20 +205,20 @@ def fetch_rows():
                 if attempt<4:
                     time.sleep(2*(attempt+1))
         if payload is None:
-            raise RuntimeError(f"EPA AirData download failed after retries: {last}")
+            return fetch_arcgis_mirror(),"ArcGIS feature-service mirror whose service metadata cites the EPA AirData annual source"
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         names=[n for n in archive.namelist() if n.lower().endswith(".csv")]
         if not names:
             raise RuntimeError("EPA ZIP contains no CSV")
         with archive.open(names[0]) as raw:
             text=io.TextIOWrapper(raw,encoding="utf-8-sig",newline="")
-            return list(csv.DictReader(text))
+            return list(csv.DictReader(text)),"EPA AirData annual county ZIP"
 
 def main():
-    rows=fetch_rows()
+    rows,access_path=fetch_rows()
     lookup=fetch_county_lookup()
     now=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00","Z")
-    snapshot=build_snapshot(rows,now,name_lookup=lookup)
+    snapshot=build_snapshot(rows,now,name_lookup=lookup,access_path=access_path)
     if OUTPUT.exists():
         try:
             old=json.loads(OUTPUT.read_text(encoding="utf-8"))
