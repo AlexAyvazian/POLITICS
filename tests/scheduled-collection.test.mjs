@@ -339,7 +339,7 @@ test('BEA county per-capita income collector uses the county CAINC1 table and st
   if(u.searchParams.get('method')==='GetData'){
    const rows=[];
    for(let i=0;i<3000;i++){
-    const fips=String(Math.floor(i/1000)+1).padStart(2,'0')+String(i%1000).padStart(3,'0');
+    const fips=String(Math.floor(i/999)+1).padStart(2,'0')+String((i%999)+1).padStart(3,'0');
     rows.push({GeoFIPS:fips,GeoName:'Example County',Code:'CAINC1-3',TimePeriod:'2024',DataValue:'55,432',CL_UNIT:'Dollars',UNIT_MULT:'0'});
    }
    return new Response(JSON.stringify({BEAAPI:{Results:{Data:rows}}}));
