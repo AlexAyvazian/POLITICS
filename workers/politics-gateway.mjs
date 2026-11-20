@@ -22,9 +22,10 @@ function publicRoute(id,p){
   u=make('https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/',{size:limit,sort:'created_date_desc',no_highlight:'true',state:state.toUpperCase(),...(zip?{zip_code:zip}:{}),...(query('q')?{search_term:query('q')}:{})});break;}
  case 'cms':u=make('https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data',{size:limit,offset:0,'filter[STATE_CD]':state.toUpperCase()});break;
  case 'hmda':{
-  if(!county)throw Error('County FIPS required for mortgage data');
   const year=Number(p.get('year')||2025);if(!Number.isInteger(year)||year<2018||year>2025)throw Error('HMDA year must be 2018–2025');
-  u=make('https://ffiec.cfpb.gov/v2/data-browser-api/view/aggregations',{years:year,counties:county,actions_taken:'1,2,3'});break;}
+  u=make('https://ffiec.cfpb.gov/v2/data-browser-api/view/aggregations',{
+   years:year,...(county?{counties:county}:{states:state.toUpperCase()}),actions_taken:'1,2,3'
+  });break;}
  case 'federalregister':u=make('https://www.federalregister.gov/api/v1/documents.json',{per_page:limit,order:'newest',...(query('q')?{'conditions[term]':query('q')}:{})});break;
  case 'sec':{
   const cik=p.get('cik')||'';if(!/^\d{1,10}$/.test(cik))throw Error('SEC requires a numeric CIK (1–10 digits)');
