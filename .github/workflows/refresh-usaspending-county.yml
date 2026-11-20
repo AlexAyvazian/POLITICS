@@ -36,7 +36,7 @@ jobs:
       - name: Commit refreshed snapshot
         shell: bash
         run: |
-          if git diff --quiet -- assets/data/county/usaspending.json; then
+          if [ -z "$(git status --porcelain -- assets/data/county/usaspending.json)" ]; then
             echo "USAspending snapshot unchanged"
             exit 0
           fi
