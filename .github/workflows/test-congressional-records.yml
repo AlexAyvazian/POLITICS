@@ -148,7 +148,7 @@ jobs:
       - name: Verify EPA county air-monitoring surface
         run: node --test tests/epa-air-quality-tab.test.mjs
       - name: Verify EPA county monitoring transform and missing-data semantics
-        run: python3 -m unittest discover -s tests -p test_epa_county_aqi.py -v
+        run: python3 -m unittest discover -s tests -p test_epa_county_air_quality.py -v
       - name: Verify CMS Part B gateway and Health surface
         run: node --test tests/public-apis.test.mjs tests/cms-partb-tab.test.mjs
       - name: Verify CMS Part B state transform
