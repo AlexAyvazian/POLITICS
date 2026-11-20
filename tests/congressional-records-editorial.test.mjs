@@ -166,3 +166,11 @@ test('funding tab prioritizes named PACs, sectors, and leadership PAC relationsh
  assert.match(css,/\.recordsFundingSector/);
  assert.match(css,/\.recordsPacContributor/);
 });
+
+
+test('member profile tabs are deep-linkable so funding views can be shared directly',()=>{
+ const js=read('assets/js/records.js');
+ assert.match(js,/route\.get\('tab'\)/);
+ assert.match(js,/\['overview','votes','funding'\]\.includes\(requestedTab\)/);
+ assert.match(js,/tab='\+encodeURIComponent\(key\)/);
+});
