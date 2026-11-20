@@ -892,7 +892,7 @@ $('backToDelegation').addEventListener('click',()=>{
  $('delegationDirectory').scrollIntoView?.({behavior:'smooth',block:'start'});
 });
 for(const [id,key] of [['profileTabOverview','overview'],['profileTabVotes','votes'],['profileTabFunding','funding']]){
- const tab=$(id);
+ const tab=$(id);if(!tab)continue;
  tab.addEventListener('click',()=>activateProfileTab(key));
  tab.addEventListener('keydown',event=>{
   const order=['overview','votes','funding'];
