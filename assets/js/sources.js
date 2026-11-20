@@ -32,7 +32,11 @@ const META={
 };
 const EXTRA=[
  {id:'cdc_places',name:'CDC PLACES',category:'health',configured:true,description:'Modeled county health and well-being estimates.',match:['cdc_places_2025'],where:'County Atlas · Health & Well-Being'},
- {id:'billcommons',name:'Bill Commons',category:'policy',configured:true,description:'State legislative index used as a supplementary source.',match:['billcommons'],where:'County Atlas · Representation'}
+ {id:'billcommons',name:'Bill Commons',category:'policy',configured:true,description:'State legislative index used as a supplementary source.',match:['billcommons'],where:'County Atlas · Representation'},
+ {id:'fara',name:'U.S. Department of Justice FARA',category:'influence',configured:true,staticLive:true,description:'Foreign-agent registrations and source-verified filing totals.',match:[],where:'Foreign Influence'},
+ {id:'voteview',name:'Voteview / UCLA',category:'policy',configured:true,staticLive:true,description:'Historical and current congressional roll-call datasets used for member vote snapshots.',match:[],where:'Congressional Records · Voting Record'},
+ {id:'ncsl',name:'National Conference of State Legislatures',category:'policy',configured:true,staticLive:true,description:'Published state partisan composition used for state-control context.',match:[],where:'County Atlas · Overview / Representation'},
+ {id:'tiger',name:'U.S. Census TIGER/Line',category:'geography',configured:true,staticLive:true,description:'Congressional and state-legislative boundary geometry.',match:[],where:'Congressional Atlas'}
 ];
 let filter='all',query='';
 const fmtDate=value=>{if(!value)return 'Not yet stored';const d=new Date(value);return Number.isNaN(d.valueOf())?String(value):d.toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});};
@@ -40,6 +44,7 @@ const fmt=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('en-US'):'—';
 function matchesDataset(row,key){return key===row.source||row.source.startsWith(key+'_')||row.source.startsWith(key);}
 function classify(provider,datasets,health){
  const keys=provider.match||[];
+ if(provider.staticLive)return {status:'live',label:'Live',linked:[],issue:null};
  const linked=datasets.filter(row=>keys.some(key=>matchesDataset(row,key)));
  const issue=health.find(row=>keys.includes(row.source)||keys.some(key=>row.source.startsWith(key)))||
   health.find(row=>provider.id==='lobbyview'&&row.source==='member_lobby_collection_health');
