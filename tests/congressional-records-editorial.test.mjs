@@ -124,3 +124,27 @@ test('Alaska fills its selector tile without distorting the established silhouet
  assert.match(html,/assets\/js\/geo-colors\.js/);
  assert.match(js,/--records-state-hover/);
 });
+
+
+test('member profile separates overview, voting record, and funding into accessible tabs',()=>{
+ const html=read('records.html'),js=read('assets/js/records.js'),css=read('assets/css/records-editorial.css');
+ for(const id of ['profileTabOverview','profileTabVotes','profileTabFunding','profilePanelOverview','profilePanelVotes','profilePanelFunding'])
+  assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(html,/role="tablist"/);
+ assert.match(html,/role="tab"[^>]*aria-controls="profilePanelOverview"/);
+ assert.match(html,/role="tab"[^>]*aria-controls="profilePanelVotes"/);
+ assert.match(html,/role="tab"[^>]*aria-controls="profilePanelFunding"/);
+ assert.ok(html.indexOf('id="memberDashboard"')>html.indexOf('id="profilePanelOverview"'));
+ assert.ok(html.indexOf('id="sponsoredLinks"')>html.indexOf('id="profilePanelOverview"'));
+ assert.ok(html.indexOf('id="votesArchivePanel"')>html.indexOf('id="profilePanelVotes"'));
+ for(const id of ['moneyNetwork','financeLinks','lobbyLinks','travelLinks'])
+  assert.ok(html.indexOf('id="'+id+'"')>html.indexOf('id="profilePanelFunding"'));
+ assert.match(js,/function activateProfileTab/);
+ assert.match(js,/profileTabOverview/);
+ assert.match(js,/profileTabVotes/);
+ assert.match(js,/profileTabFunding/);
+ assert.match(js,/activateProfileTab\('overview'/);
+ assert.match(css,/\.recordsProfileTabs/);
+ assert.match(css,/\.recordsProfileTab/);
+ assert.match(css,/\.recordsProfilePanel\[hidden\]/);
+});
