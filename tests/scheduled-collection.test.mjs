@@ -365,7 +365,7 @@ test('BEA county per-capita income collector uses the county CAINC1 table and st
 
 
 test('BLS collector batches registered LAUS county series and merges current monthly measures into jobs D1',async()=>{
- const fips=Array.from({length:80},(_,i)=>'06'+String(i+1).padStart(3,'0'));
+ const fips=Array.from({length:3000},(_,i)=>String(Math.floor(i/999)+1).padStart(2,'0')+String((i%999)+1).padStart(3,'0'));
  const census={counties:Object.fromEntries(fips.map(id=>[id,{unemploymentRatePct:5}]))};
  const writes=[];
  const store={prepare(sql){return {bind(...args){return {
@@ -392,11 +392,11 @@ test('BLS collector batches registered LAUS county series and merges current mon
  assert.equal(writes[0][0],'bls_laus_county');
  const saved=JSON.parse(writes[0][1]);
  assert.equal(saved.count,72);
- assert.equal(saved.counties['06001'].unemploymentRatePct,8.9);
- assert.equal(saved.counties['06001'].laborForce,462000);
- assert.equal(saved.counties['06001'].employed,421000);
- assert.equal(saved.counties['06001'].unemployed,41000);
- assert.equal(saved.counties['06001'].period,'2026-09');
+ assert.equal(saved.counties['01001'].unemploymentRatePct,8.9);
+ assert.equal(saved.counties['01001'].laborForce,462000);
+ assert.equal(saved.counties['01001'].employed,421000);
+ assert.equal(saved.counties['01001'].unemployed,41000);
+ assert.equal(saved.counties['01001'].period,'2026-09');
  assert.equal(saved.seasonalAdjustment,'Not seasonally adjusted');
  assert.ok(!JSON.stringify(saved).includes('test-bls'));
 });
