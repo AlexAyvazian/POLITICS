@@ -22,6 +22,7 @@ on:
       - assets/js/map.js
       - assets/css/map.css
       - tests/county-transparency-tabs.test.mjs
+      - tests/political-panel-pending.test.mjs
       - scripts/update_congressional_pac_funding.py
       - tests/test_congressional_pac_funding.py
       - ".github/workflows/test-congressional-records.yml"
@@ -52,6 +53,7 @@ on:
       - assets/js/map.js
       - assets/css/map.css
       - tests/county-transparency-tabs.test.mjs
+      - tests/political-panel-pending.test.mjs
       - scripts/update_voteview_rollcalls.py
       - tests/test_voteview_rollcalls.py
       - scripts/update_congressional_pac_funding.py
