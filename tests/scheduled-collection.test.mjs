@@ -257,7 +257,7 @@ test('FEC analysis joins an exact Bioguide-to-FEC candidate ID and labels self-r
  assert.equal(saved.topIndividualContributors[0].aggregate,7000);
  assert.equal(saved.topIndividualContributors[0].employer,'EXAMPLE HEALTH');
  assert.equal(saved.topIndividualContributors[1].name,'SMITH, JOHN');
- assert.equal(saved.individualContributorScope,'Principal campaign committee; itemized individuals only. Aggregate is the FEC-reported election-cycle-to-date amount for that contributor record.');
+ assert.equal(saved.individualContributorScope,'Principal campaign committee; itemized individuals only. Ranked from the 100 largest individual receipt transactions returned by FEC; aggregate is the FEC-reported election-cycle-to-date amount on that contributor record.');
  assert.equal(saved.employerScope,'Principal campaign committee only; employer is self-reported and does not establish a corporate contribution.');
  assert.ok(!JSON.stringify(saved).includes('test-fec'));
  const donorRequest=urls.find(x=>x.pathname.endsWith('/schedules/schedule_a/'));
