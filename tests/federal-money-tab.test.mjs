@@ -17,3 +17,12 @@ test('Federal Money renderer labels obligations as federal award activity, not r
  assert.match(map,/federal prime award obligations/i);
  assert.match(map,/not household income|not a household benefit/i);
 });
+
+
+test('Federal Money tab formats its stored date range without an undefined helper',()=>{
+ const map=read('assets/js/map.js');
+ assert.match(map,/function formatAtlasDate\(/);
+ assert.match(map,/formatAtlasDate\(ds\.period\.start\)/);
+ assert.match(map,/formatAtlasDate\(ds\.period\.end\)/);
+ assert.doesNotMatch(map,/\?formatDate\(ds\.period\.start\)/);
+});
