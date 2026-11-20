@@ -28,7 +28,7 @@ test('adapters use fixed origins, correct bindings and no keys in response',asyn
   census:'/api/census?county=06019',congress:'/api/congress',
   datagov:'/api/datagov?q=housing',eia:'/api/eia?state=CA',
   fda:'/api/fda',fdic:'/api/fdic?state=CA',fec:'/api/fec?q=Smith',
-  fred:'/api/fred?series=UNRATE',govinfo:'/api/govinfo',lda:'/api/lda',
+  fred:'/api/fred?series=UNRATE',govinfo:'/api/govinfo?q=Medicare',lda:'/api/lda?q=Medicare',
   lobbyview:'/api/lobbyview',maptiler:'/api/maptiler?q=Fresno',
   noaa:'/api/noaa',openstates:'/api/openstates?jurisdiction=ca',
   regulations:'/api/regulations',usgs:'/api/usgs'
