@@ -220,3 +220,20 @@ test('PAC sectors display separate filing-year amounts and pending donor/lobby v
  assert.match(js,/Browse individual receipts at the FEC/);
  assert.match(js,/View LobbyView data sources/);
 });
+
+
+test('member records separate legislation, campaign money, PAC networks, lobbying, and travel into dedicated tabs',()=>{
+ const html=read('records.html'),js=read('assets/js/records.js');
+ const tabs=['profileTabOverview','profileTabVotes','profileTabLegislation','profileTabCampaign','profileTabNetworks','profileTabLobbying','profileTabTravel'];
+ const panels=['profilePanelOverview','profilePanelVotes','profilePanelLegislation','profilePanelCampaign','profilePanelNetworks','profilePanelLobbying','profilePanelTravel'];
+ for(const id of [...tabs,...panels])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.ok(html.indexOf('id="sponsoredLinks"')>html.indexOf('id="profilePanelLegislation"'));
+ for(const id of ['individualDonors','financeLinks'])
+  assert.ok(html.indexOf('id="'+id+'"')>html.indexOf('id="profilePanelCampaign"'));
+ for(const id of ['fundingIntelligence','moneyNetwork'])
+  assert.ok(html.indexOf('id="'+id+'"')>html.indexOf('id="profilePanelNetworks"'));
+ assert.ok(html.indexOf('id="lobbyLinks"')>html.indexOf('id="profilePanelLobbying"'));
+ assert.ok(html.indexOf('id="travelLinks"')>html.indexOf('id="profilePanelTravel"'));
+ assert.match(js,/funding.*campaign/);
+ for(const key of ['legislation','campaign','networks','lobbying','travel'])assert.match(js,new RegExp(key+':'));
+});
