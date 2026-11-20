@@ -42,10 +42,10 @@ on:
       - .github/workflows/refresh-housing-finance.yml
       - assets/data/state/housing-finance.json
       - tests/cms-partb-tab.test.mjs
-      - assets/data/county/epa-aqi-2025.json
-      - .github/workflows/refresh-epa-county-aqi.yml
-      - scripts/update_epa_county_aqi.py
-      - tests/test_epa_county_aqi.py
+      - assets/data/county/epa-air-quality-2025.json
+      - .github/workflows/refresh-epa-county-air-quality.yml
+      - scripts/update_epa_county_air_quality.py
+      - tests/test_epa_county_air_quality.py
       - tests/epa-air-quality-tab.test.mjs
       - tests/test_cms_partb_provider_activity.py
       - scripts/update_cms_partb_provider_activity.py
@@ -96,10 +96,10 @@ on:
       - .github/workflows/refresh-housing-finance.yml
       - assets/data/state/housing-finance.json
       - tests/cms-partb-tab.test.mjs
-      - assets/data/county/epa-aqi-2025.json
-      - .github/workflows/refresh-epa-county-aqi.yml
-      - scripts/update_epa_county_aqi.py
-      - tests/test_epa_county_aqi.py
+      - assets/data/county/epa-air-quality-2025.json
+      - .github/workflows/refresh-epa-county-air-quality.yml
+      - scripts/update_epa_county_air_quality.py
+      - tests/test_epa_county_air_quality.py
       - tests/epa-air-quality-tab.test.mjs
       - tests/test_cms_partb_provider_activity.py
       - scripts/update_cms_partb_provider_activity.py
@@ -145,9 +145,9 @@ jobs:
         run: node --test tests/housing-finance-tab.test.mjs
       - name: Verify HMDA and CFPB housing finance transforms
         run: python3 -m unittest discover -s tests -p test_housing_finance.py -v
-      - name: Verify EPA annual county AQI surface
+      - name: Verify EPA county air-monitoring surface
         run: node --test tests/epa-air-quality-tab.test.mjs
-      - name: Verify EPA annual AQI transform and monitoring semantics
+      - name: Verify EPA county monitoring transform and missing-data semantics
         run: python3 -m unittest discover -s tests -p test_epa_county_aqi.py -v
       - name: Verify CMS Part B gateway and Health surface
         run: node --test tests/public-apis.test.mjs tests/cms-partb-tab.test.mjs
