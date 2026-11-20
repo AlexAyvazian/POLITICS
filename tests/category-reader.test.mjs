@@ -118,3 +118,15 @@ test('one shared money graph reads transactions for any member, with distinct ev
  const bad=await serve(req('/api/political-money-network?committee_id=INVALID'),env);
  assert.equal(bad.status,400);
 });
+
+
+test('BEA county income snapshot is served from the existing jobs D1 only',async()=>{
+ const bea={source:'U.S. Bureau of Economic Analysis',year:2024,count:3100,counties:{'06019':{perCapitaPersonalIncome:63555}}};
+ const env={CATEGORY_DB_JOBS:fakeDb({bea_county_per_capita_income:bea})};
+ const res=await serve(req('/api/bea-snapshot'),env);
+ assert.equal(res.status,200);
+ const body=await res.json();
+ assert.equal(body.counties['06019'].perCapitaPersonalIncome,63555);
+ const pending=await serve(req('/api/bea-snapshot'),{CATEGORY_DB_JOBS:fakeDb({})});
+ assert.equal((await pending.json()).status,'pending');
+});

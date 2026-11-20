@@ -20,3 +20,14 @@ test('County Atlas navigation publicly links data-source transparency',()=>{
  assert.match(html,/href="sources\.html"/);
  assert.match(html,/>Data Sources</);
 });
+
+
+test('Jobs & Economy renders stored BEA county income alongside Census conditions',()=>{
+ const map=read('assets/js/map.js'),cache=read('assets/js/county-cache.js');
+ assert.match(cache,/\/api\/bea-snapshot/);
+ assert.match(cache,/bea/);
+ assert.match(map,/function renderBeaIncome/);
+ assert.match(map,/Per capita personal income/);
+ assert.match(map,/U\.S\. Bureau of Economic Analysis|BEA/);
+ assert.match(map,/tab==='economy'[\s\S]*renderBeaIncome/);
+});

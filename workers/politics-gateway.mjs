@@ -131,7 +131,12 @@ function target(id,p,env){
  if(!k&&!['fdic','datagov','lobbyview'].includes(id))throw Error('Missing '+CATALOG[id][0]);
  switch(id){
  case 'airnow':{const z=limited(p.get('zip'),/^\d{5}$/,5);if(!z)throw Error('Five-digit zip required');u=qs('https://www.airnowapi.org/aq/observation/current/ziplatlong/',{format:'application/json',zipcode:z,distance:25,API_KEY:k});break;}
- case 'bea':if(!f)throw Error('Five-digit county FIPS required');u=qs('https://apps.bea.gov/api/data/',{UserID:k,method:'GetData',DataSetName:'Regional',TableName:'SAINC1',LineCode:'1',GeoFIPS:f,Year:'LAST5',ResultFormat:'JSON'});break;
+ case 'bea':{
+  if(!f)throw Error('Five-digit county FIPS required');
+  const year=Number(p.get('year')||2024);
+  if(!Number.isInteger(year)||year<1969||year>2026)throw Error('Invalid BEA county year');
+  u=qs('https://apps.bea.gov/api/data/',{UserID:k,method:'GetData',DataSetName:'Regional',TableName:'CAINC1',LineCode:'3',GeoFIPS:f,Year:year,ResultFormat:'JSON'});break;
+ }
  case 'bls':u='https://api.bls.gov/publicAPI/v2/timeseries/data/';options={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seriesid:[f?'LAUCN'+f+'0000000003':'CUUR0000SA0'],registrationkey:k})};break;
  case 'census':if(!f)throw Error('Five-digit county FIPS required');u=qs('https://api.census.gov/data/2024/acs/acs5',{get:'NAME,B19013_001E,B17001_001E,B17001_002E',for:'county:'+f.slice(2),in:'state:'+f.slice(0,2),key:k});break;
  case 'congress':u=qs('https://api.congress.gov/v3/bill',{api_key:k,format:'json',limit:n});break;
@@ -310,6 +315,67 @@ async function updateCountyCategory(env,category,fetchImpl=fetch,now=new Date())
  return {category,count,fieldCount:fields.length,refreshedAt:now.toISOString()};
 }
 
+
+/* BEA CAINC1: official annual county per-capita personal income. The collector
+ * discovers the newest published year first, then requests all counties in one
+ * Regional API call. County clicks read the stored D1 snapshot only. */
+async function refreshBeaCountyIncome(env,fetchImpl=fetch,now=new Date()){
+ const db=env?.CATEGORY_DB_JOBS,apiKey=key(env,'BEA_API_KEY');
+ if(!db||!apiKey)throw Error('Missing jobs D1 or BEA credential');
+ const base='https://apps.bea.gov/api/data/';
+ const metadata=new URL(base);
+ for(const [name,value] of Object.entries({
+  UserID:apiKey,method:'GetParameterValuesFiltered',DataSetName:'Regional',
+  TargetParameter:'Year',TableName:'CAINC1',LineCode:'3',ResultFormat:'JSON'
+ }))metadata.searchParams.set(name,value);
+ const metaResponse=await fetchImpl(metadata.toString(),{headers:{Accept:'application/json'}});
+ if(!metaResponse.ok)throw Error('BEA year metadata HTTP '+metaResponse.status);
+ const meta=await metaResponse.json();
+ const param=meta?.BEAAPI?.Results?.ParamValue;
+ const paramRows=Array.isArray(param)?param:param?[param]:[];
+ const years=paramRows.map(row=>Number(row?.Key??row?.key??row?.Year??row?.year))
+  .filter(year=>Number.isInteger(year)&&year>=1969&&year<=now.getUTCFullYear())
+  .sort((a,b)=>b-a);
+ if(!years.length)throw Error('BEA CAINC1 published years unavailable');
+ const year=years[0];
+ const url=new URL(base);
+ for(const [name,value] of Object.entries({
+  UserID:apiKey,method:'GetData',DataSetName:'Regional',TableName:'CAINC1',
+  LineCode:'3',GeoFIPS:'COUNTY',Year:String(year),ResultFormat:'JSON'
+ }))url.searchParams.set(name,value);
+ const response=await fetchImpl(url.toString(),{headers:{Accept:'application/json'}});
+ if(!response.ok)throw Error('BEA county income HTTP '+response.status);
+ const raw=await response.json();
+ const apiError=raw?.BEAAPI?.Results?.Error;
+ if(apiError)throw Error('BEA county income API error '+String(apiError.APIErrorCode||'unknown'));
+ const rows=raw?.BEAAPI?.Results?.Data;
+ if(!Array.isArray(rows))throw Error('BEA county income response has no data');
+ const counties={};
+ for(const row of rows){
+  const fips=String(row?.GeoFIPS||'').trim();
+  if(!/^\d{5}$/.test(fips)||fips.endsWith('000'))continue;
+  const value=Number(String(row?.DataValue??'').replaceAll(',','').trim());
+  if(!Number.isFinite(value)||value<0)continue;
+  counties[fips]={
+   name:String(row?.GeoName||'').replace(/\s+\*$/,'').trim().slice(0,120),
+   perCapitaPersonalIncome:Math.round(value)
+  };
+ }
+ const count=Object.keys(counties).length;
+ if(count<2900)throw Error('Incomplete nationwide BEA county data ('+count+' counties); previous snapshot retained');
+ const snapshot=JSON.stringify({
+  source:'U.S. Bureau of Economic Analysis',dataset:'CAINC1',year,
+  sourceUrl:'https://www.bea.gov/data/income-saving/personal-income-by-county',
+  retrievedAt:now.toISOString(),count,
+  coverage:'Annual BEA per-capita personal income by county. Personal income includes wages, proprietors income, dividends, interest, rents and government benefits and is assigned to where people live.',
+  fields:{perCapitaPersonalIncome:{label:'Per capita personal income',unit:'currency'}},
+  counties
+ });
+ if(new TextEncoder().encode(snapshot).length>=1900000)throw Error('BEA county income snapshot exceeds D1 2MB row limit');
+ await db.prepare('INSERT INTO county_snapshots(source,snapshot_json,refreshed_at,record_count) VALUES(?,?,?,?) ON CONFLICT(source) DO UPDATE SET snapshot_json=excluded.snapshot_json,refreshed_at=excluded.refreshed_at,record_count=excluded.record_count')
+  .bind('bea_county_per_capita_income',snapshot,now.toISOString(),count).run();
+ return {source:'BEA CAINC1',year,count,refreshedAt:now.toISOString()};
+}
 
 /* EIA state-only pricing: one nationwide scheduled query, retained separately from
    arithmetic averages of county measurements. No provider calls during clicks. */
@@ -919,9 +985,14 @@ export default {
    return;
   }
   const task=tasks[slot];if(!task)return;
+  if(task==='jobs'){
+   ctx.waitUntil(updateCountyCategory(env,'jobs'));
+   ctx.waitUntil(refreshBeaCountyIncome(env));
+   return;
+  }
   ctx.waitUntil(task==='eia'?refreshStateEnergy(env):task==='census'?refreshCensusSnapshot(env):task==='places'?refreshPlacesHealth(env):task==='congressMembers'?refreshCongressMembers(env):updateCountyCategory(env,task));
  }
 };
 
 // Named exports for the scheduled-collection regression suite.
-export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes, refreshMemberLegislation, refreshMemberLegislationBatch, refreshMemberFinanceDetail, refreshMemberFinanceRosterBatch, refreshMemberLobby, refreshMemberExtraBatch };
+export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshBeaCountyIncome, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes, refreshMemberLegislation, refreshMemberLegislationBatch, refreshMemberFinanceDetail, refreshMemberFinanceRosterBatch, refreshMemberLobby, refreshMemberExtraBatch };
