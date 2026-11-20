@@ -174,3 +174,10 @@ test('member profile tabs are deep-linkable so funding views can be shared direc
  assert.match(js,/\['overview','votes','funding'\]\.includes\(requestedTab\)/);
  assert.match(js,/tab='\+encodeURIComponent\(key\)/);
 });
+
+
+test('funding metric uses the full contributor count rather than the top-40 display length',()=>{
+ const js=read('assets/js/records.js');
+ assert.match(js,/data\.contributorCount/);
+ assert.doesNotMatch(js,/\['Named PACs \/ committees',top\.length/);
+});
