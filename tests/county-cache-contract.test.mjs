@@ -20,8 +20,8 @@ test('same page contains state, county interaction, and seven Census categories'
  assert.match(map,/stateMode\?goHome/);
  assert.match(map,/stateSelectedBoundary/);
 });
-test('research sources page is not navigable from the main UI',()=>{
- assert.doesNotMatch(read('index.html'),/sources.html/i);
+test('public data sources and health page is navigable from the County Atlas',()=>{
+ assert.match(read('index.html'),/href="sources\.html"/i);
 });
 test('one scheduled trigger coordinates category refreshes instead of 27 crons',()=>{
  const config=JSON.parse(read('wrangler.jsonc'));
