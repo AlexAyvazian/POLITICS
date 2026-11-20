@@ -19,7 +19,7 @@ class UsaSpendingCountyTests(unittest.TestCase):
             {"shape_code":"36061","display_name":"New York County","aggregated_amount":2000000},
             {"shape_code":"bad","display_name":"Bad","aggregated_amount":999}
         ]}
-        out=normalize_response(raw,date(2026,11,20))
+        out=normalize_response(raw,date(2026,11,20),min_count=1)
         self.assertEqual(out["count"],3)
         self.assertEqual(out["counties"]["06019"]["obligations"],1250000.25)
         self.assertEqual(out["states"]["06"]["obligations"],2000000.25)
