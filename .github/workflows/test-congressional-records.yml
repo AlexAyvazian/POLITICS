@@ -15,6 +15,13 @@ on:
       - wrangler.records.jsonc
       - tests/records-refresh.test.mjs
       - workers/county-snapshot.mjs
+      - sources.html
+      - assets/js/sources.js
+      - assets/css/sources.css
+      - tests/data-health.test.mjs
+      - assets/js/map.js
+      - assets/css/map.css
+      - tests/county-transparency-tabs.test.mjs
       - scripts/update_congressional_pac_funding.py
       - tests/test_congressional_pac_funding.py
       - ".github/workflows/test-congressional-records.yml"
@@ -38,6 +45,13 @@ on:
       - wrangler.records.jsonc
       - tests/records-refresh.test.mjs
       - tests/scheduled-collection.test.mjs
+      - sources.html
+      - assets/js/sources.js
+      - assets/css/sources.css
+      - tests/data-health.test.mjs
+      - assets/js/map.js
+      - assets/css/map.css
+      - tests/county-transparency-tabs.test.mjs
       - scripts/update_voteview_rollcalls.py
       - tests/test_voteview_rollcalls.py
       - scripts/update_congressional_pac_funding.py
@@ -63,6 +77,8 @@ jobs:
         run: node --test tests/congressional-records*.test.mjs
       - name: Verify records refresh scheduling and member collection
         run: node --test tests/records-refresh.test.mjs tests/scheduled-collection.test.mjs
+      - name: Verify public data health and County Atlas transparency tabs
+        run: node --test tests/data-health.test.mjs tests/county-transparency-tabs.test.mjs
       - name: Run full JS suite (informational; three unrelated legacy test failures)
         continue-on-error: true
         run: npm test
