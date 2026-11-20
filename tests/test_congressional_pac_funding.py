@@ -50,6 +50,7 @@ class ContributionAggregationTests(unittest.TestCase):
         }
         out = aggregate_candidate_rows(rows, leadership, committees)
         self.assertEqual(out["directTotal"], 15000.0)
+        self.assertEqual(out["contributorCount"], 3)
         self.assertEqual([x["committeeId"] for x in out["contributors"]], ["C00000001", "C00000002", "C00000005"])
         self.assertEqual(out["contributors"][0]["name"], "Example Bank PAC")
         self.assertEqual(out["contributors"][0]["total"], 7500.0)
