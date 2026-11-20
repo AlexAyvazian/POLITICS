@@ -319,6 +319,9 @@ def _load_finance_index() -> tuple[dict[str, dict], dict[str, str]]:
 
 def _read_pas2_relevant(zip_bytes: bytes, candidate_ids: set[str]) -> dict[str, list[list[str]]]:
     rows: dict[str, list[list[str]]] = defaultdict(list)
+    sample: list[dict] = []
+    total_rows = 0
+    candidate_like = 0
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
         names = [n for n in archive.namelist() if n.lower().endswith((".txt", ".csv"))]
         if not names:
@@ -326,11 +329,21 @@ def _read_pas2_relevant(zip_bytes: bytes, candidate_ids: set[str]) -> dict[str, 
         with archive.open(names[0]) as raw:
             wrapper = io.TextIOWrapper(raw, encoding="latin-1", newline="")
             for row in csv.reader(wrapper, delimiter="|"):
+                total_rows += 1
+                if len(sample) < 5:
+                    sample.append({"columns": len(row), "fields14to18": row[14:19]})
                 if len(row) < 22:
                     continue
                 candidate_id = row[PAS2["candidate_id"]].strip()
+                if CANDIDATE_ID.match(candidate_id):
+                    candidate_like += 1
                 if candidate_id in candidate_ids:
                     rows[candidate_id].append(row)
+    if not rows:
+        raise RuntimeError(
+            "FEC PAS2 contained no candidate IDs matching the verified member cache; "
+            f"rows={total_rows}, candidate_like_at_position_17={candidate_like}, sample={sample}"
+        )
     return rows
 
 
