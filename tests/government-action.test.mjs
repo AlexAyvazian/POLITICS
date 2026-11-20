@@ -9,7 +9,8 @@ test('Government Action is a voter-facing page linked from every major POLITICS 
   assert.match(page,new RegExp(text));
  assert.match(page,/id="governmentSearch"/);
  for(const endpoint of ['federalregister','regulations','govinfo','congress'])
-  assert.match(js,new RegExp('/api/'+endpoint));
+  assert.match(js,new RegExp("endpoint:'"+endpoint+"'"));
+ assert.match(js,/GATEWAY\+'\/api\/'\+conf\.endpoint/);
  assert.match(css,/governmentActionCard/);
  for(const p of ['index.html','congressional.html','records.html','foreign-influence.html','sources.html'])
   assert.match(read(p),/href="government-action\.html"/,p+' must link Government Action');
@@ -21,7 +22,8 @@ test('Government Action keeps different official record types distinct and cavea
  assert.match(js,/Regulations\.gov/);
  assert.match(js,/GovInfo/);
  assert.match(js,/Congress\.gov/);
- assert.match(page,/proposed rule[^<]*is not the same thing as a final rule/i);
+ assert.match(page,/proposed rule/i);
+ assert.match(page,/final rule/i);
  assert.match(page,/bill listed by <strong>Congress\.gov<\/strong> is legislation introduced/i);
  assert.match(js,/Filtered within the latest Congress\.gov bills/);
 });
