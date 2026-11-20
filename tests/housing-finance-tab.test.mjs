@@ -23,3 +23,10 @@ test('Housing finance context is explicitly statewide in county view and caveats
  assert.match(map,/complaints are not a statistical sample|not representative/i);
  assert.match(map,/not a full approval rate/i);
 });
+
+
+test('Housing tab labels leading complaint company without treating complaint volume as wrongdoing',()=>{
+ const map=read('assets/js/map.js');
+ assert.match(map,/Most published complaints by company/);
+ assert.match(map,/does not establish wrongdoing/i);
+});
