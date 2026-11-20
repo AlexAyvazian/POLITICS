@@ -27,7 +27,7 @@ const META={
  federalregister:{name:'Federal Register',where:'Government Action · Rules & Notices',match:[],onDemandLive:true,note:'Official federal rules, proposed rules and notices searched on demand.'},
  sec:{name:'SEC EDGAR',where:'Future influence/company research',match:[],note:'Public company filings; not a political-donation source.'},
  usaspending:{name:'USAspending',where:'County Atlas · Federal Money',match:['usaspending_county'],note:'Federal prime-award obligations by county place of performance.'},
- epa_aqs:{name:'EPA AirData / AQS',where:'County Atlas · Infrastructure & Environment',match:['epa_aqi_county_2025'],note:'2025 annual county AQI summaries for counties with EPA monitoring data.'},
+ epa_aqs:{name:'EPA AQS / Air Trends',where:'County Atlas · Infrastructure & Environment',match:['epa_air_quality_county_2025'],note:'Official 2025 county air-monitoring statistics from EPA AQS, with monitoring-coverage limits.'},
  fcc_broadband:{name:'FCC Broadband Data Collection',where:'Future County Atlas · Infrastructure',match:[],note:'Broadband availability release metadata.'}
 };
 const EXTRA=[
@@ -87,20 +87,20 @@ function applyFilter(){
 async function load(){
  const status=document.getElementById('sourceStatus');
  try{
-  const [catalogRes,healthRes,spendingRes,housingFinanceRes,cmsPartBRes,epaAqiRes]=await Promise.all([
+  const [catalogRes,healthRes,spendingRes,housingFinanceRes,cmsPartBRes,epaAirQualityRes]=await Promise.all([
    fetch(GATEWAY+'/api/catalog',{headers:{Accept:'application/json'},credentials:'omit'}),
    fetch(READER+'/api/data-health',{headers:{Accept:'application/json'},credentials:'omit'}),
    fetch('assets/data/county/usaspending.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
    fetch('assets/data/state/housing-finance.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
    fetch('assets/data/state/cms-partb-provider-activity.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
-   fetch('assets/data/county/epa-aqi-2025.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
+   fetch('assets/data/county/epa-air-quality-2025.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
   ]);
   const catalog=catalogRes.ok?await catalogRes.json():{providers:[]};
   const health=healthRes.ok?await healthRes.json():{datasets:[],collectionHealth:[]};
   const spending=spendingRes.ok?await spendingRes.json():null;
   const housingFinance=housingFinanceRes.ok?await housingFinanceRes.json():null;
   const cmsPartB=cmsPartBRes.ok?await cmsPartBRes.json():null;
-  const epaAqi=epaAqiRes.ok?await epaAqiRes.json():null;
+  const epaAirQuality=epaAirQualityRes.ok?await epaAirQualityRes.json():null;
   if(spending?.source==='USAspending.gov'&&Number(spending.count)>0){
    health.datasets=(health.datasets||[]).concat([{
     source:'usaspending_county',refreshedAt:spending.retrievedAt||null,
@@ -120,10 +120,10 @@ async function load(){
     records:Number(cmsPartB.stateCount)||0,snapshots:1,database:'static'
    }]);
   }
-  if(epaAqi?.source==='U.S. EPA AirData / Air Quality System'&&Number(epaAqi.count)>0){
+  if(epaAirQuality?.source==='U.S. EPA Air Quality System / Air Trends'&&Number(epaAirQuality.count)>0){
    health.datasets=(health.datasets||[]).concat([{
-    source:'epa_aqi_county_2025',refreshedAt:epaAqi.retrievedAt||null,
-    records:Number(epaAqi.count)||0,snapshots:1,database:'static'
+    source:'epa_air_quality_county_2025',refreshedAt:epaAirQuality.retrievedAt||null,
+    records:Number(epaAirQuality.count)||0,snapshots:1,database:'static'
    }]);
   }
   const providers=(catalog.providers||[]).map(p=>({
