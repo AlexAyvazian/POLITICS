@@ -519,7 +519,7 @@ async function loadPacFunding(m){
  root.textContent='Loading named PAC contributors and sector totals…';
  let data=null;
  try{
-  const response=await fetch('assets/data/records/pac-funding/'+encodeURIComponent(m.bioguide)+'.json',{credentials:'same-origin',cache:'default'});
+  const response=await fetch('assets/data/records/pac-funding/'+encodeURIComponent(m.bioguide)+'.json',{credentials:'same-origin',cache:'no-cache'});
   if(response.ok)data=await response.json();
  }catch(_){}
  renderPacFunding(data,m);
