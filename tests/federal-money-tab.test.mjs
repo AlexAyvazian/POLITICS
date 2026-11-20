@@ -26,3 +26,14 @@ test('Federal Money tab formats its stored date range without an undefined helpe
  assert.match(map,/formatAtlasDate\(ds\.period\.end\)/);
  assert.doesNotMatch(map,/\?formatDate\(ds\.period\.start\)/);
 });
+
+
+test('Federal Money renderer uses a formatter defined inside map.js before rendering the period',()=>{
+ const map=read('assets/js/map.js');
+ assert.match(map,/function dataDateLabel\(/);
+ const start=map.indexOf('function renderFederalMoney');
+ const end=map.indexOf('\nfunction countyTabBody',start);
+ const body=map.slice(start,end);
+ assert.match(body,/dataDateLabel\(ds\.period\.start\)/);
+ assert.doesNotMatch(body,/\bformatDate\(/);
+});
