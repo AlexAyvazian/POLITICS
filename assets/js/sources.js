@@ -4,7 +4,7 @@ const GATEWAY='https://crimson-mud-d254.alxayvazian.workers.dev';
 const META={
  airnow:{name:'AirNow',where:'County Atlas · Infrastructure & Environment',match:[],note:'Preliminary reporting-area air quality.'},
  bea:{name:'Bureau of Economic Analysis',where:'County Atlas · Jobs & Economy',match:['bea_county_per_capita_income'],note:'Annual county per-capita personal income from the BEA Regional accounts.'},
- bls:{name:'Bureau of Labor Statistics',where:'Future County Atlas · Jobs & Economy',match:[],note:'Labor-market statistics and selected economic series.'},
+ bls:{name:'Bureau of Labor Statistics',where:'County Atlas · Jobs & Economy',match:['bls_laus_county'],note:'Latest monthly county labor-force and unemployment statistics from BLS LAUS.'},
  census:{name:'U.S. Census Bureau',where:'County Atlas · every conditions tab',match:['census_acs5','census_housing','census_jobs','census_income','census_healthcare','census_education','census_families','census_infrastructure'],note:'ACS county conditions and demographics.'},
  congress:{name:'Congress.gov',where:'Congressional Records · Legislation / County Atlas · Representation',match:['congress_members_current','member_legislation','congress_house_votes_recent'],note:'Federal member, legislation and House roll-call records.'},
  datagov:{name:'Data.gov',where:'Research adapter · no voter-facing dataset yet',match:[],note:'Federal data catalog search.'},
@@ -87,10 +87,11 @@ function applyFilter(){
 async function load(){
  const status=document.getElementById('sourceStatus');
  try{
-  const [catalogRes,healthRes,spendingRes]=await Promise.all([
+  const [catalogRes,healthRes,spendingRes,blsRes]=await Promise.all([
    fetch(GATEWAY+'/api/catalog',{headers:{Accept:'application/json'},credentials:'omit'}),
    fetch(READER+'/api/data-health',{headers:{Accept:'application/json'},credentials:'omit'}),
-   fetch('assets/data/county/usaspending.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
+   fetch('assets/data/county/usaspending.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
+   fetch('assets/data/county/bls-laus.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
   ]);
   const catalog=catalogRes.ok?await catalogRes.json():{providers:[]};
   const health=healthRes.ok?await healthRes.json():{datasets:[],collectionHealth:[]};
@@ -99,6 +100,13 @@ async function load(){
    health.datasets=(health.datasets||[]).concat([{
     source:'usaspending_county',refreshedAt:spending.retrievedAt||null,
     records:Number(spending.count)||0,snapshots:1,database:'static'
+   }]);
+  }
+  const bls=blsRes.ok?await blsRes.json():null;
+  if(bls?.source==='U.S. Bureau of Labor Statistics'&&Number(bls.count)>0){
+   health.datasets=(health.datasets||[]).concat([{
+    source:'bls_laus_county',refreshedAt:bls.retrievedAt||null,
+    records:Number(bls.count)||0,snapshots:1,database:'static'
    }]);
   }
   const providers=(catalog.providers||[]).map(p=>({
