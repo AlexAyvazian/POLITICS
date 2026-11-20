@@ -382,7 +382,7 @@ test('BLS collector batches registered LAUS county series and merges current mon
   assert.ok(body.seriesid.length<=50);
   assert.equal(body.registrationkey,'test-bls');
   return new Response(JSON.stringify({status:'REQUEST_SUCCEEDED',Results:{series:body.seriesid.map(seriesID=>{
-   const measure=seriesID.slice(-2),value={03:'8.9',04:'41000',05:'421000',06:'462000'}[measure];
+   const measure=seriesID.slice(-2),value={'03':'8.9','04':'41000','05':'421000','06':'462000'}[measure];
    return {seriesID,data:[{year:'2026',period:'M09',periodName:'September',value}]};
   })}}));
  };
