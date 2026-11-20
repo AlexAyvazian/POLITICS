@@ -19,7 +19,9 @@ from pathlib import Path
 
 OUTPUT=Path("assets/data/state/housing-finance.json")
 HMDA_YEAR=2025
-HMDA_GATEWAY="https://crimson-mud-d254.alxayvazian.workers.dev/api/hmda"
+GATEWAY="https://crimson-mud-d254.alxayvazian.workers.dev/api"
+HMDA_GATEWAY=GATEWAY+"/hmda"
+CFPB_GATEWAY=GATEWAY+"/cfpb"
 STATES="AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split()
 USER_AGENT="POLITICS civic transparency project"
 
@@ -120,15 +122,16 @@ def fetch_hmda(state: str) -> dict:
 def fetch_cfpb(state: str, today: date) -> dict:
     start,end=cfpb_window(today)
     params=urllib.parse.urlencode({
-        "size":1,
-        "sort":"created_date_desc",
-        "no_highlight":"true",
         "state":state,
-        "search_term":"mortgage",
-        "date_received_min":start,
-        "date_received_max":end,
+        "q":"mortgage",
+        "date_min":start,
+        "date_max":end,
+        "limit":1,
     })
-    raw=get_json("https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/?"+params)
+    wrapped=get_json(CFPB_GATEWAY+"?"+params)
+    raw=wrapped.get("data") if isinstance(wrapped,dict) else None
+    if not isinstance(raw,dict):
+        raise ValueError("POLITICS CFPB gateway returned no data object for "+state)
     return normalize_cfpb(raw)
 
 def fetch_all(today: date):
