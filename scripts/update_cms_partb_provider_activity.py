@@ -17,6 +17,7 @@ from pathlib import Path
 
 OUTPUT=Path("assets/data/state/cms-partb-provider-activity.json")
 GATEWAY="https://crimson-mud-d254.alxayvazian.workers.dev/api/cms"
+# Annual CMS public-use data; the scheduled refresh keeps publication changes visible.
 REPORTING_YEAR=2024
 DATASET_ID="4d0b2df0-1e99-4db7-a574-a571d99217f1"
 STATES="AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split()
