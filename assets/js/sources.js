@@ -26,7 +26,7 @@ const META={
  hmda:{name:'FFIEC / HMDA',where:'Future County Atlas · Housing',match:[],note:'County mortgage-application aggregations.'},
  federalregister:{name:'Federal Register',where:'Future Government Action',match:[],note:'Official federal notices and rules.'},
  sec:{name:'SEC EDGAR',where:'Future influence/company research',match:[],note:'Public company filings; not a political-donation source.'},
- usaspending:{name:'USAspending',where:'Future County Atlas · Federal Money',match:[],note:'Federal award obligations by geography.'},
+ usaspending:{name:'USAspending',where:'County Atlas · Federal Money',match:['usaspending_county'],note:'Federal prime-award obligations by county place of performance.'},
  epa_aqs:{name:'EPA AQS',where:'Future County Atlas · Infrastructure & Environment',match:[],note:'Validated historical air-monitor summaries.'},
  fcc_broadband:{name:'FCC Broadband Data Collection',where:'Future County Atlas · Infrastructure',match:[],note:'Broadband availability release metadata.'}
 };
@@ -84,12 +84,20 @@ function applyFilter(){
 async function load(){
  const status=document.getElementById('sourceStatus');
  try{
-  const [catalogRes,healthRes]=await Promise.all([
+  const [catalogRes,healthRes,spendingRes]=await Promise.all([
    fetch(GATEWAY+'/api/catalog',{headers:{Accept:'application/json'},credentials:'omit'}),
-   fetch(READER+'/api/data-health',{headers:{Accept:'application/json'},credentials:'omit'})
+   fetch(READER+'/api/data-health',{headers:{Accept:'application/json'},credentials:'omit'}),
+   fetch('assets/data/county/usaspending.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
   ]);
   const catalog=catalogRes.ok?await catalogRes.json():{providers:[]};
   const health=healthRes.ok?await healthRes.json():{datasets:[],collectionHealth:[]};
+  const spending=spendingRes.ok?await spendingRes.json():null;
+  if(spending?.source==='USAspending.gov'&&Number(spending.count)>0){
+   health.datasets=(health.datasets||[]).concat([{
+    source:'usaspending_county',refreshedAt:spending.retrievedAt||null,
+    records:Number(spending.count)||0,snapshots:1,database:'static'
+   }]);
+  }
   const providers=(catalog.providers||[]).map(p=>({
    ...p,id:p.id,name:META[p.id]?.name||p.id,description:META[p.id]?.note||p.description,
    match:META[p.id]?.match||[],where:META[p.id]?.where||'Research adapter · no public surface'
