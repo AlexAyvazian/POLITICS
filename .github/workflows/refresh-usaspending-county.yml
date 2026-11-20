@@ -1,0 +1,47 @@
+name: Refresh USAspending county obligations
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 1,13 * * *"
+  push:
+    paths:
+      - scripts/update_usaspending_county.py
+      - .github/workflows/refresh-usaspending-county.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-usaspending-county
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Verify USAspending transform
+        run: python3 -m unittest discover -s tests -p test_usaspending_county.py -v
+      - name: Refresh nationwide county obligations
+        run: python3 scripts/update_usaspending_county.py
+      - name: Commit refreshed snapshot
+        shell: bash
+        run: |
+          if git diff --quiet -- assets/data/county/usaspending.json; then
+            echo "USAspending snapshot unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/county/usaspending.json
+          git commit -m "Refresh USAspending county obligations"
+          git push origin HEAD:${GITHUB_REF_NAME}
