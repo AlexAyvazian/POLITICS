@@ -4,7 +4,7 @@
  'use strict';
  const ROOT='https://politics-daily-snapshot.alxayvazian.workers.dev';
  const cats=['housing','jobs','income','healthcare','education','families','infrastructure'];
- const data={core:null,categories:{},states:null,places:null,congress:null,bills:{},billStatus:{},openstates:{},openstatesStatus:{},houseVotes:null,houseVotesStatus:'loading'};
+ const data={core:null,categories:{},states:null,places:null,congress:null,federalMoney:null,bills:{},billStatus:{},openstates:{},openstatesStatus:{},houseVotes:null,houseVotesStatus:'loading'};
  const billJobs=new Map(),openstatesJobs=new Map();
  let job=null;
  const notify=()=>window.dispatchEvent(new Event('politics-county-snapshot-ready'));
@@ -12,6 +12,12 @@
   const result=await fetch(ROOT+path,{headers:{Accept:'application/json'},credentials:'omit',
    signal:AbortSignal.timeout(30000)});
   if(!result.ok)throw Error('Stored data HTTP '+result.status);
+  return result.json();
+ }
+ async function fetchLocal(path){
+  const result=await fetch(path,{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache',
+   signal:AbortSignal.timeout(30000)});
+  if(!result.ok)throw Error('Stored local data HTTP '+result.status);
   return result.json();
  }
  const api={
@@ -78,6 +84,10 @@
     if(value?.states&&value?.count)data.congress=value;
     notify();
    }).catch(error=>{console.warn('Congressional delegation snapshot unavailable:',error.message);notify();});
+   const federalMoney=fetchLocal('assets/data/county/usaspending.json').then(value=>{
+    if(value?.source==='USAspending.gov'&&value?.counties&&value?.states&&value?.count)data.federalMoney=value;
+    notify();
+   }).catch(error=>{console.warn('Stored USAspending county snapshot unavailable:',error.message);notify();});
    const houseVotes=fetchSnapshot('/api/house-votes-snapshot').then(value=>{
     if(value?.chamber==='House'&&Array.isArray(value?.votes)&&value?.votes.length){
      data.houseVotes=value;
@@ -89,7 +99,7 @@
     console.warn('Stored House vote data unavailable:',error.message);
     notify();
    });
-   job=Promise.allSettled([core,...other,states,places,congress,houseVotes]).then(()=>data);
+   job=Promise.allSettled([core,...other,states,places,congress,federalMoney,houseVotes]).then(()=>data);
    return job;
   }
  };
