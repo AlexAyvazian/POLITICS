@@ -994,6 +994,13 @@ function activateProfileTab(name,focus=false){
  }
  if(focus)$(tabs[name])?.focus();
 }
+function setProfileTabRoute(key){
+ if(!state.member)return;
+ try{
+  history.replaceState(null,'','#state='+encodeURIComponent(state.member.state)+
+   '&member='+encodeURIComponent(state.member.bioguide)+'&tab='+encodeURIComponent(key));
+ }catch{}
+}
 function select(id){
  const m=model.getMember(state.members,id);if(!m)return;
  if(state.selectedState!==m.state)showState(m.state);
@@ -1035,11 +1042,14 @@ async function begin(){
   state.members=members;state.rosterDate=payload.asOf||payload.retrievedAt;
   renderStateDirectory();
   const route=new URLSearchParams(location.hash.slice(1));
-  const id=route.get('member'),stateCode=route.get('state');
+  const id=route.get('member'),stateCode=route.get('state'),requestedTab=route.get('tab');
   const target=id?model.getMember(members,id):null;
   if(target)showState(target.state);
   else if(stateCode&&stateByCode[stateCode.toUpperCase()])showState(stateCode.toUpperCase());
-  if(target)select(target.bioguide);
+  if(target){
+   select(target.bioguide);
+   if(['overview','votes','funding'].includes(requestedTab))activateProfileTab(requestedTab);
+  }
  }catch(_){
   rosterStatus.textContent='The cached congressional roster is temporarily unavailable. Reopen the page to retry.';
  }
@@ -1059,7 +1069,7 @@ $('backToDelegation').addEventListener('click',()=>{
 });
 for(const [id,key] of [['profileTabOverview','overview'],['profileTabVotes','votes'],['profileTabFunding','funding']]){
  const tab=$(id);if(!tab)continue;
- tab.addEventListener('click',()=>activateProfileTab(key));
+ tab.addEventListener('click',()=>{activateProfileTab(key);setProfileTabRoute(key);});
  tab.addEventListener('keydown',event=>{
   const order=['overview','votes','funding'];
   const currentIndex=order.indexOf(key);
@@ -1068,7 +1078,7 @@ for(const [id,key] of [['profileTabOverview','overview'],['profileTabVotes','vot
   else if(event.key==='ArrowLeft')next=order[(currentIndex+order.length-1)%order.length];
   else if(event.key==='Home')next=order[0];
   else if(event.key==='End')next=order[order.length-1];
-  if(next){event.preventDefault();activateProfileTab(next,true);}
+  if(next){event.preventDefault();activateProfileTab(next,true);setProfileTabRoute(next);}
  });
 }
 renderStateDirectory();
