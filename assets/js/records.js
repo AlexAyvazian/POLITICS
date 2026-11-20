@@ -401,6 +401,14 @@ function pacContributorRow(item){
   const badge=document.createElement('em');badge.textContent='Leadership PAC';
   main.append(badge);
  }
+ if(item.byYear&&typeof item.byYear==='object'){
+  const yearly=Object.entries(item.byYear).filter(([year,value])=>/^(2025|2026)$/.test(year)&&typeof value==='number'&&value>0).sort(([a],[b])=>a.localeCompare(b));
+  if(yearly.length){
+   const line=document.createElement('span');line.className='recordsPacYears';
+   line.textContent=yearly.map(([year,value])=>year+': '+moneyLabel(value)).join(' · ');
+   main.append(line);
+  }
+ }
  const amount=document.createElement('strong');amount.className='recordsPacContributorAmount';amount.textContent=moneyLabel(item.total);
  row.append(main,amount);
  if(typeof item.sourceUrl==='string'&&/^https:\/\/www\.fec\.gov\//.test(item.sourceUrl)){
@@ -501,7 +509,11 @@ function renderPacFunding(data,m){
    if(index<3)details.open=true;
    const summary=document.createElement('summary');
    const name=document.createElement('span');name.textContent=sector.sector;
-   const count=document.createElement('small');count.textContent=sector.committeeCount+' committee'+(sector.committeeCount===1?'':'s');
+   const count=document.createElement('small');
+   const years=sector.byYear&&typeof sector.byYear==='object'?
+    Object.entries(sector.byYear).filter(([year,value])=>/^(2025|2026)$/.test(year)&&typeof value==='number'&&value>0).sort(([a],[b])=>a.localeCompare(b)):[];
+   count.textContent=sector.committeeCount+' committee'+(sector.committeeCount===1?'':'s')+
+    (years.length?' · '+years.map(([year,value])=>year+': '+moneyLabel(value)).join(' · '):' · 2025–2026 cycle');
    const total=document.createElement('strong');total.textContent=moneyLabel(sector.total);
    summary.append(name,count,total);details.append(summary);
    const table=document.createElement('div');table.className='recordsPacTable';
@@ -713,8 +725,12 @@ function renderIndividualDonors(data,m){
   data.topIndividualContributors.filter(x=>x&&typeof x.name==='string'&&typeof x.amount==='number'&&x.amount>0):null;
  if(!donors){
   const p=document.createElement('p');p.className='recordsEvidenceNote';
-  p.textContent='Itemized individual contributor records have not been collected for this member yet. This does not mean the campaign had no individual donors.';
-  root.append(p);return;
+  p.textContent='Individual-donor details are pending collection. This does not mean the campaign had no individual donors.';
+  root.append(p);
+  const link=document.createElement('a');
+  link.href=typeof data?.sourceUrl==='string'&&/^https:\/\/www\.fec\.gov\//.test(data.sourceUrl)?data.sourceUrl:'https://www.fec.gov/data/receipts/individual-contributions/';
+  link.target='_blank';link.rel='noopener noreferrer';link.textContent='Browse individual receipts at the FEC ↗';root.append(link);
+  return;
  }
  if(!donors.length){
   const p=document.createElement('p');p.className='recordsEvidenceNote';
@@ -817,8 +833,11 @@ async function loadLobby(m){
  root.replaceChildren();
  if(data?.bioguide!==m.bioguide||!Array.isArray(data.clients)){
   const p=document.createElement('p');p.className='recordsEvidenceNote';
-  p.textContent='No verified LobbyView research snapshot has been cached for this member yet. This does not establish that nobody lobbied on their legislation.';
-  root.append(p);return;
+  p.textContent='LobbyView data is not yet available for this member. This is a collection gap, not evidence of no lobbying.';
+  root.append(p);
+  const link=document.createElement('a');link.href='https://www.lobbyview.org/data-download/api/';
+  link.target='_blank';link.rel='noopener noreferrer';link.textContent='View LobbyView data sources ↗';root.append(link);
+  return;
  }
  const count=document.createElement('strong');count.className='recordsLobbyCount';
  count.textContent=String(data.clientCount??'Unreported')+' research-coded client connections captured';

@@ -54,6 +54,8 @@ class ContributionAggregationTests(unittest.TestCase):
         self.assertEqual([x["committeeId"] for x in out["contributors"]], ["C00000001", "C00000002", "C00000005"])
         self.assertEqual(out["contributors"][0]["name"], "Example Bank PAC")
         self.assertEqual(out["contributors"][0]["total"], 7500.0)
+        self.assertEqual(out["contributors"][0]["byYear"], {"2026": 7500.0})
+        self.assertEqual(out["contributors"][1]["byYear"], {"2026": 5000.0})
         self.assertTrue(out["contributors"][1]["leadershipPac"])
         self.assertEqual(out["contributors"][1]["name"], "Workers Leadership PAC")
         designated = next(x for x in out["contributors"] if x["committeeId"] == "C00000005")
@@ -61,6 +63,18 @@ class ContributionAggregationTests(unittest.TestCase):
         self.assertEqual(designated["sector"], "Leadership PACs")
         self.assertEqual(out["excludedIndependentExpenditureRows"], 1)
         self.assertEqual(out["excludedMemoRows"], 1)
+
+
+class SectorYearBreakdownTests(unittest.TestCase):
+    def test_sector_sums_preserve_transaction_year_without_double_counting(self):
+        from scripts.update_congressional_pac_funding import _sector_summary
+        items = [
+            {"name": "PAC A", "sector": "Health Insurance", "total": 900.0, "byYear": {"2025": 300.0, "2026": 600.0}},
+            {"name": "PAC B", "sector": "Health Insurance", "total": 800.0, "byYear": {"2025": 800.0}},
+        ]
+        sectors = _sector_summary(items)
+        self.assertEqual(sectors[0]["total"], 1700.0)
+        self.assertEqual(sectors[0]["byYear"], {"2025": 1100.0, "2026": 600.0})
 
 
 class LeadershipPacTests(unittest.TestCase):
