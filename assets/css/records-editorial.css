@@ -85,14 +85,9 @@ body[data-view="records"] .recordsProfile{
 }
 #senateMembers{grid-template-columns:repeat(2,minmax(0,1fr))}
 #senateMembers .recordsMemberCard{min-height:270px}
-#senateMembers .recordsMemberPortrait img{object-position:50% 16%}
 #senateMembers .recordsMemberCard .recordsMemberName{font-size:clamp(24px,2.7vw,36px);bottom:47px;left:22px;right:14px}
 #senateMembers .recordsMemberCard .recordsMemberParty{bottom:22px;left:22px}
 #senateMembers .recordsMemberDistrict{top:18px;left:21px}
-#senateMembers .recordsMemberPortrait{right:0;left:37%}
-#senateMembers .recordsMemberCard::after{
- inset:0;background:linear-gradient(90deg,rgba(4,12,27,.96) 0%,rgba(6,15,30,.79) 30%,rgba(8,17,35,.09) 96%);
-}
 #senateMembers .recordsMemberFallback{font-size:95px}
 .recordsProfile{scroll-margin-top:84px}
 .recordsProfileHero{
@@ -182,8 +177,6 @@ body[data-view="records"] .recordsProfile{
  .recordsHeroSteps{gap:8px 13px;margin-top:18px}
  .recordsMemberGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
  #senateMembers{grid-template-columns:repeat(2,minmax(0,1fr))}
- #senateMembers .recordsMemberPortrait{left:0}
- #senateMembers .recordsMemberCard::after{background:linear-gradient(180deg,transparent 0%,rgba(4,10,23,.9) 100%)}
  #senateMembers .recordsMemberCard .recordsMemberName{font-size:20px;left:13px;bottom:36px}
  #senateMembers .recordsMemberCard .recordsMemberParty{left:13px;bottom:14px}
  .recordsProfileHero{grid-template-columns:34% 1fr;min-height:295px}
@@ -210,22 +203,6 @@ body[data-view="records"] .recordsProfile{
 /* The State silhouettes users already approved remain unchanged. */
 .recordsStateGlyph{display:flex;align-items:center;justify-content:center}
 
-/* Fix photographed senators: show the whole source portrait instead of object-fit:cover zoom. */
-#senateMembers .recordsMemberPortrait{
- left:36%;right:0;top:0;bottom:0;
- display:flex;justify-content:flex-end;align-items:flex-end;
- overflow:hidden;
- background:radial-gradient(ellipse at 75% 25%,#35465c,#172236 72%);
-}
-#senateMembers .recordsMemberPortrait img{
- position:relative;
- width:auto;max-width:100%;height:100%;
- object-fit:contain;object-position:bottom right;
- filter:saturate(.83);transform:none;
-}
-#senateMembers .recordsMemberCard:hover .recordsMemberPortrait img{transform:none;filter:saturate(.95)}
-#senateMembers .recordsMemberFallback{z-index:0}
-#senateMembers .recordsMemberPortrait img:not([hidden]){z-index:1}
 /* Votes are not political parties. Independent bars, each measured on one exact denominator. */
 .recordsDistribution{border:1px solid rgba(130,174,206,.21);border-radius:18px;padding:18px;margin:17px 0 26px;background:rgba(2,13,30,.28)}
 .recordsDistributionCaption{font-size:12px;color:#c5d9e5;margin:0 0 16px;line-height:1.45}
@@ -244,7 +221,6 @@ body[data-view="records"] .recordsProfile{
 .recordsVoteWhy strong{display:inline;font-size:12px}
 .recordsVoteWhy button{background:transparent;border:0;padding:0;margin:0;color:#a7e3e5;cursor:pointer;font-size:11px}
 .recordsVoteWhy button:hover{text-decoration:underline}
-@media(max-width:760px){#senateMembers .recordsMemberPortrait{left:15%}#senateMembers .recordsMemberPortrait img{object-fit:contain;max-width:100%;object-position:right bottom}}
 @media(max-width:520px){.recordsDistributionRow{grid-template-columns:90px minmax(0,1fr) 65px;gap:8px}.recordsDistribution{padding:12px}}
 
 /* Put campaign money, travel and legislative measurements below the votes:
@@ -605,4 +581,34 @@ body[data-view="records"] .recordsProfile{
  .recordsFundingSector>summary{grid-template-columns:minmax(0,1fr) auto}
  .recordsFundingSector>summary small{grid-column:1}
  .recordsFundingSector>summary strong{grid-column:2;grid-row:1/3}
+}
+
+/* Itemized individual contributions are visually separate from PAC/committee money. */
+.recordsIndividualDonors{margin-top:16px}
+.recordsIndividualDonorIntro{
+ display:flex;justify-content:space-between;align-items:center;gap:14px;
+ padding-bottom:12px;border-bottom:1px solid rgba(145,196,229,.16)
+}
+.recordsIndividualDonorIntro>strong{font-size:13px;color:#eef7fb}
+.recordsIndividualDonorIntro>a{font-size:10px;color:#8ed8df;text-decoration:none}
+.recordsIndividualDonorList{display:grid}
+.recordsIndividualDonor{
+ display:grid;grid-template-columns:34px minmax(0,1fr) minmax(130px,auto) auto;
+ gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid rgba(145,196,229,.12)
+}
+.recordsIndividualDonor:last-child{border-bottom:0}
+.recordsIndividualDonorRank{font-size:10px;color:#6f93a9;font-variant-numeric:tabular-nums}
+.recordsIndividualDonorIdentity{min-width:0}
+.recordsIndividualDonorIdentity>strong{display:block;color:#eaf4f8;font-size:12px;line-height:1.35}
+.recordsIndividualDonorIdentity>span{display:block;color:#93adbd;font-size:9px;line-height:1.45;margin-top:4px;overflow-wrap:anywhere}
+.recordsIndividualDonorMoney{text-align:right}
+.recordsIndividualDonorMoney>strong{display:block;color:#f2f8fb;font-size:13px;font-variant-numeric:tabular-nums}
+.recordsIndividualDonorMoney>small{display:block;color:#91a9b9;font-size:8px;line-height:1.35;margin-top:3px}
+.recordsIndividualDonorReceipt{color:#708fa2!important}
+.recordsIndividualDonor>a{font-size:9px;color:#8ed8df;text-decoration:none}
+.recordsIndividualDonorScope{margin-top:12px}
+@media(max-width:620px){
+ .recordsIndividualDonor{grid-template-columns:26px minmax(0,1fr) auto}
+ .recordsIndividualDonorMoney{grid-column:2;text-align:left}
+ .recordsIndividualDonor>a{grid-column:3;grid-row:1/3}
 }
