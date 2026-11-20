@@ -18,32 +18,10 @@ test('Federal Money renderer labels obligations as federal award activity, not r
  assert.match(map,/not household income|not a household benefit/i);
 });
 
-
 test('Federal Money tab formats its stored date range without an undefined helper',()=>{
  const map=read('assets/js/map.js');
  assert.match(map,/function formatAtlasDate\(/);
  assert.match(map,/formatAtlasDate\(ds\.period\.start\)/);
  assert.match(map,/formatAtlasDate\(ds\.period\.end\)/);
  assert.doesNotMatch(map,/\?formatDate\(ds\.period\.start\)/);
-});
-
-
-test('Federal Money renderer uses a date formatter that is actually defined in map.js',()=>{
- const map=read('assets/js/map.js');
- const start=map.indexOf('function renderFederalMoney');
- const end=map.indexOf('\nfunction countyTabBody',start);
- const body=map.slice(start,end);
- const match=body.match(/([A-Za-z_$][\w$]*)\(ds\.period\.start\)/);
- assert.ok(match,'Federal Money period needs a date formatter');
- const formatter=match[1];
- assert.match(map,new RegExp('function\\s+'+formatter.replace(/[$]/g,'\\test('Federal Money renderer uses a formatter defined inside map.js before rendering the period',()=>{
- const map=read('assets/js/map.js');
- assert.match(map,/function dataDateLabel\(/);
- const start=map.indexOf('function renderFederalMoney');
- const end=map.indexOf('\nfunction countyTabBody',start);
- const body=map.slice(start,end);
- assert.match(body,/dataDateLabel\(ds\.period\.start\)/);
- assert.doesNotMatch(body,/\bformatDate\(/);
-});')+'\\s*\\('));
- assert.notEqual(formatter,'formatDate','map.js must not call the Records-only formatter');
 });
