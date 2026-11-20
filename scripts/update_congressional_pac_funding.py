@@ -290,6 +290,7 @@ def aggregate_candidate_rows(
         item["total"] = round(item["total"], 2)
     return {
         "directTotal": round(direct_total, 2),
+        "contributorCount": len(contributors),
         "contributors": contributors,
         "excludedIndependentExpenditureRows": excluded_ie,
         "excludedOtherTransactionRows": excluded_other,
@@ -443,6 +444,7 @@ def build_snapshot(
         "candidateId": identity["candidateId"],
         "candidateName": identity["candidateName"],
         "directCommitteeTotal": aggregated["directTotal"],
+        "contributorCount": aggregated["contributorCount"],
         "topContributors": contributors[:40],
         "sectors": _sector_summary(contributors),
         "leadershipPacContributors": [x for x in contributors if x["leadershipPac"]][:20],
