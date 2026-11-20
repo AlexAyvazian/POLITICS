@@ -181,3 +181,10 @@ test('funding metric uses the full contributor count rather than the top-40 disp
  assert.match(js,/data\.contributorCount/);
  assert.doesNotMatch(js,/\['Named PACs \/ committees',top\.length/);
 });
+
+
+test('records funding assets revalidate so six-hour PAC refreshes are not hidden by browser cache',()=>{
+ const html=read('records.html'),js=read('assets/js/records.js');
+ assert.match(html,/assets\/js\/records\.js\?v=\d+/);
+ assert.match(js,/assets\/data\/records\/pac-funding\/.*cache:'no-cache'/s);
+});
