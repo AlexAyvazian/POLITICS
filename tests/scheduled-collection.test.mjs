@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes,refreshMemberLegislation,refreshMemberFinanceDetail,refreshMemberLobby} from '../workers/politics-gateway.mjs';
+import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes,refreshMemberLegislation,refreshMemberFinanceDetail,refreshMemberFinanceRosterBatch,refreshMemberLobby} from '../workers/politics-gateway.mjs';
 
 const specs=COUNTY_CATEGORY_CONFIG.specs;
 const expectedCategories=['housing','jobs','income','healthcare','education','families','infrastructure'];
@@ -287,4 +287,43 @@ test('LobbyView network records distinguish research linkages from direct paymen
  assert.equal(data.source,'LobbyView researcher-coded bill/client networks');
  assert.ok(!JSON.stringify(data).includes('test-lobby'));
  assert.ok(seen.every(x=>x.options.headers.token==='test-lobby'));
+});
+
+
+test('full-roster finance batch selects six deterministic members and advances by batch index',async()=>{
+ const members=Array.from({length:400},(_,i)=>({bioguide:'A'+String(i+1).padStart(6,'0')}));
+ const roster={states:{CA:{house:members,senators:[]}}};
+ const writes=[],identityIds=[];
+ const store={
+  prepare(sql){
+   return {bind(...args){return {
+    first:async()=>sql.startsWith('SELECT snapshot_json FROM county_snapshots')?{snapshot_json:JSON.stringify(roster)}:null,
+    run:async()=>{writes.push({sql,args});return{};}
+   }}};
+  }
+ };
+ const mock=async input=>{
+  const u=new URL(input);
+  if(u.hostname==='politics-e5yt.onrender.com'){
+   const id=u.pathname.split('/').pop().replace('.json','');identityIds.push(id);
+   return new Response(JSON.stringify({bioguide:id,cycle:2026,candidateId:'H1CA00001'}),{status:200});
+  }
+  if(u.pathname.includes('/by_size/by_candidate/'))return new Response(JSON.stringify({results:[{size:'200',total:100,count:1}]}));
+  if(u.pathname.includes('/by_state/by_candidate/'))return new Response(JSON.stringify({results:[{state:'CA',total:100,count:1}]}));
+  if(u.pathname.includes('/schedule_e/totals/by_candidate/'))return new Response(JSON.stringify({results:[]}));
+  if(u.pathname.includes('/candidate/H1CA00001/committees/'))return new Response(JSON.stringify({results:[{designation:'P',committee_id:'C00000001'}]}));
+  if(u.pathname.includes('/by_employer/'))return new Response(JSON.stringify({results:[]}));
+  if(u.pathname.endsWith('/schedules/schedule_a/'))return new Response(JSON.stringify({results:[]}));
+  throw Error('unexpected '+u.pathname);
+ };
+ const result=await refreshMemberFinanceRosterBatch({COUNTY_DB:store,FEC_API_KEY:'test-fec'},0,6,mock,new Date('2026-11-20T00:05:00Z'));
+ assert.equal(result.attempted,6);
+ assert.equal(result.updated,6);
+ assert.equal(result.failed,0);
+ assert.equal(result.totalMembers,400);
+ assert.deepEqual(identityIds,['A000001','A000002','A000003','A000004','A000005','A000006']);
+ const final=await refreshMemberFinanceRosterBatch({COUNTY_DB:store,FEC_API_KEY:'test-fec'},95,6,mock,new Date('2026-11-20T11:55:00Z'));
+ assert.equal(final.attempted,0);
+ assert.equal(final.complete,true);
+ assert.equal(identityIds.length,6);
 });

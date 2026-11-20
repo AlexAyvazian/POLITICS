@@ -1,20 +1,42 @@
 /* Scheduled member-level Congress.gov, FEC and LobbyView data ingestion.
- * One source family per event protects the county update pipeline.
+ * Finance detail walks the complete congressional roster once per 12-hour
+ * cycle. Secondary source families keep their own quarter-hour slots.
  */
-import {refreshMemberLegislationBatch,refreshMemberExtraBatch} from './politics-gateway.mjs';
+import {refreshMemberLegislationBatch,refreshMemberFinanceRosterBatch,refreshMemberExtraBatch} from './politics-gateway.mjs';
 import {refreshFecMoneyNetwork} from './fec-money-network.mjs';
+
+export function recordsRefreshPlan(now=new Date()){
+ const minute=now.getUTCMinutes();
+ const hour=now.getUTCHours();
+ if(minute%15===0){
+  const secondaryIndex=hour*4+Math.floor(minute/15);
+  return {kind:'secondary',secondaryIndex};
+ }
+ const minutesIntoHalf=(hour%12)*60+minute;
+ const tick=Math.floor(minutesIntoHalf/5);
+ const batchIndex=tick-Math.floor(tick/3)-1;
+ return {kind:'finance',batchIndex,batchSize:6};
+}
+
 export function recordsRefreshScheduled(event,env,ctx){
  const now=new Date(event.scheduledTime??Date.now());
- const quarter=now.getUTCHours()*4+Math.floor(now.getUTCMinutes()/15);
- const group=quarter%4;
- const slot=12+(Math.floor(quarter/4)%36);
- const job=group===0?refreshFecMoneyNetwork(env,fetch,now):
-  group===1?refreshMemberLegislationBatch(env,slot,fetch,now):
-  refreshMemberExtraBatch(env,group===2?'finance':'lobby',slot,fetch,now);
+ const plan=recordsRefreshPlan(now);
+ let job;
+ if(plan.kind==='finance'){
+  job=refreshMemberFinanceRosterBatch(env,plan.batchIndex,plan.batchSize,fetch,now);
+ }else{
+  const group=plan.secondaryIndex%3;
+  const slot=12+(Math.floor(plan.secondaryIndex/3)%36);
+  job=group===0?refreshFecMoneyNetwork(env,fetch,now):
+   group===1?refreshMemberLegislationBatch(env,slot,fetch,now):
+   refreshMemberExtraBatch(env,'lobby',slot,fetch,now);
+ }
  ctx.waitUntil(job.catch(e=>{
-  console.warn('Records collection '+['money-network','legislation','finance','lobby'][group]+' failed: '+String(e?.message||e).slice(0,200));
+  const label=plan.kind==='finance'?'finance-full-roster':['money-network','legislation','lobby'][plan.secondaryIndex%3];
+  console.warn('Records collection '+label+' failed: '+String(e?.message||e).slice(0,200));
  }));
 }
+
 export default {
  fetch(){return new Response(JSON.stringify({service:'POLITICS records collector',status:'scheduled-only'}),
   {status:200,headers:{'Content-Type':'application/json'}});},
