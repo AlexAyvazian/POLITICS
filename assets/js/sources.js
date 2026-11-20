@@ -10,7 +10,7 @@ const META={
  datagov:{name:'Data.gov',where:'Research adapter · no voter-facing dataset yet',match:[],note:'Federal data catalog search.'},
  eia:{name:'U.S. Energy Information Administration',where:'County Atlas · Infrastructure & Environment',match:['eia_state_electricity'],note:'State residential electricity-price data.'},
  fda:{name:'openFDA',where:'Research adapter · no voter-facing dataset yet',match:[],note:'Published FDA datasets; current adapter is not a healthcare-price source.'},
- fdic:{name:'FDIC',where:'Research adapter · no voter-facing dataset yet',match:[],note:'Bank institution records.'},
+ fdic:{name:'FDIC BankFind Suite',where:'County Atlas · Housing',match:['fdic_county_offices'],note:'Current physical office presence for FDIC-insured banks and savings associations by county.'},
  fec:{name:'Federal Election Commission',where:'Congressional Records · Campaign Money / PAC & Networks',match:['member_finance_detail','political_money','member_finance_collection_health'],note:'Campaign finance, itemized receipts and committee-network filings.'},
  fred:{name:'Federal Reserve Economic Data',where:'Future County Atlas · Jobs & Economy',match:[],note:'Economic time series.'},
  govinfo:{name:'GovInfo',where:'Government Action · Official Publications',match:[],onDemandLive:true,note:'Official federal publications and documents searched on demand.'},
@@ -87,13 +87,14 @@ function applyFilter(){
 async function load(){
  const status=document.getElementById('sourceStatus');
  try{
-  const [catalogRes,healthRes,spendingRes,housingFinanceRes,cmsPartBRes,epaAirQualityRes]=await Promise.all([
+  const [catalogRes,healthRes,spendingRes,housingFinanceRes,cmsPartBRes,epaAirQualityRes,fdicBankingRes]=await Promise.all([
    fetch(GATEWAY+'/api/catalog',{headers:{Accept:'application/json'},credentials:'omit'}),
    fetch(READER+'/api/data-health',{headers:{Accept:'application/json'},credentials:'omit'}),
    fetch('assets/data/county/usaspending.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
    fetch('assets/data/state/housing-finance.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
    fetch('assets/data/state/cms-partb-provider-activity.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
-   fetch('assets/data/county/epa-air-quality-2025.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
+   fetch('assets/data/county/epa-air-quality-2025.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
+   fetch('assets/data/county/fdic-banking-access.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
   ]);
   const catalog=catalogRes.ok?await catalogRes.json():{providers:[]};
   const health=healthRes.ok?await healthRes.json():{datasets:[],collectionHealth:[]};
@@ -101,6 +102,7 @@ async function load(){
   const housingFinance=housingFinanceRes.ok?await housingFinanceRes.json():null;
   const cmsPartB=cmsPartBRes.ok?await cmsPartBRes.json():null;
   const epaAirQuality=epaAirQualityRes.ok?await epaAirQualityRes.json():null;
+  const fdicBanking=fdicBankingRes.ok?await fdicBankingRes.json():null;
   if(spending?.source==='USAspending.gov'&&Number(spending.count)>0){
    health.datasets=(health.datasets||[]).concat([{
     source:'usaspending_county',refreshedAt:spending.retrievedAt||null,
@@ -124,6 +126,12 @@ async function load(){
    health.datasets=(health.datasets||[]).concat([{
     source:'epa_air_quality_county_2025',refreshedAt:epaAirQuality.retrievedAt||null,
     records:Number(epaAirQuality.count)||0,snapshots:1,database:'static'
+   }]);
+  }
+  if(fdicBanking?.source==='FDIC BankFind Suite'&&Number(fdicBanking.officeCount)>0){
+   health.datasets=(health.datasets||[]).concat([{
+    source:'fdic_county_offices',refreshedAt:fdicBanking.retrievedAt||fdicBanking.dataAsOf||null,
+    records:Number(fdicBanking.officeCount)||0,snapshots:1,database:'static'
    }]);
   }
   const providers=(catalog.providers||[]).map(p=>({
