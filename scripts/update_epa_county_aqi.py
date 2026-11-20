@@ -6,7 +6,7 @@ contains counties with monitoring data sufficient for an annual AQI row.
 Missing counties are omitted, never converted to zero.
 """
 from __future__ import annotations
-import csv, io, json, sys, urllib.request, zipfile
+import csv, io, json, sys, time, urllib.request, zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -117,11 +117,22 @@ def build_snapshot(rows, retrieved_at: str, min_count: int=850, name_lookup=None
     }
 
 def fetch_county_lookup():
-    req=urllib.request.Request(CENSUS_COUNTIES,headers={"Accept":"application/json","User-Agent":USER_AGENT})
-    with urllib.request.urlopen(req,timeout=90) as response:
-        if response.status!=200:
-            raise RuntimeError(f"Census county lookup HTTP {response.status}")
-        rows=json.load(response)
+    rows=None
+    last=None
+    for attempt in range(4):
+        try:
+            req=urllib.request.Request(CENSUS_COUNTIES,headers={"Accept":"application/json","User-Agent":USER_AGENT})
+            with urllib.request.urlopen(req,timeout=90) as response:
+                if response.status!=200:
+                    raise RuntimeError(f"Census county lookup HTTP {response.status}")
+                rows=json.load(response)
+            break
+        except Exception as exc:
+            last=exc
+            if attempt<3:
+                time.sleep(1.5*(attempt+1))
+    if rows is None:
+        raise RuntimeError(f"Census county lookup failed after retries: {last}")
     if not isinstance(rows,list) or len(rows)<2900:
         raise RuntimeError("Incomplete Census county lookup")
     header=rows[0]
@@ -149,11 +160,22 @@ def fetch_county_lookup():
     return {k:v for k,v in lookup.items() if v}
 
 def fetch_rows():
-    req=urllib.request.Request(URL,headers={"Accept":"application/zip","User-Agent":USER_AGENT})
-    with urllib.request.urlopen(req,timeout=90) as response:
-        if response.status!=200:
-            raise RuntimeError(f"EPA AirData HTTP {response.status}")
-        payload=response.read()
+    payload=None
+    last=None
+    for attempt in range(5):
+        try:
+            req=urllib.request.Request(URL,headers={"Accept":"application/zip","User-Agent":USER_AGENT})
+            with urllib.request.urlopen(req,timeout=90) as response:
+                if response.status!=200:
+                    raise RuntimeError(f"EPA AirData HTTP {response.status}")
+                payload=response.read()
+            break
+        except Exception as exc:
+            last=exc
+            if attempt<4:
+                time.sleep(2*(attempt+1))
+    if payload is None:
+        raise RuntimeError(f"EPA AirData download failed after retries: {last}")
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         names=[n for n in archive.namelist() if n.lower().endswith(".csv")]
         if not names:
