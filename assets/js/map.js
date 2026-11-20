@@ -486,35 +486,38 @@ function renderBeaIncome(data,stateMode,selected){
   ' · current dollars. BEA personal income includes wages, proprietors’ income, dividends, interest, rents, and government benefits and is assigned to where people live. This is a different concept and vintage from the Census ACS income measures above. '+
   '<a href="'+esc(ds.sourceUrl||'https://www.bea.gov/data/income-saving/personal-income-by-county')+'" target="_blank" rel="noopener noreferrer">Official BEA source</a>.</p></section>';
 }
-function renderEpaCountyAqi(data,state,stateMode,selected){
- const ds=data?.epaAqi;
- if(!ds?.counties)return '<p class="categoryNote">EPA annual county AQI data has not been stored yet.</p>';
+function renderEpaCountyAirQuality(data,state,stateMode,selected){
+ const ds=data?.epaAirQuality;
+ if(!ds?.counties)return '<p class="categoryNote">EPA county air-monitoring statistics have not been stored yet.</p>';
  if(stateMode){
   const monitored=Object.keys(ds.counties).filter(fips=>fips.startsWith(state.fips)).length;
-  return '<section class="countyMetricSection epaAqiSection" aria-label="EPA annual county AQI monitoring coverage">'+
-   '<h3 class="countyFactsTitle">Annual county air quality · U.S. EPA AirData</h3>'+
+  return '<section class="countyMetricSection epaAirQualitySection" aria-label="EPA county air monitoring coverage">'+
+   '<h3 class="countyFactsTitle">Air quality monitoring · U.S. EPA</h3>'+
    '<p class="categoryNote">'+monitored.toLocaleString('en-US')+' counties in '+esc(state.name)+
-   ' have a '+esc(String(ds.year||2025))+' annual AQI row in the stored EPA monitoring file. Select a county to see its monitored-day summary. EPA county AQI should not be averaged across counties.</p></section>';
+   ' have a 2025 row in EPA’s county monitoring workbook. Select a county to inspect the published monitoring statistics. EPA says these values are not intended to numerically rank counties.</p></section>';
  }
  const row=ds.counties[selected];
  if(!row){
-  return '<section class="countyMetricSection epaAqiSection" aria-label="EPA annual county AQI monitoring coverage">'+
-   '<h3 class="countyFactsTitle">Annual county air quality · U.S. EPA AirData</h3>'+
-   '<p class="categoryNote">EPA has no '+esc(String(ds.year||2025))+' annual county AQI row for this county in the stored national file. This is <strong>not a zero AQI value</strong> and does not mean no pollution occurred; the annual county file only contains counties with monitoring data.</p></section>';
+  return '<section class="countyMetricSection epaAirQualitySection" aria-label="EPA county air monitoring coverage">'+
+   '<h3 class="countyFactsTitle">Air quality monitoring · U.S. EPA</h3>'+
+   '<p class="categoryNote">There is no 2025 EPA county monitoring row for this county in the stored official workbook. This is <strong>not a zero pollution value</strong> and does not mean the county had clean air or no pollution; EPA’s table only reports counties with usable monitoring statistics.</p></section>';
  }
- return '<section class="countyMetricSection epaAqiSection" aria-label="EPA annual county AQI">'+
-  '<h3 class="countyFactsTitle">Annual county air quality · U.S. EPA AirData</h3>'+
-  metricGrid([
-   ['Days with AQI',row.daysWithAqi,'count'],
-   ['Good AQI days',row.goodDays,'count'],
-   ['Moderate AQI days',row.moderateDays,'count'],
-   ['Unhealthy or worse days',row.unhealthyOrWorseDays,'count'],
-   ['Maximum AQI',row.maxAqi,'decimal'],
-   ['Median AQI',row.medianAqi,'decimal'],
-   ['90th percentile AQI',row.p90Aqi,'decimal']
-  ])+
-  '<p class="countyFactSource">EPA AirData annual AQI summary · '+esc(String(ds.year||2025))+'. A county day uses the <strong>highest daily monitor AQI</strong> reported within the county. “Unhealthy or worse” combines Unhealthy for Sensitive Groups, Unhealthy, Very Unhealthy, and Hazardous days. Monitoring coverage varies by county and pollutant, so this is not a modeled countywide exposure estimate. '+
-  '<a href="'+esc(ds.sourceUrl||'https://www.epa.gov/outdoor-air-quality-data/air-quality-index-report')+'" target="_blank" rel="noopener noreferrer">EPA AQI source</a>.</p></section>';
+ const metrics=[
+  ['Ozone · 8-hour (ppb)',row.ozone8hPpb,'decimal'],
+  ['PM2.5 · weighted annual mean (µg/m³)',row.pm25AnnualUgM3,'decimal'],
+  ['PM2.5 · 24-hour (µg/m³)',row.pm25DailyUgM3,'decimal'],
+  ['PM10 · 24-hour (µg/m³)',row.pm10DailyUgM3,'decimal'],
+  ['NO₂ · 1-hour (ppb)',row.no2OneHourPpb,'decimal'],
+  ['NO₂ · annual mean (ppb)',row.no2AnnualMeanPpb,'decimal'],
+  ['CO · 8-hour (ppm)',row.co8hPpm,'decimal'],
+  ['Lead · 3-month (µg/m³)',row.lead3MonthUgM3,'decimal'],
+  ['SO₂ · 1-hour (ppb)',row.so2OneHourPpb,'decimal']
+ ].filter(([,value])=>typeof value==='number'&&Number.isFinite(value));
+ return '<section class="countyMetricSection epaAirQualitySection" aria-label="EPA county air monitoring statistics">'+
+  '<h3 class="countyFactsTitle">Air quality monitoring · U.S. EPA</h3>'+
+  metricGrid(metrics)+
+  '<p class="countyFactSource">EPA Air Quality Statistics by County · 2025 · AQS data as of '+esc(ds.dataAsOf||'June 22, 2026')+'. The workbook reports the <strong>highest values among monitoring sites</strong> in each county and includes exceptional-events data. EPA says the summary is <strong>not intended to numerically rank counties</strong>; measurements represent conditions near monitoring sites and <strong>may not represent county-wide air quality</strong>. “ND” values remain missing rather than being converted to zero. '+
+  '<a href="'+esc(ds.sourceUrl||'https://www.epa.gov/air-trends/air-quality-cities-and-counties')+'" target="_blank" rel="noopener noreferrer">Official EPA source</a>.</p></section>';
 }
 
 function renderFederalMoney(data,state,stateMode,selected){
@@ -552,7 +555,7 @@ function countyTabBody(tab,data,base,state,county,stateMode,selected){
   renderCdcPlaces(data,stateMode?'state':'county',selected)+renderCmsPartB(data,state,stateMode,base);
  if(tab==='community')return categorySections(data,stateMode?'state':'county',selected,['education','families']);
  if(tab==='infrastructure')return categorySections(data,stateMode?'state':'county',selected,['infrastructure'])+
-  stateElectricityPanel(data,state)+renderEpaCountyAqi(data,state,stateMode,selected);
+  stateElectricityPanel(data,state)+renderEpaCountyAirQuality(data,state,stateMode,selected);
  if(tab==='federal')return renderFederalMoney(data,state,stateMode,selected);
  const control=renderStatePoliticalControl(state,stateMode);
  if(stateMode){
