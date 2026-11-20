@@ -396,6 +396,26 @@ function stateElectricityPanel(data,state){
   '<p class="countyFactSource">U.S. Energy Information Administration · '+esc(row.period||'latest reporting month')+
   ' · cents per kWh. This is a statewide measure, not a county estimate.</p></section>';
 }
+function renderBlsLaborMarket(data,stateMode,selected){
+ const ds=data?.bls;
+ if(!ds?.counties)return '<p class="categoryNote">Current BLS county labor-market data has not been stored yet.</p>';
+ if(stateMode)return '<section class="countyMetricSection"><h3 class="countyFactsTitle">Current county labor market · BLS LAUS</h3><p class="categoryNote">Select a county to see the latest monthly Local Area Unemployment Statistics. County LAUS values are not seasonally adjusted; statewide BLS series are kept separate rather than averaging county rates.</p></section>';
+ const row=ds.counties?.[selected];
+ if(!row||typeof row.unemploymentRatePct!=='number')
+  return '<p class="categoryNote">No current BLS LAUS observation is stored for this county.</p>';
+ return '<section class="countyMetricSection blsLaborSection" aria-label="BLS county labor market">'+
+  '<h3 class="countyFactsTitle">Current labor market · U.S. Bureau of Labor Statistics</h3>'+
+  metricGrid([
+   ['Unemployment rate',row.unemploymentRatePct,'percent'],
+   ['Labor force',row.laborForce,'count'],
+   ['Employed residents',row.employed,'count'],
+   ['Unemployed residents',row.unemployed,'count']
+  ])+
+  '<p class="countyFactSource">BLS Local Area Unemployment Statistics · '+esc(ds.period||'latest month')+
+  ' · '+esc(ds.seasonalAdjustment||'Not seasonally adjusted')+
+  ' · estimates by place of residence. This monthly labor-market series is different from the Census ACS five-year unemployment estimate above. '+
+  '<a href="'+esc(ds.sourceUrl||'https://www.bls.gov/lau/tables.htm')+'" target="_blank" rel="noopener noreferrer">Official BLS source</a>.</p></section>';
+}
 function renderBeaIncome(data,stateMode,selected){
  const ds=data?.bea;
  if(!ds?.counties)return '<p class="categoryNote">BEA county personal-income data has not been stored yet.</p>';
@@ -439,7 +459,7 @@ function countyTabBody(tab,data,base,state,county,stateMode,selected){
  }
  if(tab==='housing')return categorySections(data,stateMode?'state':'county',selected,['housing']);
  if(tab==='economy')return categorySections(data,stateMode?'state':'county',selected,['jobs','income'])+
-  renderBeaIncome(data,stateMode,selected);
+  renderBlsLaborMarket(data,stateMode,selected)+renderBeaIncome(data,stateMode,selected);
  if(tab==='health')return categorySections(data,stateMode?'state':'county',selected,['healthcare'])+
   renderCdcPlaces(data,stateMode?'state':'county',selected);
  if(tab==='community')return categorySections(data,stateMode?'state':'county',selected,['education','families']);

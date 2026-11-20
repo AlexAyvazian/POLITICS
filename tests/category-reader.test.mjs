@@ -130,3 +130,14 @@ test('BEA county income snapshot is served from the existing jobs D1 only',async
  const pending=await serve(req('/api/bea-snapshot'),{CATEGORY_DB_JOBS:fakeDb({})});
  assert.equal((await pending.json()).status,'pending');
 });
+
+
+test('BLS county labor-market snapshot is served from the existing jobs D1 only',async()=>{
+ const bls={source:'U.S. Bureau of Labor Statistics',count:1,counties:{'06019':{unemploymentRatePct:8.9,period:'2026-09'}}};
+ const env={CATEGORY_DB_JOBS:fakeDb({bls_laus_county:bls})};
+ const res=await serve(req('/api/bls-snapshot'),env);
+ assert.equal(res.status,200);
+ assert.equal((await res.json()).counties['06019'].unemploymentRatePct,8.9);
+ const pending=await serve(req('/api/bls-snapshot'),{CATEGORY_DB_JOBS:fakeDb({})});
+ assert.equal((await pending.json()).status,'pending');
+});
