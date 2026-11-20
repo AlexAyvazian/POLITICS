@@ -53,14 +53,14 @@ test('voting summaries preserve all recorded statuses and never invent missed vo
  assert.equal(m.voteDistribution([{cast:'Unknown status'}]).total,0);
 });
 
-test('profile opens with an overview and keeps detailed voting and funding in separate panels',()=>{
+test('profile opens with an overview and keeps detailed voting and campaign money in separate panels',()=>{
  const html=read('records.html');
  assert.match(html,/id="memberDashboard"/);
  assert.match(html,/id="recentDecisions"/);
  assert.match(html,/id="voteArchive"/);
  assert.match(html,/id="profileOverviewNav"[^>]*role="tablist"/);
  assert.ok(html.indexOf('id="profilePanelVotes"')<html.indexOf('id="votesArchivePanel"'));
- assert.ok(html.indexOf('id="profilePanelFunding"')<html.indexOf('id="financeLinks"'));
+ assert.ok(html.indexOf('id="profilePanelCampaign"')<html.indexOf('id="financeLinks"'));
  assert.match(html,/<details[^>]*id="voteArchive"/);
 });
 test('member evidence aggregates only verified cached inputs with explicit missing statuses',()=>{
@@ -90,15 +90,15 @@ test('profile has data-first FEC and lobbying evidence, with no unverified relat
  assert.match(js,/\/api\/member-finance-detail/);
  assert.match(js,/\/api\/member-lobby-network/);
  assert.match(css,/recordsInsightGrid/);
- assert.ok(html.indexOf('id="financeLinks"')>html.indexOf('id="profilePanelFunding"'));
- assert.ok(html.indexOf('id="lobbyLinks"')>html.indexOf('id="profilePanelFunding"'));
+ assert.ok(html.indexOf('id="financeLinks"')>html.indexOf('id="profilePanelCampaign"'));
+ assert.ok(html.indexOf('id="lobbyLinks"')>html.indexOf('id="profilePanelLobbying"'));
 });
 
 test('every member receives a common source-linked committee-network panel',()=>{
  const html=read('records.html'),js=read('assets/js/records.js');
  assert.match(html,/id="moneyNetwork"/);
  assert.match(html,/id="moneyNetworkVisualization"/);
- assert.ok(html.indexOf('id="moneyNetwork"')<html.indexOf('id="financeLinks"'));
+ assert.ok(html.indexOf('id="moneyNetwork"')>html.indexOf('id="profilePanelNetworks"'));
  assert.match(js,/async function loadMoneyNetwork\(m,committeeId=null,trail=\[\]\)/);
  assert.match(js,/\/api\/political-money-network/);
  assert.match(js,/loadMoneyNetwork\(m\);/);
@@ -127,23 +127,19 @@ test('Alaska fills its selector tile without distorting the established silhouet
 });
 
 
-test('member profile separates overview, voting record, and funding into accessible tabs',()=>{
+test('member profile separates seven voter-facing record categories into accessible tabs',()=>{
  const html=read('records.html'),js=read('assets/js/records.js'),css=read('assets/css/records-editorial.css');
- for(const id of ['profileTabOverview','profileTabVotes','profileTabFunding','profilePanelOverview','profilePanelVotes','profilePanelFunding'])
-  assert.match(html,new RegExp('id="'+id+'"'));
+ const ids=['Overview','Votes','Legislation','Campaign','Networks','Lobbying','Travel'];
+ for(const key of ids){
+  assert.match(html,new RegExp('id="profileTab'+key+'"'));
+  assert.match(html,new RegExp('id="profilePanel'+key+'"'));
+ }
  assert.match(html,/role="tablist"/);
- assert.match(html,/role="tab"[^>]*aria-controls="profilePanelOverview"/);
- assert.match(html,/role="tab"[^>]*aria-controls="profilePanelVotes"/);
- assert.match(html,/role="tab"[^>]*aria-controls="profilePanelFunding"/);
  assert.ok(html.indexOf('id="memberDashboard"')>html.indexOf('id="profilePanelOverview"'));
- assert.ok(html.indexOf('id="sponsoredLinks"')>html.indexOf('id="profilePanelOverview"'));
+ assert.ok(html.indexOf('id="sponsoredLinks"')>html.indexOf('id="profilePanelLegislation"'));
  assert.ok(html.indexOf('id="votesArchivePanel"')>html.indexOf('id="profilePanelVotes"'));
- for(const id of ['moneyNetwork','financeLinks','lobbyLinks','travelLinks'])
-  assert.ok(html.indexOf('id="'+id+'"')>html.indexOf('id="profilePanelFunding"'));
- assert.match(js,/function activateProfileTab/);
- assert.match(js,/profileTabOverview/);
- assert.match(js,/profileTabVotes/);
- assert.match(js,/profileTabFunding/);
+ assert.match(js,/PROFILE_TAB_ORDER/);
+ assert.match(js,/if\(name==='funding'\)name='campaign'/);
  assert.match(js,/activateProfileTab\('overview'/);
  assert.match(css,/\.recordsProfileTabs/);
  assert.match(css,/\.recordsProfileTab/);
@@ -151,11 +147,10 @@ test('member profile separates overview, voting record, and funding into accessi
 });
 
 
-test('funding tab prioritizes named PACs, sectors, and leadership PAC relationships before raw filing aggregates',()=>{
+test('PAC network tab prioritizes named PACs, sectors, and leadership PAC relationships before committee drilldown',()=>{
  const html=read('records.html'),js=read('assets/js/records.js'),css=read('assets/css/records-editorial.css');
  for(const id of ['fundingIntelligence','pacFundingVisualization'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.ok(html.indexOf('id="fundingIntelligence"')<html.indexOf('id="moneyNetwork"'));
- assert.ok(html.indexOf('id="fundingIntelligence"')<html.indexOf('id="financeLinks"'));
  assert.match(js,/function renderPacFunding/);
  assert.match(js,/async function loadPacFunding/);
  assert.match(js,/assets\/data\/records\/pac-funding\//);
