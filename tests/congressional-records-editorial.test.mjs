@@ -200,11 +200,11 @@ test('funding view includes a source-linked individual donor leaderboard, not on
  assert.match(css,/\.recordsIndividualDonor/);
 });
 
-test('House and Senate directory cards use the same portrait framing instead of chamber-specific photo crops',()=>{
+test('House portraits retain their crop while Senate cards avoid the old offset and use a fitted image',()=>{
  const css=read('assets/css/records-editorial.css');
  assert.match(css,/\.recordsMemberPortrait img\{[^}]*object-fit:\s*cover[^}]*object-position:\s*50%\s+15%/s);
  assert.doesNotMatch(css,/#senateMembers \.recordsMemberPortrait\{[^}]*left:\s*37%/s);
- assert.doesNotMatch(css,/#senateMembers \.recordsMemberPortrait img\{[^}]*object-position:/s);
+ assert.match(css,/#senateMembers \.recordsMemberPortrait img\{[^}]*object-fit:contain/s);
 });
 
 test('Senate photos are constrained to their vertical aspect and full portraits fit in the hero',()=>{
