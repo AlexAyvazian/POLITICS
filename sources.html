@@ -1,6 +1,66 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="0;url=/">
-<title>POLITICS</title><link rel="canonical" href="https://politics-e5yt.onrender.com/"></head>
-<body><p>This page has been removed. <a href="/">Open the county map</a>.</p>
-<script>location.replace('/');</script></body></html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#050814">
+ <meta name="description" content="See which public data sources power POLITICS, where they appear, their latest stored refresh, coverage, and collection status.">
+ <title>Data Sources & Health · POLITICS</title>
+ <link rel="stylesheet" href="assets/css/atlas.css">
+ <link rel="stylesheet" href="assets/css/sources.css">
+</head>
+<body data-view="sources">
+ <header class="sourceNav">
+  <div class="sourceBrand"><i aria-hidden="true"></i><span>POLITICS · Public Data</span></div>
+  <strong>Data Sources &amp; Health</strong>
+  <nav aria-label="POLITICS sections">
+   <a href="index.html#map">County Atlas</a>
+   <a href="congressional.html">Congressional Atlas</a>
+   <a href="records.html">Congressional Records</a>
+   <a href="foreign-influence.html">Foreign Influence</a>
+   <span aria-current="page">Sources</span>
+  </nav>
+ </header>
+ <main class="sourceMain">
+  <section class="sourceHero">
+   <p class="sourceEyebrow">TRANSPARENCY ABOUT THE TRANSPARENCY DATA</p>
+   <h1>Data Sources &amp; Health</h1>
+   <p>See what powers POLITICS, what each source can actually tell you, when our stored copy last refreshed, where it appears in the site, and which integrations are still pending or broken. A configured API is not labeled “live” unless the site has evidence that useful data is being collected or published.</p>
+   <div class="sourceHeroStats">
+    <article><span>Connected sources</span><strong id="connectedCount">—</strong></article>
+    <article><span>Stored datasets</span><strong id="datasetCount">—</strong></article>
+    <article><span>Collection problems</span><strong id="problemCount">—</strong></article>
+    <article><span>Health generated</span><strong id="healthGenerated">Loading…</strong></article>
+   </div>
+  </section>
+
+  <section class="sourceControls" aria-label="Filter sources">
+   <label><span>Find a source</span><input id="sourceSearch" type="search" placeholder="FEC, housing, lobbying, climate…" autocomplete="off"></label>
+   <div class="sourceFilters" role="group" aria-label="Filter by status">
+    <button type="button" data-source-filter="all" aria-pressed="true">All</button>
+    <button type="button" data-source-filter="live" aria-pressed="false">Live</button>
+    <button type="button" data-source-filter="connected" aria-pressed="false">Connected</button>
+    <button type="button" data-source-filter="issue" aria-pressed="false">Needs attention</button>
+   </div>
+  </section>
+
+  <section class="sourceLegend" aria-label="Status definitions">
+   <div><i class="live"></i><strong>Live</strong><span>Stored or published data is available to the site.</span></div>
+   <div><i class="connected"></i><strong>Connected</strong><span>Adapter/credential exists, but no stored voter-facing dataset is evidenced yet.</span></div>
+   <div><i class="issue"></i><strong>Needs attention</strong><span>The collector has a current recorded failure or is not producing usable records.</span></div>
+  </section>
+
+  <section>
+   <div class="sourceSectionHead"><div><span>THE DATA PIPELINE</span><h2>Sources powering the project</h2></div><p id="sourceStatus" role="status">Loading source health…</p></div>
+   <div id="sourceGrid" class="sourceGrid" aria-live="polite"></div>
+  </section>
+
+  <section class="sourceMethod">
+   <h2>How to read this page</h2>
+   <p><strong>Last stored refresh</strong> is when POLITICS saved its latest snapshot; it is not necessarily the publication date of the underlying government release. <strong>Coverage</strong> is the number of stored records or snapshots, not proof that a source is exhaustive. Missing data stays missing—we do not convert collection gaps into zeroes.</p>
+   <p>POLITICS uses primary government records where available and labels research or third-party sources separately. Every substantive page should link back to the underlying source or filing whenever the source provides a stable public record.</p>
+  </section>
+ </main>
+ <script src="assets/js/sources.js"></script>
+</body>
+</html>
