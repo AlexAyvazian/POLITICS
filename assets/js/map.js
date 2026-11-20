@@ -167,6 +167,11 @@ function formatAtlasDate(value){
  const d=new Date(String(value||'')+'T00:00:00Z');
  return Number.isNaN(d.valueOf())?String(value||'Unknown date'):d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'});
 }
+function dataDateLabel(value){
+ if(!value)return 'date unavailable';
+ const d=new Date(String(value).length===10?value+'T00:00:00Z':value);
+ return Number.isNaN(d.valueOf())?String(value):d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
+}
 function metricFormat(value,unit){
  if(typeof value!=='number'||!Number.isFinite(value)||value<0)return 'Unavailable';
  if(unit==='currency')return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
