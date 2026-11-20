@@ -452,6 +452,39 @@ function renderHousingFinance(data,state,stateMode){
   '. Complaints are not a statistical sample and are not representative of all consumers\' experiences; complaint volume can also reflect population, customer base and market share. '+
   '<a href="'+esc(ds.cfpbSourceUrl||'https://www.consumerfinance.gov/data-research/consumer-complaints/')+'" target="_blank" rel="noopener noreferrer">CFPB source</a>.</p></section>';
 }
+function renderFdicBankingAccess(data,base,state,stateMode,selected){
+ const ds=data?.fdicBanking;
+ if(!ds?.counties)return '<p class="categoryNote">Current FDIC banking-office data has not been stored yet.</p>';
+ if(stateMode){
+  const rows=Object.entries(ds.counties).filter(([fips])=>fips.startsWith(state.fips));
+  const offices=rows.reduce((sum,[,row])=>sum+(Number(row.officeCount)||0),0);
+  return '<section class="countyMetricSection fdicBankingSection" aria-label="FDIC insured banking office presence">'+
+   '<h3 class="countyFactsTitle">Local banking access · FDIC-insured offices</h3>'+
+   '<p class="categoryNote">'+offices.toLocaleString('en-US')+' FDIC-insured physical banking offices are recorded across '+rows.length.toLocaleString('en-US')+
+   ' counties/jurisdictions in '+esc(state.name)+'. Select a county for local institution and office detail.</p></section>';
+ }
+ const row=ds.counties[selected];
+ if(!row){
+  return '<section class="countyMetricSection fdicBankingSection" aria-label="FDIC insured banking office presence">'+
+   '<h3 class="countyFactsTitle">Local banking access · FDIC-insured offices</h3>'+
+   '<p class="categoryNote">No current FDIC-insured physical office is stored for this county. This is not proof that residents have no banking access; credit unions, online-only institutions, ATMs, nonbank lenders and other financial-service channels are outside this dataset.</p></section>';
+ }
+ const population=Number(base?.counties?.[selected]?.population);
+ const rate=population>0?row.officeCount/population*100000:null;
+ const metrics=[
+  ['FDIC-insured banking offices',row.officeCount,'count'],
+  ['Distinct insured institutions with a local office',row.institutionCount,'count'],
+  ['Full-service brick-and-mortar offices',row.fullServiceBrickMortar,'count']
+ ];
+ if(Number.isFinite(rate))metrics.push(['Offices per 100k residents',Math.round(rate*10)/10,'decimal']);
+ return '<section class="countyMetricSection fdicBankingSection" aria-label="FDIC insured banking office presence">'+
+  '<h3 class="countyFactsTitle">Local banking access · FDIC-insured offices</h3>'+
+  metricGrid(metrics)+
+  '<p class="countyFactSource">FDIC BankFind Suite current office locations · data as of '+esc(ds.dataAsOf||'latest published run')+
+  '. This measures <strong>physical FDIC-insured banking presence</strong>. It excludes credit unions, online-only institutions, nonbank lenders and other financial-service channels, and <strong>does not measure account affordability, lending approval, lending fairness, service quality or digital access</strong>. '+
+  '<a href="'+esc(ds.sourceUrl||'https://banks.data.fdic.gov/bankfind-suite/bankfind')+'" target="_blank" rel="noopener noreferrer">Official FDIC source</a>.</p></section>';
+}
+
 function renderBlsLaborMarket(data,stateMode,selected){
  const ds=data?.bls;
  if(!ds?.counties)return '<p class="categoryNote">Current BLS county labor-market data has not been stored yet.</p>';
@@ -548,7 +581,7 @@ function countyTabBody(tab,data,base,state,county,stateMode,selected){
   return pieces.join('')||'<p class="categoryNote">Representation data is still collecting for this state.</p>';
  }
  if(tab==='housing')return categorySections(data,stateMode?'state':'county',selected,['housing'])+
-  renderHousingFinance(data,state,stateMode);
+  renderHousingFinance(data,state,stateMode)+renderFdicBankingAccess(data,base,state,stateMode,selected);
  if(tab==='economy')return categorySections(data,stateMode?'state':'county',selected,['jobs','income'])+
   renderBlsLaborMarket(data,stateMode,selected)+renderBeaIncome(data,stateMode,selected);
  if(tab==='health')return categorySections(data,stateMode?'state':'county',selected,['healthcare'])+
