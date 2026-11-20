@@ -4,13 +4,16 @@ import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
 test('Housing tab loads and renders stored statewide HMDA and CFPB context',()=>{
- const map=read('assets/js/map.js'),cache=read('assets/js/county-cache.js');
+ const map=read('assets/js/map.js'),cache=read('assets/js/county-cache.js'),sources=read('assets/js/sources.js');
  assert.match(cache,/assets\/data\/state\/housing-finance\.json/);
  assert.match(cache,/housingFinance/);
  assert.match(map,/function renderHousingFinance/);
  assert.match(map,/HMDA/);
  assert.match(map,/CFPB/);
  assert.match(map,/tab==='housing'[\s\S]*renderHousingFinance/);
+ assert.match(sources,/hmda_state_2025/);
+ assert.match(sources,/cfpb_mortgage_state_24m/);
+ assert.match(sources,/assets\/data\/state\/housing-finance\.json/);
 });
 
 test('Housing finance context is explicitly statewide in county view and caveats complaint interpretation',()=>{
