@@ -69,8 +69,10 @@ function renderGovInfo(payload){
   url:item.packageId?'https://www.govinfo.gov/app/details/'+encodeURIComponent(item.packageId)+(item.granuleId?'/'+encodeURIComponent(item.granuleId):''):null
  }));
 }
-function renderCongress(payload){
- const rows=Array.isArray(payload?.data?.bills)?payload.data.bills:[];
+function renderCongress(payload,query=''){
+ let rows=Array.isArray(payload?.data?.bills)?payload.data.bills:[];
+ const q=String(query||'').trim().toLowerCase();
+ if(q)rows=rows.filter(item=>[item?.title,item?.type,item?.number,item?.latestAction?.text].some(value=>String(value||'').toLowerCase().includes(q)));
  return rows.map(item=>card({
   type:'Federal bill · '+[item.type,item.number].filter(Boolean).join(' '),
   date:item.updateDate||item.latestAction?.actionDate,title:item.title,
@@ -96,8 +98,8 @@ async function load(query=''){
   const response=await fetch(GATEWAY+'/api/'+conf.endpoint+'?'+params.toString(),{headers:{Accept:'application/json'},credentials:'omit'});
   if(!response.ok)throw Error(conf.source+' HTTP '+response.status);
   const payload=await response.json();if(id!==requestId)return;
-  const cards=RENDER[active](payload);
-  status.textContent=(query?'Search results from ':'Latest records from ')+conf.source+' · '+cards.length+' shown';
+  const cards=RENDER[active](payload,query);
+  status.textContent=(active==='congress'&&query?'Filtered within the latest Congress.gov bills · ':query?'Search results from '+conf.source+' · ':'Latest records from '+conf.source+' · ')+cards.length+' shown';
   if(!cards.length){empty('No records were returned for this search. Try a broader term or another source.');return;}
   root.replaceChildren(...cards);
  }catch(error){
@@ -110,7 +112,7 @@ function activate(key){
  if(!CONFIG[key])key='register';active=key;
  document.querySelectorAll('[data-government-tab]').forEach(btn=>btn.setAttribute('aria-selected',String(btn.dataset.governmentTab===key)));
  $('governmentSourceKicker').textContent=CONFIG[key].kicker;$('governmentTitle').textContent=CONFIG[key].title;$('governmentExplanation').textContent=CONFIG[key].explanation;
- const q=$('governmentQuery');q.placeholder=key==='govinfo'?'Search official publications…':key==='congress'?'Optional: filters the returned latest bills…':'Search this government source…';
+ const q=$('governmentQuery');q.placeholder=key==='govinfo'?'Search official publications…':key==='congress'?'Filter the latest returned bills…':'Search this government source…';
  load(key==='congress'?'':q.value.trim());
 }
 document.querySelectorAll('[data-government-tab]').forEach(btn=>btn.addEventListener('click',()=>activate(btn.dataset.governmentTab)));
