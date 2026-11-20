@@ -3,7 +3,7 @@ const READER='https://politics-daily-snapshot.alxayvazian.workers.dev';
 const GATEWAY='https://crimson-mud-d254.alxayvazian.workers.dev';
 const META={
  airnow:{name:'AirNow',where:'County Atlas · Infrastructure & Environment',match:[],note:'Preliminary reporting-area air quality.'},
- bea:{name:'Bureau of Economic Analysis',where:'Future County Atlas · Jobs & Economy',match:[],note:'Regional and county economic accounts.'},
+ bea:{name:'Bureau of Economic Analysis',where:'County Atlas · Jobs & Economy',match:['bea_county_per_capita_income'],note:'Annual county per-capita personal income from the BEA Regional accounts.'},
  bls:{name:'Bureau of Labor Statistics',where:'Future County Atlas · Jobs & Economy',match:[],note:'Labor-market statistics and selected economic series.'},
  census:{name:'U.S. Census Bureau',where:'County Atlas · every conditions tab',match:['census_acs5','census_housing','census_jobs','census_income','census_healthcare','census_education','census_families','census_infrastructure'],note:'ACS county conditions and demographics.'},
  congress:{name:'Congress.gov',where:'Congressional Records · Legislation / County Atlas · Representation',match:['congress_members_current','member_legislation','congress_house_votes_recent'],note:'Federal member, legislation and House roll-call records.'},
