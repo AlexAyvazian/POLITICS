@@ -269,6 +269,7 @@ def aggregate_candidate_rows(
             "total": 0.0,
             "transactions": 0,
             "latestDate": None,
+            "byYear": {},
             "committeeType": meta.get("committeeType"),
             "designation": meta.get("designation"),
             "sector": sector,
@@ -283,6 +284,8 @@ def aggregate_candidate_rows(
             date = f"{raw_date[4:8]}-{raw_date[0:2]}-{raw_date[2:4]}"
             if item["latestDate"] is None or date > item["latestDate"]:
                 item["latestDate"] = date
+            year = date[:4]
+            item["byYear"][year] = round(item["byYear"].get(year, 0) + amount, 2)
         direct_total += amount
 
     contributors = sorted(grouped.values(), key=lambda x: (-x["total"], x["name"]))
@@ -412,8 +415,10 @@ def _sector_summary(contributors: list[dict]) -> list[dict]:
     groups: dict[str, dict] = {}
     for item in contributors:
         sector = item["sector"]
-        group = groups.setdefault(sector, {"sector": sector, "total": 0.0, "committeeCount": 0, "items": []})
+        group = groups.setdefault(sector, {"sector": sector, "total": 0.0, "byYear": {}, "committeeCount": 0, "items": []})
         group["total"] += item["total"]
+        for year, amount in item.get("byYear", {}).items():
+            group["byYear"][year] = round(group["byYear"].get(year, 0) + amount, 2)
         group["committeeCount"] += 1
         group["items"].append(item)
     result = []
