@@ -707,7 +707,7 @@ async function refreshMemberFinanceDetail(env,bioguide,fetchImpl=fetch,now=new D
   }catch(_){}
   try{
    const rows=await fec('schedules/schedule_a/',{
-    committee_id:principalCommitteeId,is_individual:true,sort:'-contribution_receipt_amount',per_page:100
+    committee_id:principalCommitteeId,is_individual:true,two_year_transaction_period:2026,sort:'-contribution_receipt_amount',per_page:100
    });
    const donors=new Map();
    for(const row of rows){
