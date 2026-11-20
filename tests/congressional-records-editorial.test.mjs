@@ -163,10 +163,12 @@ test('PAC network tab prioritizes named PACs, sectors, and leadership PAC relati
 });
 
 
-test('member profile tabs are deep-linkable so funding views can be shared directly',()=>{
+test('member profile tabs are deep-linkable and legacy funding links open Campaign Money',()=>{
  const js=read('assets/js/records.js');
  assert.match(js,/route\.get\('tab'\)/);
- assert.match(js,/\['overview','votes','funding'\]\.includes\(requestedTab\)/);
+ assert.match(js,/PROFILE_TAB_ORDER\.includes\(requestedTab\)/);
+ assert.match(js,/requestedTab==='funding'/);
+ assert.match(js,/activateProfileTab\('campaign'\)/);
  assert.match(js,/tab='\+encodeURIComponent\(key\)/);
 });
 
