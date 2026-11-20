@@ -4,7 +4,7 @@
  'use strict';
  const ROOT='https://politics-daily-snapshot.alxayvazian.workers.dev';
  const cats=['housing','jobs','income','healthcare','education','families','infrastructure'];
- const data={core:null,categories:{},states:null,places:null,congress:null,federalMoney:null,bills:{},billStatus:{},openstates:{},openstatesStatus:{},houseVotes:null,houseVotesStatus:'loading'};
+ const data={core:null,categories:{},states:null,places:null,congress:null,federalMoney:null,bea:null,bills:{},billStatus:{},openstates:{},openstatesStatus:{},houseVotes:null,houseVotesStatus:'loading'};
  const billJobs=new Map(),openstatesJobs=new Map();
  let job=null;
  const notify=()=>window.dispatchEvent(new Event('politics-county-snapshot-ready'));
@@ -73,6 +73,10 @@
     if(value?.counties&&value?.fields&&value?.count)data.categories[cat]=value;
     notify();
    }).catch(error=>{console.warn('Cached '+cat+' unavailable:',error.message);notify();}));
+   const bea=fetchSnapshot('/api/bea-snapshot').then(value=>{
+    if(value?.source==='U.S. Bureau of Economic Analysis'&&value?.counties&&value?.count)data.bea=value;
+    notify();
+   }).catch(error=>{console.warn('Stored BEA county income unavailable:',error.message);notify();});
    const states=fetchSnapshot('/api/state-snapshot').then(value=>{
     if(value?.states)data.states=value;notify();
    }).catch(error=>{console.warn('Stored statewide data unavailable:',error.message);notify();});
@@ -99,7 +103,7 @@
     console.warn('Stored House vote data unavailable:',error.message);
     notify();
    });
-   job=Promise.allSettled([core,...other,states,places,congress,federalMoney,houseVotes]).then(()=>data);
+   job=Promise.allSettled([core,...other,bea,states,places,congress,federalMoney,houseVotes]).then(()=>data);
    return job;
   }
  };
