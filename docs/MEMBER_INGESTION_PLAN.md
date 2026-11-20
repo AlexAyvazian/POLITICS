@@ -5,7 +5,7 @@ The public Congressional Records page is `records.html`. It is a separate produc
 ## Architecture
 
 - `crimson-mud-d254`: county/state collector, existing `*/30 * * * *` schedule; no additional member requests on that cron.
-- `politics-records-refresh`: separate `*/15 * * * *` schedule, with `workers/records-refresh.mjs` importing the shared adapters from `workers/politics-gateway.mjs`. A quarter-hour event runs **one** source family (Congress.gov sponsorship, FEC aggregates, or LobbyView research). This keeps external subrequests within Workers Free limits.
+- `politics-records-refresh`: separate `*/5 * * * *` schedule. Non-quarter-hour ticks process deterministic six-member FEC finance batches; the 96 finance slots in each 12-hour window provide capacity for a complete congressional roster pass. Quarter-hour ticks remain reserved for secondary source families (committee-network ingestion, Congress.gov sponsorship, and LobbyView research) so one Worker invocation does not exceed free-tier external-request limits.
 - `politics-daily-snapshot`: keyless read-only D1 endpoints `/api/member-legislation?bioguide=...`, `/api/member-finance-detail?bioguide=...` and `/api/member-lobby-network?bioguide=...`.
 - Website: never sends provider keys to browsers and never makes upstream provider requests on profile selection. The data is joined by verified Bioguide/FEC IDs and explicitly attributed.
 
