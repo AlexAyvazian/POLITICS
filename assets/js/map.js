@@ -396,6 +396,20 @@ function stateElectricityPanel(data,state){
   '<p class="countyFactSource">U.S. Energy Information Administration · '+esc(row.period||'latest reporting month')+
   ' · cents per kWh. This is a statewide measure, not a county estimate.</p></section>';
 }
+function renderBeaIncome(data,stateMode,selected){
+ const ds=data?.bea;
+ if(!ds?.counties)return '<p class="categoryNote">BEA county personal-income data has not been stored yet.</p>';
+ if(stateMode)return '<section class="countyMetricSection"><h3 class="countyFactsTitle">Annual personal income · BEA</h3><p class="categoryNote">Select a county to see the official BEA per-capita personal-income measure. Statewide BEA figures are kept separate rather than averaging county values.</p></section>';
+ const row=ds.counties?.[selected];
+ if(!row||typeof row.perCapitaPersonalIncome!=='number')
+  return '<p class="categoryNote">No stored BEA per-capita personal-income figure is available for this county.</p>';
+ return '<section class="countyMetricSection beaIncomeSection" aria-label="BEA county personal income">'+
+  '<h3 class="countyFactsTitle">Annual personal income · U.S. Bureau of Economic Analysis</h3>'+
+  metricGrid([['Per capita personal income',row.perCapitaPersonalIncome,'currency']])+
+  '<p class="countyFactSource">BEA CAINC1 · '+esc(String(ds.year||'latest published year'))+
+  ' · current dollars. BEA personal income includes wages, proprietors’ income, dividends, interest, rents, and government benefits and is assigned to where people live. This is a different concept and vintage from the Census ACS income measures above. '+
+  '<a href="'+esc(ds.sourceUrl||'https://www.bea.gov/data/income-saving/personal-income-by-county')+'" target="_blank" rel="noopener noreferrer">Official BEA source</a>.</p></section>';
+}
 function renderFederalMoney(data,state,stateMode,selected){
  const ds=data?.federalMoney;
  if(!ds?.counties||!ds?.states)return '<p class="categoryNote">Federal spending data is still loading or has not been refreshed yet.</p>';
@@ -424,7 +438,8 @@ function countyTabBody(tab,data,base,state,county,stateMode,selected){
   return pieces.join('')||'<p class="categoryNote">Representation data is still collecting for this state.</p>';
  }
  if(tab==='housing')return categorySections(data,stateMode?'state':'county',selected,['housing']);
- if(tab==='economy')return categorySections(data,stateMode?'state':'county',selected,['jobs','income']);
+ if(tab==='economy')return categorySections(data,stateMode?'state':'county',selected,['jobs','income'])+
+  renderBeaIncome(data,stateMode,selected);
  if(tab==='health')return categorySections(data,stateMode?'state':'county',selected,['healthcare'])+
   renderCdcPlaces(data,stateMode?'state':'county',selected);
  if(tab==='community')return categorySections(data,stateMode?'state':'county',selected,['education','families']);
