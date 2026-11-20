@@ -30,6 +30,12 @@ on:
       - tests/test_usaspending_county.py
       - .github/workflows/refresh-usaspending-county.yml
       - assets/data/county/usaspending.json
+      - scripts/update_bls_county_laus.py
+      - tests/test_bls_county_laus.py
+      - tests/bls-county-tab.test.mjs
+      - tests/bls-refresh-workflow.test.mjs
+      - .github/workflows/refresh-bls-county.yml
+      - assets/data/county/bls-laus.json
       - scripts/update_congressional_pac_funding.py
       - tests/test_congressional_pac_funding.py
       - ".github/workflows/test-congressional-records.yml"
@@ -68,6 +74,12 @@ on:
       - tests/test_usaspending_county.py
       - .github/workflows/refresh-usaspending-county.yml
       - assets/data/county/usaspending.json
+      - scripts/update_bls_county_laus.py
+      - tests/test_bls_county_laus.py
+      - tests/bls-county-tab.test.mjs
+      - tests/bls-refresh-workflow.test.mjs
+      - .github/workflows/refresh-bls-county.yml
+      - assets/data/county/bls-laus.json
       - scripts/update_voteview_rollcalls.py
       - tests/test_voteview_rollcalls.py
       - scripts/update_congressional_pac_funding.py
@@ -100,6 +112,10 @@ jobs:
         run: npm test
       - name: Verify USAspending county transform
         run: python3 -m unittest discover -s tests -p test_usaspending_county.py -v
+      - name: Verify BLS county labor-market transform
+        run: python3 -m unittest discover -s tests -p test_bls_county_laus.py -v
+      - name: Verify BLS County Atlas surface and refresh workflow
+        run: node --test tests/bls-county-tab.test.mjs tests/bls-refresh-workflow.test.mjs
       - name: Verify PAC funding aggregation, sector grouping, and leadership-PAC joins
         run: python3 -m unittest discover -s tests -p test_congressional_pac_funding.py -v
       - name: Verify DOJ FARA country normalization and documentary-source claims
