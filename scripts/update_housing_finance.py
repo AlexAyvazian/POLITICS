@@ -130,8 +130,14 @@ def fetch_cfpb(state: str, today: date) -> dict:
     })
     wrapped=get_json(CFPB_GATEWAY+"?"+params)
     raw=wrapped.get("data") if isinstance(wrapped,dict) else None
-    if not isinstance(raw,dict):
-        raise ValueError("POLITICS CFPB gateway returned no data object for "+state)
+    summary=wrapped.get("summary") if isinstance(wrapped,dict) else None
+    if not isinstance(raw,dict) or not isinstance(summary,dict):
+        raise ValueError("POLITICS CFPB gateway returned no data/summary object for "+state)
+    raw={**raw,"aggregations":{
+        "issue":{"issue":{"buckets":summary.get("issue") or []}},
+        "timely":{"timely":{"buckets":summary.get("timely") or []}},
+        "company_response":{"company_response":{"buckets":summary.get("company_response") or []}},
+    }}
     return normalize_cfpb(raw)
 
 def fetch_all(today: date):
