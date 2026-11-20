@@ -46,6 +46,21 @@ jobs:
             echo "EPA AirData ZIP host unavailable; parser will use the published EPA-derived mirror."
             rm -f /tmp/epa-aqi-2025.zip
           fi
+      - name: Inspect official EPA 2025 county statistics workbook
+        shell: bash
+        run: |
+          python3 -m pip install --quiet openpyxl
+          curl --fail --location --retry 4 --retry-all-errors --output /tmp/epa-county-2025.xlsx \
+            https://www.epa.gov/system/files/documents/2026-06/aqstatsbycounty2025.xlsx
+          python3 - <<'PY'
+          from openpyxl import load_workbook
+          wb=load_workbook('/tmp/epa-county-2025.xlsx',read_only=True,data_only=True)
+          print('SHEETS',wb.sheetnames)
+          for ws in wb.worksheets:
+              print('SHEET',ws.title,'MAX',ws.max_row,ws.max_column)
+              for row in ws.iter_rows(min_row=1,max_row=min(ws.max_row,8),values_only=True):
+                  print('ROW',repr(row[:18]))
+          PY
       - name: Refresh EPA annual county AQI
         env:
           EPA_AQI_ZIP: /tmp/epa-aqi-2025.zip
