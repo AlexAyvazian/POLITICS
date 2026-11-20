@@ -11,6 +11,9 @@ on:
       - tests/scheduled-collection.test.mjs
       - tests/category-reader.test.mjs
       - workers/politics-gateway.mjs
+      - workers/records-refresh.mjs
+      - wrangler.records.jsonc
+      - tests/records-refresh.test.mjs
       - workers/county-snapshot.mjs
       - scripts/update_congressional_pac_funding.py
       - tests/test_congressional_pac_funding.py
@@ -30,6 +33,11 @@ on:
       - assets/css/records-editorial.css
       - assets/js/state-silhouettes.js
       - assets/js/records-address-model.js
+      - workers/politics-gateway.mjs
+      - workers/records-refresh.mjs
+      - wrangler.records.jsonc
+      - tests/records-refresh.test.mjs
+      - tests/scheduled-collection.test.mjs
       - scripts/update_voteview_rollcalls.py
       - tests/test_voteview_rollcalls.py
       - scripts/update_congressional_pac_funding.py
@@ -53,6 +61,8 @@ jobs:
           node-version: "22"
       - name: Verify state-first directory, exact member profiles, and voting joins
         run: node --test tests/congressional-records*.test.mjs
+      - name: Verify records refresh scheduling and member collection
+        run: node --test tests/records-refresh.test.mjs tests/scheduled-collection.test.mjs
       - name: Run full JS suite (informational; three unrelated legacy test failures)
         continue-on-error: true
         run: npm test
