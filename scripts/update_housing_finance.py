@@ -19,6 +19,7 @@ from pathlib import Path
 
 OUTPUT=Path("assets/data/state/housing-finance.json")
 HMDA_YEAR=2025
+HMDA_GATEWAY="https://crimson-mud-d254.alxayvazian.workers.dev/api/hmda"
 STATES="AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split()
 USER_AGENT="POLITICS civic transparency project"
 
@@ -109,12 +110,11 @@ def get_json(url: str, attempts: int=3) -> dict:
     raise RuntimeError(str(last))
 
 def fetch_hmda(state: str) -> dict:
-    params=urllib.parse.urlencode({
-        "states":state,
-        "years":HMDA_YEAR,
-        "actions_taken":"1,3",
-    })
-    raw=get_json("https://ffiec.cfpb.gov/v2/data-browser-api/view/aggregations?"+params)
+    params=urllib.parse.urlencode({"state":state,"year":HMDA_YEAR,"limit":3})
+    wrapped=get_json(HMDA_GATEWAY+"?"+params)
+    raw=wrapped.get("data") if isinstance(wrapped,dict) else None
+    if not isinstance(raw,dict):
+        raise ValueError("POLITICS HMDA gateway returned no data object for "+state)
     return normalize_hmda(raw)
 
 def fetch_cfpb(state: str, today: date) -> dict:
