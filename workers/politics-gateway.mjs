@@ -19,7 +19,13 @@ function publicRoute(id,p){
  switch(id){
  case 'cfpb':{
   const zip=p.get('zip')||'';if(zip&&!/^\d{5}$/.test(zip))throw Error('ZIP must be five digits');
-  u=make('https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/',{size:limit,sort:'created_date_desc',no_highlight:'true',state:state.toUpperCase(),...(zip?{zip_code:zip}:{}),...(query('q')?{search_term:query('q')}:{})});break;}
+  const dateMin=p.get('date_min')||'',dateMax=p.get('date_max')||'';
+  for(const d of [dateMin,dateMax])if(d&&!/^\d{4}-\d{2}-\d{2}$/.test(d))throw Error('CFPB dates must be YYYY-MM-DD');
+  u=make('https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/',{
+   size:limit,sort:'created_date_desc',no_highlight:'true',state:state.toUpperCase(),
+   ...(zip?{zip_code:zip}:{}),...(query('q')?{search_term:query('q')}:{ }),
+   ...(dateMin?{date_received_min:dateMin}:{}),...(dateMax?{date_received_max:dateMax}:{})
+  });break;}
  case 'cms':u=make('https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data',{size:limit,offset:0,'filter[STATE_CD]':state.toUpperCase()});break;
  case 'hmda':{
   const year=Number(p.get('year')||2025);if(!Number.isInteger(year)||year<2018||year>2025)throw Error('HMDA year must be 2018–2025');
