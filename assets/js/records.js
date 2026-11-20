@@ -372,6 +372,7 @@ const PAC_SECTOR_COLORS={
  'Transportation & Vehicles':'#e8a52d',
  'Legal, Lobbying & Professional':'#9a63df',
  'Labor & Unions':'#3da9c6',
+ 'Advocacy & Civic Organizations':'#d36a9d',
  'Leadership PACs':'#d5b55b',
  'Party Committees':'#91a5bb',
  'Other / Unclassified':'#71869b'
