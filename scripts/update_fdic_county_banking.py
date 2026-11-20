@@ -121,7 +121,7 @@ def get_json(url: str, attempts: int=6):
 
 def fetch_state(state: str):
     params=urllib.parse.urlencode({
-        "filters":f"STALP:{state}",
+        "filters":f'STALP:"{state}"',
         "fields":FIELDS,
         "limit":"10000",
         "format":"json",
