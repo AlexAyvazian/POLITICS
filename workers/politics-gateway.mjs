@@ -163,7 +163,19 @@ function target(id,p,env){
  case 'fdic':u=qs('https://banks.data.fdic.gov/api/institutions',{filters:'STALP:'+s,limit:n,format:'json'});break;
  case 'fec':if(!q)throw Error('Candidate q required');u=qs('https://api.open.fec.gov/v1/candidates/search/',{api_key:k,q,per_page:n});break;
  case 'fred':{const series=limited(p.get('series')||'UNRATE',/^[A-Z0-9._-]{2,30}$/,30);if(!series)throw Error('Invalid series');u=qs('https://api.stlouisfed.org/fred/series/observations',{series_id:series,api_key:k,file_type:'json',limit:n,sort_order:'desc'});break;}
- case 'govinfo':u=qs('https://api.govinfo.gov/collections',{api_key:k});break;
+ case 'govinfo':{
+  if(!q)throw Error('GovInfo search query required');
+  u=qs('https://api.govinfo.gov/search',{api_key:k});
+  options={
+   method:'POST',
+   headers:{'Content-Type':'application/json',Accept:'application/json'},
+   body:JSON.stringify({
+    query:q,pageSize:String(n),offsetMark:'*',resultLevel:'default',historical:false,
+    sorts:[{field:'publishdate',sortOrder:'DESC'}]
+   })
+  };
+  break;
+ }
  case 'lda':{
   const mode=p.get('mode')||'issue';
   if(!['issue','client','registrant'].includes(mode))throw Error('Invalid LDA search mode');
