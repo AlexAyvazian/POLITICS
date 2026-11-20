@@ -82,7 +82,8 @@ def build_snapshot(rows, retrieved_at: str, min_count: int=850):
             fips=item.pop("fips")
             counties[fips]=item
     if len(counties)<min_count:
-        raise ValueError(f"Incomplete EPA annual county AQI dataset ({len(counties)} monitored counties)")
+        sample_keys=sorted(str(k) for k in (rows[0].keys() if rows else []))
+        raise ValueError(f"Incomplete EPA annual county AQI dataset ({len(counties)} monitored counties); CSV headers={sample_keys}")
     return {
         "source":"U.S. EPA AirData / Air Quality System",
         "dataset":f"annual_aqi_by_county_{YEAR}",
