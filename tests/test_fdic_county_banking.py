@@ -5,6 +5,11 @@ class FdicCountyBankingTests(unittest.TestCase):
     def test_state_filter_quotes_oregon_boolean_keyword(self):
         self.assertEqual(state_filter("OR"), 'STALP:"OR"')
 
+    def test_real_fdic_wrapped_record_shape(self):
+        out=normalize_location({"data":{"STCNTY":"06019","STALP":"CA","COUNTY":"Fresno","CERT":"1768","NAME":"Mechanics Bank","SERVTYPE_DESC":"FULL SERVICE - BRICK AND MORTAR","MAINOFF":"0","RUNDATE":"11/13/2026"}})
+        self.assertEqual(out["fips"],"06019")
+        self.assertEqual(out["cert"],"1768")
+
     def test_normalize_location_preserves_county_and_office_type(self):
         row={"STCNTY":"06019","STALP":"CA","COUNTY":"Fresno","CERT":"1768","NAME":"Mechanics Bank",
              "SERVTYPE":"11","SERVTYPE_DESC":"FULL SERVICE - BRICK AND MORTAR","MAINOFF":"0","RUNDATE":"11/13/2026"}
