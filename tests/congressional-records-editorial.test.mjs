@@ -188,3 +188,21 @@ test('records funding assets revalidate so six-hour PAC refreshes are not hidden
  assert.match(html,/assets\/js\/records\.js\?v=\d+/);
  assert.match(js,/assets\/data\/records\/pac-funding\/.*cache:'no-cache'/s);
 });
+
+
+test('funding view includes a source-linked individual donor leaderboard, not only PAC totals',()=>{
+ const html=read('records.html'),js=read('assets/js/records.js'),css=read('assets/css/records-editorial.css');
+ assert.match(html,/id="individualDonorVisualization"/);
+ assert.ok(html.indexOf('id="individualDonorVisualization"')<html.indexOf('id="financeLinks"'));
+ assert.match(js,/Top itemized individual contributors/);
+ assert.match(js,/topIndividualContributors/);
+ assert.match(js,/individualContributorScope/);
+ assert.match(css,/\.recordsIndividualDonor/);
+});
+
+test('House and Senate directory cards use the same portrait framing instead of chamber-specific photo crops',()=>{
+ const css=read('assets/css/records-editorial.css');
+ assert.match(css,/\.recordsMemberPortrait img\{[^}]*object-fit:\s*cover[^}]*object-position:\s*50%\s+15%/s);
+ assert.doesNotMatch(css,/#senateMembers \.recordsMemberPortrait\{[^}]*left:\s*37%/s);
+ assert.doesNotMatch(css,/#senateMembers \.recordsMemberPortrait img\{[^}]*object-position:/s);
+});
