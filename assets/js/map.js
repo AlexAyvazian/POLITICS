@@ -396,6 +396,37 @@ function stateElectricityPanel(data,state){
   '<p class="countyFactSource">U.S. Energy Information Administration · '+esc(row.period||'latest reporting month')+
   ' · cents per kWh. This is a statewide measure, not a county estimate.</p></section>';
 }
+function renderHousingFinance(data,state,stateMode){
+ const ds=data?.housingFinance,row=ds?.states?.[state.abbr];
+ if(!row?.hmda||!row?.cfpb)
+  return '<p class="categoryNote">State housing-finance context has not been stored yet.</p>';
+ const hmda=row.hmda,cfpb=row.cfpb;
+ const placeNote=stateMode?'Statewide mortgage and consumer-finance context.':
+  'Statewide context for '+state.name+' — not a county estimate.';
+ const metrics=[
+  ['HMDA loan originations',hmda.originatedCount,'count'],
+  ['HMDA application denials',hmda.deniedCount,'count'],
+  ['Denial share · originated + denied only',hmda.denialShareOriginatedPlusDeniedPct,'percent'],
+  ['CFPB mortgage complaints · 24 months',cfpb.complaintCount,'count'],
+  ['Company responses marked timely',cfpb.timelyResponsePct,'percent']
+ ];
+ const issue=cfpb.topIssue?.name?'<div class="countyFact"><span>Most common published complaint issue</span><strong>'+
+  esc(cfpb.topIssue.name)+'</strong><small>'+Number(cfpb.topIssue.count||0).toLocaleString('en-US')+' complaints in this state/window</small></div>':'';
+ const response=cfpb.topCompanyResponse?.name?'<div class="countyFact"><span>Most common company-response category</span><strong>'+
+  esc(cfpb.topCompanyResponse.name)+'</strong><small>'+Number(cfpb.topCompanyResponse.count||0).toLocaleString('en-US')+' complaints in this state/window</small></div>':'';
+ const period=ds.cfpbPeriod?.start&&ds.cfpbPeriod?.end?
+  formatAtlasDate(ds.cfpbPeriod.start)+' – '+formatAtlasDate(ds.cfpbPeriod.end):'latest stored 24-month window';
+ return '<section class="countyMetricSection housingFinanceSection" aria-label="State mortgage and consumer finance context">'+
+  '<h3 class="countyFactsTitle">Mortgage & consumer pressure · statewide context</h3>'+
+  '<p class="categoryNote">'+esc(placeNote)+'</p>'+metricGrid(metrics)+
+  (issue||response?'<div class="countyFactGrid">'+issue+response+'</div>':'')+
+  '<p class="countyFactSource"><strong>HMDA:</strong> '+esc(String(ds.hmdaYear||2025))+
+  ' application actions. The displayed denial share uses only originated and denied actions; it is not a full approval rate because approved-not-accepted, withdrawn, incomplete and other actions are excluded. '+
+  '<a href="'+esc(ds.hmdaSourceUrl||'https://ffiec.cfpb.gov/data-browser/')+'" target="_blank" rel="noopener noreferrer">HMDA source</a>.<br>'+
+  '<strong>CFPB:</strong> published mortgage-related complaints received '+esc(period)+
+  '. Complaints are not a statistical sample and are not representative of all consumers\' experiences; complaint volume can also reflect population, customer base and market share. '+
+  '<a href="'+esc(ds.cfpbSourceUrl||'https://www.consumerfinance.gov/data-research/consumer-complaints/')+'" target="_blank" rel="noopener noreferrer">CFPB source</a>.</p></section>';
+}
 function renderBlsLaborMarket(data,stateMode,selected){
  const ds=data?.bls;
  if(!ds?.counties)return '<p class="categoryNote">Current BLS county labor-market data has not been stored yet.</p>';
@@ -457,7 +488,8 @@ function countyTabBody(tab,data,base,state,county,stateMode,selected){
   ].filter(Boolean);
   return pieces.join('')||'<p class="categoryNote">Representation data is still collecting for this state.</p>';
  }
- if(tab==='housing')return categorySections(data,stateMode?'state':'county',selected,['housing']);
+ if(tab==='housing')return categorySections(data,stateMode?'state':'county',selected,['housing'])+
+  renderHousingFinance(data,state,stateMode);
  if(tab==='economy')return categorySections(data,stateMode?'state':'county',selected,['jobs','income'])+
   renderBlsLaborMarket(data,stateMode,selected)+renderBeaIncome(data,stateMode,selected);
  if(tab==='health')return categorySections(data,stateMode?'state':'county',selected,['healthcare'])+

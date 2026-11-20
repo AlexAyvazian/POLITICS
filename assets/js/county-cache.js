@@ -4,7 +4,7 @@
  'use strict';
  const ROOT='https://politics-daily-snapshot.alxayvazian.workers.dev';
  const cats=['housing','jobs','income','healthcare','education','families','infrastructure'];
- const data={core:null,categories:{},states:null,places:null,congress:null,federalMoney:null,bea:null,bls:null,bills:{},billStatus:{},openstates:{},openstatesStatus:{},houseVotes:null,houseVotesStatus:'loading'};
+ const data={core:null,categories:{},states:null,places:null,congress:null,federalMoney:null,housingFinance:null,bea:null,bls:null,bills:{},billStatus:{},openstates:{},openstatesStatus:{},houseVotes:null,houseVotesStatus:'loading'};
  const billJobs=new Map(),openstatesJobs=new Map();
  let job=null;
  const notify=()=>window.dispatchEvent(new Event('politics-county-snapshot-ready'));
@@ -96,6 +96,10 @@
     if(value?.source==='USAspending.gov'&&value?.counties&&value?.states&&value?.count)data.federalMoney=value;
     notify();
    }).catch(error=>{console.warn('Stored USAspending county snapshot unavailable:',error.message);notify();});
+   const housingFinance=fetchLocal('assets/data/state/housing-finance.json').then(value=>{
+    if(value?.source==='FFIEC HMDA + CFPB Consumer Complaint Database'&&value?.states&&value?.stateCount)data.housingFinance=value;
+    notify();
+   }).catch(error=>{console.warn('Stored housing-finance state snapshot unavailable:',error.message);notify();});
    const houseVotes=fetchSnapshot('/api/house-votes-snapshot').then(value=>{
     if(value?.chamber==='House'&&Array.isArray(value?.votes)&&value?.votes.length){
      data.houseVotes=value;
@@ -107,7 +111,7 @@
     console.warn('Stored House vote data unavailable:',error.message);
     notify();
    });
-   job=Promise.allSettled([core,...other,bea,bls,states,places,congress,federalMoney,houseVotes]).then(()=>data);
+   job=Promise.allSettled([core,...other,bea,bls,states,places,congress,federalMoney,housingFinance,houseVotes]).then(()=>data);
    return job;
   }
  };

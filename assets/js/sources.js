@@ -21,9 +21,9 @@ const META={
  openstates:{name:'Open States',where:'County Atlas · Representation / Congressional Atlas',match:['openstates'],note:'State legislators and legislation.'},
  regulations:{name:'Regulations.gov',where:'Future Government Action',match:[],note:'Federal rulemaking dockets and documents.'},
  usgs:{name:'USGS Water',where:'Future County Atlas · Infrastructure & Environment',match:[],note:'Water observations.'},
- cfpb:{name:'Consumer Financial Protection Bureau',where:'Future County Atlas · Housing & consumer conditions',match:[],note:'Published consumer complaints; complaints are allegations, not adjudicated wrongdoing.'},
+ cfpb:{name:'Consumer Financial Protection Bureau',where:'County Atlas · Housing',match:['cfpb_mortgage_state_24m'],note:'Rolling 24-month statewide mortgage complaint context; complaints are allegations and are not a representative sample.'},
  cms:{name:'CMS',where:'Future County Atlas · Health & Well-Being',match:[],note:'Public Medicare provider-enrollment data.'},
- hmda:{name:'FFIEC / HMDA',where:'Future County Atlas · Housing',match:[],note:'County mortgage-application aggregations.'},
+ hmda:{name:'FFIEC / HMDA',where:'County Atlas · Housing',match:['hmda_state_2025'],note:'2025 statewide mortgage application outcomes from the HMDA Data Browser.'},
  federalregister:{name:'Federal Register',where:'Future Government Action',match:[],note:'Official federal notices and rules.'},
  sec:{name:'SEC EDGAR',where:'Future influence/company research',match:[],note:'Public company filings; not a political-donation source.'},
  usaspending:{name:'USAspending',where:'County Atlas · Federal Money',match:['usaspending_county'],note:'Federal prime-award obligations by county place of performance.'},
@@ -87,19 +87,28 @@ function applyFilter(){
 async function load(){
  const status=document.getElementById('sourceStatus');
  try{
-  const [catalogRes,healthRes,spendingRes]=await Promise.all([
+  const [catalogRes,healthRes,spendingRes,housingFinanceRes]=await Promise.all([
    fetch(GATEWAY+'/api/catalog',{headers:{Accept:'application/json'},credentials:'omit'}),
    fetch(READER+'/api/data-health',{headers:{Accept:'application/json'},credentials:'omit'}),
-   fetch('assets/data/county/usaspending.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
+   fetch('assets/data/county/usaspending.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
+   fetch('assets/data/state/housing-finance.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
   ]);
   const catalog=catalogRes.ok?await catalogRes.json():{providers:[]};
   const health=healthRes.ok?await healthRes.json():{datasets:[],collectionHealth:[]};
   const spending=spendingRes.ok?await spendingRes.json():null;
+  const housingFinance=housingFinanceRes.ok?await housingFinanceRes.json():null;
   if(spending?.source==='USAspending.gov'&&Number(spending.count)>0){
    health.datasets=(health.datasets||[]).concat([{
     source:'usaspending_county',refreshedAt:spending.retrievedAt||null,
     records:Number(spending.count)||0,snapshots:1,database:'static'
    }]);
+  }
+  if(housingFinance?.source==='FFIEC HMDA + CFPB Consumer Complaint Database'&&Number(housingFinance.stateCount)>0){
+   const records=Number(housingFinance.stateCount)||0,refreshedAt=housingFinance.retrievedAt||null;
+   health.datasets=(health.datasets||[]).concat([
+    {source:'hmda_state_2025',refreshedAt,records,snapshots:1,database:'static'},
+    {source:'cfpb_mortgage_state_24m',refreshedAt,records,snapshots:1,database:'static'}
+   ]);
   }
   const providers=(catalog.providers||[]).map(p=>({
    ...p,id:p.id,name:META[p.id]?.name||p.id,description:META[p.id]?.note||p.description,

@@ -19,12 +19,19 @@ function publicRoute(id,p){
  switch(id){
  case 'cfpb':{
   const zip=p.get('zip')||'';if(zip&&!/^\d{5}$/.test(zip))throw Error('ZIP must be five digits');
-  u=make('https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/',{size:limit,sort:'created_date_desc',no_highlight:'true',state:state.toUpperCase(),...(zip?{zip_code:zip}:{}),...(query('q')?{search_term:query('q')}:{})});break;}
+  const dateMin=p.get('date_min')||'',dateMax=p.get('date_max')||'';
+  for(const d of [dateMin,dateMax])if(d&&!/^\d{4}-\d{2}-\d{2}$/.test(d))throw Error('CFPB dates must be YYYY-MM-DD');
+  u=make('https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/',{
+   size:limit,sort:'created_date_desc',no_highlight:'true',state:state.toUpperCase(),
+   ...(zip?{zip_code:zip}:{}),...(query('q')?{search_term:query('q')}:{ }),
+   ...(dateMin?{date_received_min:dateMin}:{}),...(dateMax?{date_received_max:dateMax}:{})
+  });break;}
  case 'cms':u=make('https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data',{size:limit,offset:0,'filter[STATE_CD]':state.toUpperCase()});break;
  case 'hmda':{
-  if(!county)throw Error('County FIPS required for mortgage data');
   const year=Number(p.get('year')||2025);if(!Number.isInteger(year)||year<2018||year>2025)throw Error('HMDA year must be 2018–2025');
-  u=make('https://ffiec.cfpb.gov/v2/data-browser-api/view/aggregations',{years:year,counties:county,actions_taken:'1,2,3'});break;}
+  u=make('https://ffiec.cfpb.gov/v2/data-browser-api/view/aggregations',{
+   years:year,...(county?{counties:county}:{states:state.toUpperCase()}),actions_taken:'1,2,3'
+  });break;}
  case 'federalregister':u=make('https://www.federalregister.gov/api/v1/documents.json',{per_page:limit,order:'newest',...(query('q')?{'conditions[term]':query('q')}:{})});break;
  case 'sec':{
   const cik=p.get('cik')||'';if(!/^\d{1,10}$/.test(cik))throw Error('SEC requires a numeric CIK (1–10 digits)');
@@ -199,6 +206,19 @@ function clean(obj,depth=0){
   });
  }
  return obj;
+}
+function cfpbSummary(body){
+ const buckets=node=>Array.isArray(node)?node.slice(0,12).map(row=>({
+  key:typeof row?.key==='string'?row.key.slice(0,180):String(row?.key??'').slice(0,180),
+  doc_count:Number.isFinite(Number(row?.doc_count))?Number(row.doc_count):0
+ })).filter(row=>row.key):[];
+ const total=Number(body?.hits?.total?.value);
+ return {
+  total:Number.isFinite(total)?total:0,
+  issue:buckets(body?.aggregations?.issue?.issue?.buckets),
+  timely:buckets(body?.aggregations?.timely?.timely?.buckets),
+  company_response:buckets(body?.aggregations?.company_response?.company_response?.buckets)
+ };
 }
 
 /* Scheduled nationwide ingest — NEVER fetch external providers during a county click.
@@ -1049,7 +1069,7 @@ async function handleCore(request,env,ctx={},fetcher=fetch){
  if(!upstream.ok)return json({provider:id,error:'Upstream HTTP '+upstream.status},upstream.status===429?429:502);
  let body;
  try{const raw=await upstream.text();if(raw.length>1400000)throw Error('too large');body=JSON.parse(raw);}catch(_){return json({provider:id,error:'Invalid or oversized provider response'},502);}
- const response=json({provider:id,source:(KEYLESS_SOURCES[id]?.[1]||ACCESS_REQUIRED[id]?.[1]||CATALOG[id][2]),retrievedAt:new Date().toISOString(),data:clean(body)},200,(KEYLESS_SOURCES[id]?.[2]||ACCESS_REQUIRED[id]?.[4]||TTL[id]));
+ const response=json({provider:id,source:(KEYLESS_SOURCES[id]?.[1]||ACCESS_REQUIRED[id]?.[1]||CATALOG[id][2]),retrievedAt:new Date().toISOString(),data:clean(body),...(id==='cfpb'?{summary:cfpbSummary(body)}:{})},200,(KEYLESS_SOURCES[id]?.[2]||ACCESS_REQUIRED[id]?.[4]||TTL[id]));
  if(cache){try{const p=cache.put(request,response.clone());if(ctx.waitUntil)ctx.waitUntil(p);else await p;}catch{}}
  return response;
 }

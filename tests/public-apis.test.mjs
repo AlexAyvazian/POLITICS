@@ -58,6 +58,40 @@ test('EPA AQS and FCC build authenticated fixed routes with configured bindings'
  assert.equal(new URL(urls[0].u).hostname,'aqs.epa.gov');
  assert.equal(urls[1].opts.headers.hash_value,'test-token');
 });
+test('CFPB adapter forwards a received-date window and preserves shallow aggregation summaries',async()=>{
+ let called;
+ const origin={
+  hits:{total:{value:7440,relation:'eq'},hits:[]},
+  aggregations:{
+   issue:{issue:{buckets:[{key:'Trouble during payment process',doc_count:3371}]}},
+   timely:{timely:{buckets:[{key:'Yes',doc_count:7177},{key:'No',doc_count:263}]}},
+   company_response:{company_response:{buckets:[{key:'Closed with explanation',doc_count:6798}]}}
+  }
+ };
+ const fake=async (url,opts)=>{called={url:new URL(url),opts};return new Response(JSON.stringify(origin));};
+ const r=await handle(request('/api/cfpb?state=CA&q=mortgage&date_min=2024-11-20&date_max=2026-11-20&limit=1'),{}, {},fake);
+ assert.equal(r.status,200);
+ assert.equal(called.url.searchParams.get('state'),'CA');
+ assert.equal(called.url.searchParams.get('search_term'),'mortgage');
+ assert.equal(called.url.searchParams.get('date_received_min'),'2024-11-20');
+ assert.equal(called.url.searchParams.get('date_received_max'),'2026-11-20');
+ const body=await r.json();
+ assert.equal(body.summary.total,7440);
+ assert.equal(body.summary.issue[0].key,'Trouble during payment process');
+ assert.equal(body.summary.timely[0].doc_count,7177);
+ assert.equal(body.summary.company_response[0].key,'Closed with explanation');
+});
+test('HMDA adapter accepts a state filter for scheduled statewide context',async()=>{
+ let called;
+ const fake=async (url,opts)=>{called={url:new URL(url),opts};return new Response('{"aggregations":[{"actions_taken":"1","count":10},{"actions_taken":"3","count":2}]}');};
+ const r=await handle(request('/api/hmda?state=CA&year=2025'),{}, {},fake);
+ assert.equal(r.status,200);
+ assert.equal(called.url.hostname,'ffiec.cfpb.gov');
+ assert.equal(called.url.searchParams.get('states'),'CA');
+ assert.equal(called.url.searchParams.get('years'),'2025');
+ assert.equal(called.url.searchParams.get('counties'),null);
+});
+
 test('input validation blocks bogus company IDs, years, and counties',async()=>{
  for(const path of ['/api/sec?cik=abc','/api/hmda?county=bad','/api/usaspending?county=bad','/api/epa_aqs?county=abc']){
   const r=await handle(request(path),{EPA_AQS_KEY:'mock',EPA_AQS_EMAIL:'contact@example.test'});

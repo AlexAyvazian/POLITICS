@@ -31,6 +31,11 @@ on:
       - .github/workflows/refresh-usaspending-county.yml
       - assets/data/county/usaspending.json
       - tests/bls-county-tab.test.mjs
+      - tests/housing-finance-tab.test.mjs
+      - tests/test_housing_finance.py
+      - scripts/update_housing_finance.py
+      - .github/workflows/refresh-housing-finance.yml
+      - assets/data/state/housing-finance.json
       - scripts/update_congressional_pac_funding.py
       - tests/test_congressional_pac_funding.py
       - ".github/workflows/test-congressional-records.yml"
@@ -70,6 +75,11 @@ on:
       - .github/workflows/refresh-usaspending-county.yml
       - assets/data/county/usaspending.json
       - tests/bls-county-tab.test.mjs
+      - tests/housing-finance-tab.test.mjs
+      - tests/test_housing_finance.py
+      - scripts/update_housing_finance.py
+      - .github/workflows/refresh-housing-finance.yml
+      - assets/data/state/housing-finance.json
       - scripts/update_voteview_rollcalls.py
       - tests/test_voteview_rollcalls.py
       - scripts/update_congressional_pac_funding.py
@@ -104,6 +114,10 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_usaspending_county.py -v
       - name: Verify BLS County Atlas surface
         run: node --test tests/bls-county-tab.test.mjs
+      - name: Verify Housing finance context surface
+        run: node --test tests/housing-finance-tab.test.mjs
+      - name: Verify HMDA and CFPB housing finance transforms
+        run: python3 -m unittest discover -s tests -p test_housing_finance.py -v
       - name: Verify PAC funding aggregation, sector grouping, and leadership-PAC joins
         run: python3 -m unittest discover -s tests -p test_congressional_pac_funding.py -v
       - name: Verify DOJ FARA country normalization and documentary-source claims
