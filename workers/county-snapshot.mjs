@@ -12,11 +12,65 @@ function json(body,status,request,cacheSeconds=0){
  }
  return new Response(status===204?null:JSON.stringify(body),{status,headers});
 }
+async function snapshotHealthRows(db,aggregate=false){
+ if(!db)return [];
+ try{
+  const sql=aggregate?`
+   SELECT CASE
+    WHEN source LIKE 'member_legislation_%' THEN 'member_legislation'
+    WHEN source LIKE 'member_finance_detail_%' THEN 'member_finance_detail'
+    WHEN source LIKE 'member_lobby_network_%' THEN 'member_lobby_network'
+    WHEN source LIKE 'openstates_%' THEN 'openstates'
+    WHEN source LIKE 'billcommons_%' THEN 'billcommons'
+    ELSE source END AS source,
+    COUNT(*) AS snapshots,MAX(refreshed_at) AS refreshed_at,SUM(record_count) AS records
+   FROM county_snapshots GROUP BY 1 ORDER BY 1`:
+   'SELECT source,refreshed_at,record_count AS records,1 AS snapshots FROM county_snapshots ORDER BY source';
+  const rows=await db.prepare(sql).all();
+  return Array.isArray(rows?.results)?rows.results.map(row=>({
+   source:String(row.source||''),refreshedAt:row.refreshed_at||null,
+   records:Number(row.records??row.record_count)||0,snapshots:Number(row.snapshots)||1
+  })).filter(row=>row.source):[];
+ }catch(_){return [];}
+}
+async function collectionHealthRows(db){
+ if(!db)return [];
+ try{
+  const rows=await db.prepare("SELECT source,snapshot_json,refreshed_at,record_count FROM county_snapshots WHERE source LIKE '%_collection_health' ORDER BY source").all();
+  return (rows?.results||[]).map(row=>{
+   let detail={};
+   try{detail=JSON.parse(row.snapshot_json||'{}')}catch{}
+   return {
+    source:String(row.source||''),refreshedAt:row.refreshed_at||detail.asOf||null,
+    attempted:Number(detail.attempted)||0,updated:Number(detail.updated)||0,failed:Number(detail.failed)||0,
+    examples:Array.isArray(detail.examples)?detail.examples.map(x=>String(x).slice(0,180)).slice(0,5):[]
+   };
+  });
+ }catch(_){return [];}
+}
+
 export async function serve(request,env){
  const path=new URL(request.url).pathname;
  if(request.method==='OPTIONS')return json(null,204,request);
  if(request.method!=='GET')return json({error:'GET only'},405,request);
  if(path==='/health')return json({service:'POLITICS county snapshot reader',status:'operational',storage:!!env.COUNTY_DB},200,request,120);
+ if(path==='/api/data-health'){
+  const dbs=[
+   ['core',env?.COUNTY_DB,true],
+   ['housing',env?.CATEGORY_DB_HOUSING,false],
+   ['jobs',env?.CATEGORY_DB_JOBS,false],
+   ['income',env?.CATEGORY_DB_INCOME,false],
+   ['healthcare',env?.CATEGORY_DB_HEALTHCARE,false],
+   ['education',env?.CATEGORY_DB_EDUCATION,false],
+   ['families',env?.CATEGORY_DB_FAMILIES,false],
+   ['infrastructure',env?.CATEGORY_DB_INFRASTRUCTURE,false]
+  ];
+  const groups=await Promise.all(dbs.map(async([database,db,aggregate])=>
+   (await snapshotHealthRows(db,aggregate)).map(row=>({...row,database}))));
+  const collectionHealth=await collectionHealthRows(env?.COUNTY_DB);
+  return json({status:'operational',generatedAt:new Date().toISOString(),
+   datasets:groups.flat().sort((a,b)=>a.source.localeCompare(b.source)),collectionHealth},200,request,300);
+ }
 
  // Separate source snapshots: no new credentials or D1 bindings, and no upstream fetch on selection.
  if(path==='/api/places-snapshot'||path==='/api/congress-snapshot'){

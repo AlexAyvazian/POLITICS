@@ -8,13 +8,13 @@
  <title>Congressional Records · POLITICS</title>
  <link rel="stylesheet" href="assets/css/atlas.css">
  <link rel="stylesheet" href="assets/css/records.css">
- <link rel="stylesheet" href="assets/css/records-editorial.css?v=2026112003">
+ <link rel="stylesheet" href="assets/css/records-editorial.css?v=2026112005">
 </head>
 <body data-view="records">
  <header class="recordsNav">
   <div class="recordsBrand"><i aria-hidden="true"></i><span>POLITICS · Geographic Explorer</span></div>
   <strong>Congressional Records</strong>
-  <nav aria-label="Atlas sections"><a href="index.html#map">County Atlas</a><a href="congressional.html">Congressional Atlas</a><span aria-current="page">Records</span><a href="foreign-influence.html">Foreign Influence</a></nav>
+  <nav aria-label="Atlas sections"><a href="index.html#map">County Atlas</a><a href="congressional.html">Congressional Atlas</a><span aria-current="page">Records</span><a href="foreign-influence.html">Foreign Influence</a><a href="sources.html">Data Sources</a></nav>
  </header>
  <main class="recordsMain">
   <section class="recordsIntro">
@@ -65,7 +65,11 @@
    <div class="recordsProfileTabs" id="profileOverviewNav" role="tablist" aria-label="Member record sections">
     <button type="button" class="recordsProfileTab" id="profileTabOverview" role="tab" aria-selected="true" aria-controls="profilePanelOverview" tabindex="0" data-profile-tab="overview">Overview</button>
     <button type="button" class="recordsProfileTab" id="profileTabVotes" role="tab" aria-selected="false" aria-controls="profilePanelVotes" tabindex="-1" data-profile-tab="votes">Voting Record</button>
-    <button type="button" class="recordsProfileTab" id="profileTabFunding" role="tab" aria-selected="false" aria-controls="profilePanelFunding" tabindex="-1" data-profile-tab="funding">Funding &amp; Influence</button>
+    <button type="button" class="recordsProfileTab" id="profileTabLegislation" role="tab" aria-selected="false" aria-controls="profilePanelLegislation" tabindex="-1" data-profile-tab="legislation">Legislation</button>
+    <button type="button" class="recordsProfileTab" id="profileTabCampaign" role="tab" aria-selected="false" aria-controls="profilePanelCampaign" tabindex="-1" data-profile-tab="campaign">Campaign Money</button>
+    <button type="button" class="recordsProfileTab" id="profileTabNetworks" role="tab" aria-selected="false" aria-controls="profilePanelNetworks" tabindex="-1" data-profile-tab="networks">PAC &amp; Networks</button>
+    <button type="button" class="recordsProfileTab" id="profileTabLobbying" role="tab" aria-selected="false" aria-controls="profilePanelLobbying" tabindex="-1" data-profile-tab="lobbying">Lobbying</button>
+    <button type="button" class="recordsProfileTab" id="profileTabTravel" role="tab" aria-selected="false" aria-controls="profilePanelTravel" tabindex="-1" data-profile-tab="travel">Travel &amp; Ethics</button>
    </div>
 
    <section class="recordsProfilePanel" id="profilePanelOverview" role="tabpanel" aria-labelledby="profileTabOverview" data-profile-panel="overview">
@@ -84,11 +88,6 @@
      <div id="recentDecisions" class="recordsRecentDecisions" aria-live="polite"><p class="recordsStatus">Loading recorded decisions…</p></div>
     </section>
     <div class="recordsEvidence recordsOverviewEvidence" aria-label="Member legislative activity">
-     <section class="recordsPanel recordsEvidencePanel recordsSponsoredPanel" id="sponsoredLinks">
-      <div class="recordsSectionHead"><div><span class="recordsKicker">OFFICIAL MEMBER ACTIONS · CONGRESS.GOV</span><h3>Legislation sponsored and cosponsored</h3></div></div>
-      <p class="recordsHelp">Bills introduced as sponsor and bills publicly supported as cosponsor are different from floor votes. This separate Congress.gov source is collected into Cloudflare, not fetched from Congress.gov when you select a person. Recent collection is a partial sample of the 119th Congress, not a lifetime total.</p>
-      <div id="sponsorVisualization" class="recordsSponsorVisualization" aria-live="polite">Loading stored sponsorship records…</div>
-     </section>
      <section class="recordsPanel recordsTransparency" aria-label="Data methodology">
       <h3>Data and methodology</h3>
       <p id="recordUpdated"></p>
@@ -129,23 +128,24 @@
     </section>
    </section>
 
-   <section class="recordsProfilePanel" id="profilePanelFunding" role="tabpanel" aria-labelledby="profileTabFunding" data-profile-panel="funding" hidden>
-    <div class="recordsTabIntro"><span class="recordsKicker">FOLLOW THE MONEY</span><h3>Funding &amp; Influence</h3><p>Campaign finance, committee networks, lobbying research and privately sponsored travel are grouped here so they do not crowd the voting record.</p></div>
-    <div class="recordsEvidence recordsFundingEvidence" aria-label="Campaign funding and influence records">
-     <section class="recordsPanel recordsEvidencePanel recordsPacFundingPanel" id="fundingIntelligence">
-      <div class="recordsSectionHead"><div><span class="recordsKicker">NAMED COMMITTEES · FEC TRANSACTION DATA</span><h3>Who is funding this campaign?</h3></div></div>
-      <p class="recordsHelp">Start with the actual PACs and political committees that reported giving directly to this candidate, then see how those committees group by sector. Independent expenditures are kept separate from direct campaign contributions.</p>
-      <div id="pacFundingVisualization" class="recordsPacFunding" role="region" aria-label="Named PAC contributors, funding sectors and leadership PAC connections" aria-live="polite">Loading named PAC and committee funding…</div>
+   <section class="recordsProfilePanel" id="profilePanelLegislation" role="tabpanel" aria-labelledby="profileTabLegislation" data-profile-panel="legislation" hidden>
+    <div class="recordsTabIntro"><span class="recordsKicker">WHAT THIS MEMBER PUT FORWARD</span><h3>Legislation</h3><p>Sponsorship and cosponsorship are separated from floor votes so voters can distinguish introducing or supporting legislation from voting on it.</p></div>
+    <div class="recordsEvidence recordsOverviewEvidence" aria-label="Member legislative activity">
+     <section class="recordsPanel recordsEvidencePanel recordsSponsoredPanel" id="sponsoredLinks">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">OFFICIAL MEMBER ACTIONS · CONGRESS.GOV</span><h3>Legislation sponsored and cosponsored</h3></div></div>
+      <p class="recordsHelp">Bills introduced as sponsor and bills publicly supported as cosponsor are different from floor votes. This separate Congress.gov source is collected into Cloudflare, not fetched from Congress.gov when you select a person. Recent collection is a partial sample of the 119th Congress, not a lifetime total.</p>
+      <div id="sponsorVisualization" class="recordsSponsorVisualization" aria-live="polite">Loading stored sponsorship records…</div>
      </section>
+    </div>
+   </section>
+
+   <section class="recordsProfilePanel" id="profilePanelCampaign" role="tabpanel" aria-labelledby="profileTabCampaign" data-profile-panel="campaign" hidden>
+    <div class="recordsTabIntro"><span class="recordsKicker">FOLLOW THE CAMPAIGN MONEY</span><h3>Campaign Money</h3><p>Campaign totals and itemized individual receipts are shown here without mixing them with PAC networks, lobbying research, or travel.</p></div>
+    <div class="recordsEvidence recordsFundingEvidence" aria-label="Campaign money records">
      <section class="recordsPanel recordsEvidencePanel recordsIndividualDonorPanel" id="individualDonors">
       <div class="recordsSectionHead"><div><span class="recordsKicker">ITEMIZED INDIVIDUAL RECEIPTS · FEC</span><h3>Largest individual contributions</h3></div></div>
       <p class="recordsHelp">See the largest itemized individual receipt records reported by this member’s principal campaign committee, with the contributor’s FEC-reported employer and occupation when available. This is not a list of every donor and does not treat an employer as the source of the contribution.</p>
       <div id="individualDonorVisualization" class="recordsIndividualDonors" aria-live="polite">Loading itemized individual contributors…</div>
-     </section>
-     <section class="recordsPanel recordsEvidencePanel recordsMoneyNetworkPanel" id="moneyNetwork">
-      <div class="recordsSectionHead"><div><span class="recordsKicker">FOLLOW THE MONEY · VERIFIED FEC FILINGS</span><h3>Who gave money to whom?</h3></div></div>
-      <p class="recordsHelp">Explore committee-to-committee transactions automatically connected using official FEC IDs. Select a PAC to follow its own recorded receipts and disbursements. Each connection links to the source record. We do not assume that money a PAC received was necessarily the money it later sent to someone else.</p>
-      <div id="moneyNetworkVisualization" class="recordsMoneyNetwork" aria-live="polite">Checking the shared FEC committee network…</div>
      </section>
      <section class="recordsPanel recordsEvidencePanel" id="financeLinks">
       <div class="recordsSectionHead"><div><span class="recordsKicker">CAMPAIGN MONEY · FEDERAL ELECTION COMMISSION</span><h3>Where the campaign money comes from</h3></div></div>
@@ -154,11 +154,39 @@
       <p id="financePrimarySource" class="recordsEvidenceNote" hidden></p>
       <div id="financeDetailViz" class="recordsFinanceDetail" aria-live="polite"></div>
      </section>
+    </div>
+   </section>
+
+   <section class="recordsProfilePanel" id="profilePanelNetworks" role="tabpanel" aria-labelledby="profileTabNetworks" data-profile-panel="networks" hidden>
+    <div class="recordsTabIntro"><span class="recordsKicker">PACs, SECTORS &amp; COMMITTEE FLOWS</span><h3>PAC &amp; Political Networks</h3><p>Named committees, sector groupings, leadership PAC relationships, and verified committee-to-committee filings are kept together here.</p></div>
+    <div class="recordsEvidence recordsFundingEvidence" aria-label="PAC and committee network records">
+     <section class="recordsPanel recordsEvidencePanel recordsPacFundingPanel" id="fundingIntelligence">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">NAMED COMMITTEES · FEC TRANSACTION DATA</span><h3>Who is funding this campaign?</h3></div></div>
+      <p class="recordsHelp">Start with the actual PACs and political committees that reported giving directly to this candidate, then see how those committees group by sector. Independent expenditures are kept separate from direct campaign contributions.</p>
+      <div id="pacFundingVisualization" class="recordsPacFunding" role="region" aria-label="Named PAC contributors, funding sectors and leadership PAC connections" aria-live="polite">Loading named PAC and committee funding…</div>
+     </section>
+     <section class="recordsPanel recordsEvidencePanel recordsMoneyNetworkPanel" id="moneyNetwork">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">FOLLOW THE MONEY · VERIFIED FEC FILINGS</span><h3>Who gave money to whom?</h3></div></div>
+      <p class="recordsHelp">Explore committee-to-committee transactions automatically connected using official FEC IDs. Select a PAC to follow its own recorded receipts and disbursements. Each connection links to the source record. We do not assume that money a PAC received was necessarily the money it later sent to someone else.</p>
+      <div id="moneyNetworkVisualization" class="recordsMoneyNetwork" aria-live="polite">Checking the shared FEC committee network…</div>
+     </section>
+    </div>
+   </section>
+
+   <section class="recordsProfilePanel" id="profilePanelLobbying" role="tabpanel" aria-labelledby="profileTabLobbying" data-profile-panel="lobbying" hidden>
+    <div class="recordsTabIntro"><span class="recordsKicker">WHO IS TRYING TO SHAPE POLICY</span><h3>Lobbying &amp; Influence</h3><p>Lobbying records and research associations belong here separately from campaign contributions. A lobbying relationship is not treated as proof of a donation, payment to the member, or improper influence.</p></div>
+    <div class="recordsEvidence recordsFundingEvidence" aria-label="Lobbying records">
      <section class="recordsPanel recordsEvidencePanel" id="lobbyLinks">
       <div class="recordsSectionHead"><div><span class="recordsKicker">RESEARCH LINKS · LOBBYVIEW</span><h3>Lobbying and legislative overlap</h3></div></div>
       <p class="recordsHelp">LobbyView links organizations and legislators through research-coded lobbying and bill data. These associations do not show that a client donated to, paid, contacted, or personally influenced a lawmaker. Published coverage may be partial.</p>
       <div id="lobbyVisualization" class="recordsLobbyVisualization" aria-live="polite"></div>
      </section>
+    </div>
+   </section>
+
+   <section class="recordsProfilePanel" id="profilePanelTravel" role="tabpanel" aria-labelledby="profileTabTravel" data-profile-panel="travel" hidden>
+    <div class="recordsTabIntro"><span class="recordsKicker">DISCLOSURES OUTSIDE CAMPAIGN FINANCE</span><h3>Travel &amp; Ethics</h3><p>Privately sponsored congressional travel is kept in its own disclosure view so voters can see who paid for travel without confusing those filings with campaign contributions.</p></div>
+    <div class="recordsEvidence recordsFundingEvidence" aria-label="Travel and ethics disclosures">
      <section class="recordsPanel recordsEvidencePanel" id="travelLinks">
       <div class="recordsSectionHead"><div><span class="recordsKicker">DISCLOSED EXPENSES</span><h3>Privately sponsored travel</h3></div></div>
       <div id="travelVisualization" class="recordsTravelViz" role="region" aria-label="Privately funded travel amounts" aria-live="polite"></div>
@@ -173,6 +201,6 @@
  <script src="assets/js/geo-colors.js"></script>
  <script src="assets/js/records-address-model.js"></script>
  <script src="assets/js/records-model.js"></script>
- <script src="assets/js/records.js?v=2026112003"></script>
+ <script src="assets/js/records.js?v=2026112005"></script>
 </body>
 </html>

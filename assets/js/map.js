@@ -343,10 +343,10 @@ function renderDataCollectionStatus(data,state){
   esc(missing.join(', '))+'. Available information above is shown without waiting for these sources.</p>';
 }
 
-function categorySections(data,scope,selected){
+function categorySections(data,scope,selected,categories=CATEGORIES){
  const groups=[],pending=[];
  const averages=scope==='state'?window.POLITICS_GEO_STATS.getStateAverages(data,selected):null;
- for(const category of CATEGORIES){
+ for(const category of categories){
   const ds=data?.categories?.[category];
   if(!ds?.counties||!ds?.fields){
    pending.push(CATEGORY_TITLES[category]);
@@ -368,36 +368,49 @@ function categorySections(data,scope,selected){
  return groups.join('')+(pending.length?
   '<p class="categoryNote">No stored figures yet for: '+pending.map(esc).join(', ')+'.</p>':'');
 }
-let lastCardSelection=null;
-function renderCard(){
- const card=$('selectedCard'),county=counties.get(sel.fips),state=sabbr[sel.abbr];
- if(!state){lastCardSelection=null;card.hidden=true;return;}
- const selectionKey=sel.abbr+'|'+(sel.fips||'');
- const selectionChanged=selectionKey!==lastCardSelection;
- const priorScroll=card.scrollTop;
- lastCardSelection=selectionKey;
- const data=window.POLITICS_COUNTY_CACHE?.get();
- const base=data?.core||null;
- const stateMode=!county;
- const selected=stateMode?state.fips:sel.fips;
- // Legislative and health collectors remain available for a dedicated future view.
- // Keep this map panel focused on state control and geographic statistics.
- const publicSources=renderStatePoliticalControl(state,stateMode);
- const restoreCardScroll=()=>{card.scrollTop=selectionChanged?0:priorScroll;};
- card.hidden=false;
- card.innerHTML='<button class="cardClose" type="button" aria-label="'+(stateMode?'Return to U.S. map':'Return to state averages')+'">×</button>'+
-  '<div class="countyName">'+esc(stateMode?state.name:county.properties.name+' County')+'</div>'+
-  '<div class="cardSub">'+(stateMode?'State-level overview · Selected state boundary':esc(state.name)+' · FIPS '+esc(sel.fips))+'</div>'+
-  '<div id="countyFacts" class="countyFacts" aria-live="polite"></div>';
- card.querySelector('.cardClose').onclick=()=>stateMode?goHome():(sel.fips=null,render());
- const target=$('countyFacts');
- if(!base?.counties){
-  target.innerHTML=publicSources+
-   '<p class="categoryNote">'+(window.POLITICS_COUNTY_CACHE?.status==='error'?
-    'Saved Census statistics could not be loaded.':'Loading stored Census statistics…')+'</p>';
-  restoreCardScroll();
-  return;
+const COUNTY_DATA_TABS=[
+ ['overview','Overview'],
+ ['housing','Housing'],
+ ['economy','Jobs & Economy'],
+ ['health','Health & Well-Being'],
+ ['community','Education & Families'],
+ ['infrastructure','Infrastructure'],
+ ['representation','Representation']
+];
+let lastCardSelection=null,activeCountyTab='overview';
+function countyTabs(){
+ return '<div class="countyDataTabs" role="tablist" aria-label="Explore local data">'+COUNTY_DATA_TABS.map(([key,label])=>
+  '<button type="button" class="countyDataTab" role="tab" data-county-tab="'+key+'" aria-selected="'+(activeCountyTab===key)+'">'+esc(label)+'</button>'
+ ).join('')+'</div>';
+}
+function stateElectricityPanel(data,state){
+ const row=data?.states?.states?.[state.abbr];
+ if(!row)return '<p class="categoryNote">State electricity-price data has not been stored yet.</p>';
+ return '<section class="countyMetricSection"><h3 class="countyFactsTitle">State electricity price · EIA</h3>'+
+  metricGrid([['Residential electricity price',row.residentialElectricityCentsKwh,'decimal']])+
+  '<p class="countyFactSource">U.S. Energy Information Administration · '+esc(row.period||'latest reporting month')+
+  ' · cents per kWh. This is a statewide measure, not a county estimate.</p></section>';
+}
+function countyTabBody(tab,data,base,state,county,stateMode,selected){
+ if(tab==='representation'){
+  const pieces=[
+   renderStatePoliticalControl(state,stateMode),
+   renderCongressionalDelegation(data,state,stateMode),
+   renderOpenStates(data,state,stateMode),
+   renderHouseVotes(data,state,stateMode),
+   renderBillCommons(data,state,stateMode),
+   renderDataCollectionStatus(data,state)
+  ].filter(Boolean);
+  return pieces.join('')||'<p class="categoryNote">Representation data is still collecting for this state.</p>';
  }
+ if(tab==='housing')return categorySections(data,stateMode?'state':'county',selected,['housing']);
+ if(tab==='economy')return categorySections(data,stateMode?'state':'county',selected,['jobs','income']);
+ if(tab==='health')return categorySections(data,stateMode?'state':'county',selected,['healthcare'])+
+  renderCdcPlaces(data,stateMode?'state':'county',selected);
+ if(tab==='community')return categorySections(data,stateMode?'state':'county',selected,['education','families']);
+ if(tab==='infrastructure')return categorySections(data,stateMode?'state':'county',selected,['infrastructure'])+
+  stateElectricityPanel(data,state);
+ const control=renderStatePoliticalControl(state,stateMode);
  if(stateMode){
   const avg=window.POLITICS_GEO_STATS.getStateAverages(data,state.fips).overview;
   const vals=[
@@ -406,26 +419,53 @@ function renderCard(){
    ['Average county poverty rate',avg.avgCountyPovertyRate,'percent'],
    ['Average county median gross rent',avg.avgCountyMedianGrossRent,'currency']
   ];
-  const stateOnly=data?.states?.states?.[state.abbr];
-  const stateOnlyPanel=stateOnly?'<div class="countyFactsTitle stateOnlyTitle">State-only data</div>'+
-    metricGrid([['Residential electricity price',stateOnly.residentialElectricityCentsKwh,'decimal']])+
-    '<div class="countyFactSource">U.S. EIA · '+esc(stateOnly.period||'latest reporting month')+
-    ' · cents per kWh. This figure is statewide, not an average of counties.</div>':
-    '';
-  target.innerHTML=publicSources+
-   '<p class="categoryNote">Equal-weight arithmetic averages of the county figures—not population-weighted or statewide estimates.</p>'+
+  return control+
+   '<p class="categoryNote">Equal-weight arithmetic averages of county figures—not population-weighted statewide estimates.</p>'+
    '<div class="countyFactsTitle">Statewide view · County averages</div>'+metricGrid(vals)+
-   stateOnlyPanel+categorySections(data,'state',state.fips)+
-   '<p class="countyFactSource">Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). Averages include counties with available values for each indicator. No provider APIs are called on a selection.</p>';
- }else{
-  const r=base.counties[sel.fips];
-  if(!r){target.innerHTML=publicSources+'<p class="categoryNote">This county is not in the current stored Census snapshot.</p>';restoreCardScroll();return;}
-  target.innerHTML=publicSources+'<div class="countyFactsTitle">County conditions</div>'+
-   metricGrid(CORE_FIELDS.map(([key,label,unit])=>[label,r[key],unit]))+
-   categorySections(data,'county',sel.fips)+
-   '<p class="countyFactSource">Source: U.S. Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). '+ 
-   '<a href="'+esc(base.sourceUrl||'https://api.census.gov/data/2024/acs/acs5')+'" target="_blank" rel="noopener noreferrer">Official data</a>.</p>';
+   '<p class="countyFactSource">Census ACS '+esc(String(base.year||2024))+
+   ' five-year estimates (2020–2024). Use the tabs above to inspect the underlying policy categories.</p>';
  }
+ const row=base.counties[selected];
+ if(!row)return control+'<p class="categoryNote">This county is not in the current stored Census snapshot.</p>';
+ return control+'<div class="countyFactsTitle">County conditions</div>'+
+  metricGrid(CORE_FIELDS.map(([key,label,unit])=>[label,row[key],unit]))+
+  '<p class="countyFactSource">Source: U.S. Census ACS '+esc(String(base.year||2024))+' five-year estimates (2020–2024). '+
+  '<a href="'+esc(base.sourceUrl||'https://api.census.gov/data/2024/acs/acs5')+'" target="_blank" rel="noopener noreferrer">Official data</a>.</p>';
+}
+function renderCard(){
+ const card=$('selectedCard'),county=counties.get(sel.fips),state=sabbr[sel.abbr];
+ if(!state){lastCardSelection=null;card.hidden=true;return;}
+ const selectionKey=sel.abbr+'|'+(sel.fips||'');
+ const selectionChanged=selectionKey!==lastCardSelection;
+ const priorScroll=card.scrollTop;
+ if(selectionChanged){
+  activeCountyTab='overview';
+  window.POLITICS_COUNTY_CACHE?.loadOpenStates?.(state.abbr);
+  window.POLITICS_COUNTY_CACHE?.loadBills?.(state.abbr);
+ }
+ lastCardSelection=selectionKey;
+ const data=window.POLITICS_COUNTY_CACHE?.get();
+ const base=data?.core||null;
+ const stateMode=!county;
+ const selected=stateMode?state.fips:sel.fips;
+ const restoreCardScroll=()=>{card.scrollTop=selectionChanged?0:priorScroll;};
+ card.hidden=false;
+ card.innerHTML='<button class="cardClose" type="button" aria-label="'+(stateMode?'Return to U.S. map':'Return to state averages')+'">×</button>'+
+  '<div class="countyName">'+esc(stateMode?state.name:county.properties.name+' County')+'</div>'+
+  '<div class="cardSub">'+(stateMode?'State-level overview · Selected state boundary':esc(state.name)+' · FIPS '+esc(sel.fips))+'</div>'+
+  countyTabs()+
+  '<div id="countyFacts" class="countyFacts" role="tabpanel" aria-live="polite"></div>';
+ card.querySelector('.cardClose').onclick=()=>stateMode?goHome():(sel.fips=null,render());
+ card.querySelectorAll('[data-county-tab]').forEach(button=>button.addEventListener('click',()=>{
+  activeCountyTab=button.dataset.countyTab;renderCard();card.scrollTop=0;
+ }));
+ const target=$('countyFacts');
+ if(!base?.counties){
+  target.innerHTML='<p class="categoryNote">'+(window.POLITICS_COUNTY_CACHE?.status==='error'?
+   'Saved Census statistics could not be loaded.':'Loading stored public data…')+'</p>';
+  restoreCardScroll();return;
+ }
+ target.innerHTML=countyTabBody(activeCountyTab,data,base,state,county,stateMode,selected);
  restoreCardScroll();
 }
 
