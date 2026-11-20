@@ -435,6 +435,8 @@ function renderHousingFinance(data,state,stateMode){
  ];
  const issue=cfpb.topIssue?.name?'<div class="countyFact"><span>Most common published complaint issue</span><strong>'+
   esc(cfpb.topIssue.name)+'</strong><small>'+Number(cfpb.topIssue.count||0).toLocaleString('en-US')+' complaints in this state/window</small></div>':'';
+ const company=cfpb.topCompany?.name?'<div class="countyFact"><span>Most published complaints by company</span><strong>'+
+  esc(cfpb.topCompany.name)+'</strong><small>'+Number(cfpb.topCompany.count||0).toLocaleString('en-US')+' complaints in this state/window · complaint volume does not establish wrongdoing</small></div>':'';
  const response=cfpb.topCompanyResponse?.name?'<div class="countyFact"><span>Most common company-response category</span><strong>'+
   esc(cfpb.topCompanyResponse.name)+'</strong><small>'+Number(cfpb.topCompanyResponse.count||0).toLocaleString('en-US')+' complaints in this state/window</small></div>':'';
  const period=ds.cfpbPeriod?.start&&ds.cfpbPeriod?.end?
@@ -442,7 +444,7 @@ function renderHousingFinance(data,state,stateMode){
  return '<section class="countyMetricSection housingFinanceSection" aria-label="State mortgage and consumer finance context">'+
   '<h3 class="countyFactsTitle">Mortgage & consumer pressure · statewide context</h3>'+
   '<p class="categoryNote">'+esc(placeNote)+'</p>'+metricGrid(metrics)+
-  (issue||response?'<div class="countyFactGrid">'+issue+response+'</div>':'')+
+  (issue||company||response?'<div class="countyFactGrid">'+issue+company+response+'</div>':'')+
   '<p class="countyFactSource"><strong>HMDA:</strong> '+esc(String(ds.hmdaYear||2025))+
   ' application actions. The displayed denial share uses only originated and denied actions; it is not a full approval rate because approved-not-accepted, withdrawn, incomplete and other actions are excluded. '+
   '<a href="'+esc(ds.hmdaSourceUrl||'https://ffiec.cfpb.gov/data-browser/')+'" target="_blank" rel="noopener noreferrer">HMDA source</a>.<br>'+
