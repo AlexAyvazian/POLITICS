@@ -37,8 +37,11 @@ def _iso_date(value):
     return None
 
 def normalize_location(row: dict):
-    fips=_text(row.get("STCNTY")).zfill(5)
-    if len(fips)!=5 or not fips.isdigit():
+    raw_fips=_text(row.get("STCNTY"))
+    if not raw_fips or not raw_fips.isdigit():
+        return None
+    fips=raw_fips.zfill(5)
+    if len(fips)!=5:
         return None
     cert=_text(row.get("CERT"))
     if not cert:
