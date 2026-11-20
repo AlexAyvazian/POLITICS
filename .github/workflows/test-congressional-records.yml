@@ -23,6 +23,11 @@ on:
       - assets/css/map.css
       - tests/county-transparency-tabs.test.mjs
       - tests/political-panel-pending.test.mjs
+      - tests/federal-money-tab.test.mjs
+      - scripts/update_usaspending_county.py
+      - tests/test_usaspending_county.py
+      - .github/workflows/refresh-usaspending-county.yml
+      - assets/data/county/usaspending.json
       - scripts/update_congressional_pac_funding.py
       - tests/test_congressional_pac_funding.py
       - ".github/workflows/test-congressional-records.yml"
@@ -54,6 +59,11 @@ on:
       - assets/css/map.css
       - tests/county-transparency-tabs.test.mjs
       - tests/political-panel-pending.test.mjs
+      - tests/federal-money-tab.test.mjs
+      - scripts/update_usaspending_county.py
+      - tests/test_usaspending_county.py
+      - .github/workflows/refresh-usaspending-county.yml
+      - assets/data/county/usaspending.json
       - scripts/update_voteview_rollcalls.py
       - tests/test_voteview_rollcalls.py
       - scripts/update_congressional_pac_funding.py
@@ -80,10 +90,12 @@ jobs:
       - name: Verify records refresh scheduling and member collection
         run: node --test tests/records-refresh.test.mjs tests/scheduled-collection.test.mjs
       - name: Verify public data health and County Atlas transparency tabs
-        run: node --test tests/data-health.test.mjs tests/county-transparency-tabs.test.mjs
+        run: node --test tests/data-health.test.mjs tests/county-transparency-tabs.test.mjs tests/federal-money-tab.test.mjs
       - name: Run full JS suite (informational; three unrelated legacy test failures)
         continue-on-error: true
         run: npm test
+      - name: Verify USAspending county transform
+        run: python3 -m unittest discover -s tests -p test_usaspending_county.py -v
       - name: Verify PAC funding aggregation, sector grouping, and leadership-PAC joins
         run: python3 -m unittest discover -s tests -p test_congressional_pac_funding.py -v
       - name: Verify DOJ FARA country normalization and documentary-source claims
