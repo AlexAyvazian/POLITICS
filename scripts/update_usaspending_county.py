@@ -40,7 +40,7 @@ def build_request(today: date) -> dict:
         },
     }
 
-def normalize_response(raw: dict, today: date) -> dict:
+def normalize_response(raw: dict, today: date, min_count: int = 2500) -> dict:
     if raw.get("geo_layer")!="county" or not isinstance(raw.get("results"),list):
         raise ValueError("USAspending response is not a county geography result")
     counties={}
@@ -64,7 +64,7 @@ def normalize_response(raw: dict, today: date) -> dict:
         agg=states.setdefault(state,{"obligations":0.0,"countyCount":0})
         agg["obligations"]=round(agg["obligations"]+amount,2)
         agg["countyCount"]+=1
-    if len(counties)<2500:
+    if len(counties)<min_count:
         raise ValueError(f"Incomplete USAspending county dataset ({len(counties)} counties)")
     req=build_request(today)
     period=req["filters"]["time_period"][0]
