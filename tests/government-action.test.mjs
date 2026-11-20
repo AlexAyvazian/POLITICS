@@ -6,7 +6,7 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 test('Government Action is a real voter-facing page linked from the major POLITICS surfaces',()=>{
  const page=read('government-action.html'),js=read('assets/js/government-action.js'),css=read('assets/css/government-action.css');
  assert.match(page,/Government Action/);
- assert.match(page,/Rules & Notices/);
+ assert.match(page,/Rules &amp; Notices/);
  assert.match(page,/Regulatory Dockets/);
  assert.match(page,/Official Publications/);
  assert.match(page,/Federal Legislation/);
