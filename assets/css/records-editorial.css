@@ -649,3 +649,35 @@ body[data-view="records"] .recordsProfile{
  .recordsProfileHero{min-height:220px}
  .recordsProfilePortrait{min-height:220px;height:auto}
 }
+
+/* Official Senate LDA search, kept separate from LobbyView research links. */
+.recordsLdaPanel{grid-column:1/-1}
+.recordsLdaSearchForm{display:grid;grid-template-columns:minmax(150px,.7fr) minmax(260px,1.8fr) minmax(110px,.45fr) auto;gap:10px;align-items:end;margin:18px 0}
+.recordsLdaSearchForm label{display:grid;gap:6px}
+.recordsLdaSearchForm label>span,.recordsLdaShortcutLabel{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#8facbf;font-weight:800}
+.recordsLdaSearchForm input,.recordsLdaSearchForm select{
+ width:100%;min-width:0;background:#071426;border:1px solid rgba(143,199,226,.19);border-radius:11px;
+ color:#eef8ff;padding:10px 11px;font:inherit;font-size:11px;outline:none
+}
+.recordsLdaSearchForm input:focus,.recordsLdaSearchForm select:focus{border-color:rgba(126,220,229,.62);box-shadow:0 0 0 2px rgba(126,220,229,.09)}
+.recordsLdaSearchForm button,.recordsLdaBillButton{
+ border:1px solid rgba(126,220,229,.36);border-radius:11px;background:rgba(65,154,169,.12);
+ color:#dffbff;font:inherit;font-size:10px;font-weight:780;padding:10px 12px;cursor:pointer
+}
+.recordsLdaSearchForm button:hover,.recordsLdaBillButton:hover{border-color:rgba(126,220,229,.7);background:rgba(65,154,169,.2)}
+.recordsLdaBillSearches{margin:14px 0 18px;padding:14px 0;border-top:1px solid rgba(143,199,226,.12);border-bottom:1px solid rgba(143,199,226,.12)}
+.recordsLdaBillButtons{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}
+.recordsLdaBillButton{border-radius:999px;padding:7px 10px}
+.recordsLdaResults{display:grid;gap:10px;margin-top:14px}
+.recordsLdaSummary{display:flex;align-items:baseline;gap:5px;color:#b8d0df;font-size:10px}
+.recordsLdaSummary strong{color:#edf8ff;font-size:13px}
+.recordsLdaFiling{padding:14px;border:1px solid rgba(143,199,226,.13);border-radius:14px;background:rgba(255,255,255,.022)}
+.recordsLdaFilingTop{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.recordsLdaFilingTop>div{min-width:0}.recordsLdaFilingTop strong{display:block;font-size:13px;color:#eef8ff}.recordsLdaFilingTop span{display:block;font-size:9px;color:#8facbf;margin-top:4px}
+.recordsLdaType{flex:0 0 auto!important;border:1px solid rgba(151,203,226,.18);border-radius:999px;padding:5px 7px;color:#bcd7e4!important;margin:0!important}
+.recordsLdaMeta{font-size:9px;color:#7693a7;margin:8px 0 10px}
+.recordsLdaActivity{margin:8px 0;padding:10px 11px;border-left:2px solid rgba(109,210,218,.5);background:rgba(72,146,166,.055)}
+.recordsLdaActivity strong{font-size:10px;color:#dceff5}.recordsLdaActivity p{font-size:10px;line-height:1.55;color:#b0c7d5;margin:4px 0}.recordsLdaActivity span{font-size:8px;line-height:1.45;color:#7f9caf}
+.recordsLdaFiling>a{display:inline-block;margin-top:7px;font-size:9px;color:#92e4e8;text-decoration:none}
+@media(max-width:900px){.recordsLdaSearchForm{grid-template-columns:1fr 1fr}.recordsLdaQuery{grid-column:1/-1}}
+@media(max-width:560px){.recordsLdaSearchForm{grid-template-columns:1fr}.recordsLdaQuery{grid-column:auto}.recordsLdaFilingTop{display:grid}}
