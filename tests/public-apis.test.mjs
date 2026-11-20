@@ -58,6 +58,16 @@ test('EPA AQS and FCC build authenticated fixed routes with configured bindings'
  assert.equal(new URL(urls[0].u).hostname,'aqs.epa.gov');
  assert.equal(urls[1].opts.headers.hash_value,'test-token');
 });
+test('CFPB adapter forwards a validated received-date window for scheduled state context',async()=>{
+ let called;
+ const fake=async (url,opts)=>{called={url:new URL(url),opts};return new Response('{"hits":{"total":{"value":0}},"aggregations":{}}');};
+ const r=await handle(request('/api/cfpb?state=CA&q=mortgage&date_min=2024-11-20&date_max=2026-11-20&limit=1'),{}, {},fake);
+ assert.equal(r.status,200);
+ assert.equal(called.url.searchParams.get('state'),'CA');
+ assert.equal(called.url.searchParams.get('search_term'),'mortgage');
+ assert.equal(called.url.searchParams.get('date_received_min'),'2024-11-20');
+ assert.equal(called.url.searchParams.get('date_received_max'),'2026-11-20');
+});
 test('HMDA adapter accepts a state filter for scheduled statewide context',async()=>{
  let called;
  const fake=async (url,opts)=>{called={url:new URL(url),opts};return new Response('{"aggregations":[{"actions_taken":"1","count":10},{"actions_taken":"3","count":2}]}');};
