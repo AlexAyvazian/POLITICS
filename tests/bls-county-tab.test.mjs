@@ -5,7 +5,7 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
 test('Jobs & Economy loads a stored BLS LAUS county labor-market snapshot',()=>{
  const cache=read('assets/js/county-cache.js'),map=read('assets/js/map.js');
- assert.match(cache,/assets\/data\/county\/bls-laus\.json/);
+ assert.match(cache,/\/api\/bls-snapshot/);
  assert.match(cache,/bls/);
  assert.match(map,/function renderBlsLaborMarket/);
  assert.match(map,/Unemployment rate/);
