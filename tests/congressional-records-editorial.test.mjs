@@ -206,3 +206,17 @@ test('House and Senate directory cards use the same portrait framing instead of 
  assert.doesNotMatch(css,/#senateMembers \.recordsMemberPortrait\{[^}]*left:\s*37%/s);
  assert.doesNotMatch(css,/#senateMembers \.recordsMemberPortrait img\{[^}]*object-position:/s);
 });
+
+test('Senate photos are constrained to their vertical aspect and full portraits fit in the hero',()=>{
+ const css=read('assets/css/records-editorial.css');
+ assert.match(css,/#senateMembers \.recordsMemberPortrait img\{[^}]*width:auto[^}]*height:100%[^}]*object-fit:contain/s);
+ assert.match(css,/\.recordsProfilePortrait \.recordsProfilePortraitImage img\{[^}]*max-width:100%[^}]*object-fit:contain/s);
+});
+
+test('PAC sectors display separate filing-year amounts and pending donor/lobby views retain links',()=>{
+ const js=read('assets/js/records.js');
+ assert.match(js,/recordsPacYears/);
+ assert.match(js,/sector\.byYear/);
+ assert.match(js,/Browse individual receipts at the FEC/);
+ assert.match(js,/View LobbyView data sources/);
+});
