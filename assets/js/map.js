@@ -163,6 +163,10 @@ const CORE_FIELDS=[
  ['povertyRate','Poverty rate','percent'],
  ['medianGrossRent','Median gross monthly rent','currency']
 ];
+function formatAtlasDate(value){
+ const d=new Date(String(value||'')+'T00:00:00Z');
+ return Number.isNaN(d.valueOf())?String(value||'Unknown date'):d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'});
+}
 function metricFormat(value,unit){
  if(typeof value!=='number'||!Number.isFinite(value)||value<0)return 'Unavailable';
  if(unit==='currency')return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
@@ -398,7 +402,7 @@ function renderFederalMoney(data,state,stateMode,selected){
  const row=stateMode?ds.states?.[state.fips]:ds.counties?.[selected];
  if(!row||typeof row.obligations!=='number')return '<p class="categoryNote">No stored USAspending county obligation figure is available for this geography.</p>';
  const heading=stateMode?'Federal prime award obligations in '+state.name:'Federal prime award obligations in this county';
- const period=(ds.period?.start&&ds.period?.end)?formatDate(ds.period.start)+' – '+formatDate(ds.period.end):'latest stored 24-month window';
+ const period=(ds.period?.start&&ds.period?.end)?formatAtlasDate(ds.period.start)+' – '+formatAtlasDate(ds.period.end):'latest stored 24-month window';
  const metrics=[['Federal prime award obligations',row.obligations,'currency']];
  if(stateMode&&Number.isFinite(row.countyCount))metrics.push(['Counties represented in state total',row.countyCount,'count']);
  return '<section class="countyMetricSection federalMoneySection" aria-label="Federal award obligations">'+
