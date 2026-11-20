@@ -87,11 +87,10 @@ function applyFilter(){
 async function load(){
  const status=document.getElementById('sourceStatus');
  try{
-  const [catalogRes,healthRes,spendingRes,blsRes]=await Promise.all([
+  const [catalogRes,healthRes,spendingRes]=await Promise.all([
    fetch(GATEWAY+'/api/catalog',{headers:{Accept:'application/json'},credentials:'omit'}),
    fetch(READER+'/api/data-health',{headers:{Accept:'application/json'},credentials:'omit'}),
-   fetch('assets/data/county/usaspending.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
-   fetch('assets/data/county/bls-laus.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
+   fetch('assets/data/county/usaspending.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
   ]);
   const catalog=catalogRes.ok?await catalogRes.json():{providers:[]};
   const health=healthRes.ok?await healthRes.json():{datasets:[],collectionHealth:[]};
@@ -100,13 +99,6 @@ async function load(){
    health.datasets=(health.datasets||[]).concat([{
     source:'usaspending_county',refreshedAt:spending.retrievedAt||null,
     records:Number(spending.count)||0,snapshots:1,database:'static'
-   }]);
-  }
-  const bls=blsRes.ok?await blsRes.json():null;
-  if(bls?.source==='U.S. Bureau of Labor Statistics'&&Number(bls.count)>0){
-   health.datasets=(health.datasets||[]).concat([{
-    source:'bls_laus_county',refreshedAt:bls.retrievedAt||null,
-    records:Number(bls.count)||0,snapshots:1,database:'static'
    }]);
   }
   const providers=(catalog.providers||[]).map(p=>({
