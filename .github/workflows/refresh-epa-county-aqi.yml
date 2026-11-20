@@ -1,0 +1,47 @@
+name: Refresh EPA annual county AQI
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "37 5,17 * * *"
+  push:
+    paths:
+      - scripts/update_epa_county_aqi.py
+      - .github/workflows/refresh-epa-county-aqi.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-epa-county-aqi
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Verify EPA AQI parser
+        run: python3 -m unittest discover -s tests -p test_epa_county_aqi.py -v
+      - name: Refresh EPA annual county AQI
+        run: python3 scripts/update_epa_county_aqi.py
+      - name: Commit refreshed EPA AQI snapshot
+        shell: bash
+        run: |
+          if [ -z "$(git status --porcelain -- assets/data/county/epa-aqi-2025.json)" ]; then
+            echo "EPA AQI snapshot unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/county/epa-aqi-2025.json
+          git commit -m "Refresh EPA annual county AQI"
+          git push origin HEAD:${GITHUB_REF_NAME}
