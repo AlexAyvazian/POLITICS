@@ -13,7 +13,7 @@ class HousingFinanceTests(unittest.TestCase):
         self.assertEqual(out["deniedCount"],20)
         self.assertEqual(out["originatedAmount"],20000000)
         self.assertEqual(out["deniedAmount"],4000000)
-        self.assertEqual(out["deniedShareOfOriginatedOrDeniedPct"],20.0)
+        self.assertEqual(out["denialShareOriginatedPlusDeniedPct"],20.0)
 
     def test_cfpb_normalization_keeps_complaint_caveat_fields(self):
         raw={
