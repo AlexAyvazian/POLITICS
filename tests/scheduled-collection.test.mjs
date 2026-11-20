@@ -238,10 +238,10 @@ test('FEC analysis joins an exact Bioguide-to-FEC candidate ID and labels self-r
    return new Response(JSON.stringify({results:[
     {entity_type:'IND',contributor_name:'DOE, JANE',contributor_city:'LOS ANGELES',contributor_state:'CA',
      contributor_employer:'EXAMPLE HEALTH',contributor_occupation:'PHYSICIAN',contribution_receipt_amount:3500,
-     contribution_aggregate:7000,contribution_receipt_date:'2026-06-01T00:00:00',sub_id:'1',memoed_subtotal:false},
+     contributor_aggregate_ytd:7000,contribution_receipt_date:'2026-06-01T00:00:00',sub_id:'1',memoed_subtotal:false},
     {entity_type:'IND',contributor_name:'SMITH, JOHN',contributor_city:'FRESNO',contributor_state:'CA',
      contributor_employer:'SELF-EMPLOYED',contributor_occupation:'ATTORNEY',contribution_receipt_amount:3500,
-     contribution_aggregate:3500,contribution_receipt_date:'2026-05-15T00:00:00',sub_id:'2',memoed_subtotal:false}
+     contributor_aggregate_ytd:3500,contribution_receipt_date:'2026-05-15T00:00:00',sub_id:'2',memoed_subtotal:false}
    ]}));
   throw Error('unexpected '+u.pathname);
  };
@@ -263,7 +263,7 @@ test('FEC analysis joins an exact Bioguide-to-FEC candidate ID and labels self-r
  const donorRequest=urls.find(x=>x.pathname.endsWith('/schedules/schedule_a/'));
  assert.equal(donorRequest.searchParams.get('committee_id'),'C00000001');
  assert.equal(donorRequest.searchParams.get('is_individual'),'true');
- assert.equal(donorRequest.searchParams.get('sort'),'-contribution_aggregate');
+ assert.equal(donorRequest.searchParams.get('sort'),'-contribution_receipt_amount');
  assert.ok(urls.filter(x=>x.hostname==='api.open.fec.gov').every(x=>x.searchParams.get('candidate_id')==='H1CA00001'||x.searchParams.get('committee_id')==='C00000001'||x.pathname.endsWith('/committees/')));
  await assert.rejects(refreshMemberFinanceDetail({COUNTY_DB:store,FEC_API_KEY:'test-fec'},'bad',mock,now));
  assert.equal(store.writes.length,1);
