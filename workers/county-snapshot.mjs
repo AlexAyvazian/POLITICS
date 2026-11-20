@@ -198,6 +198,14 @@ export async function serve(request,env){
    return json(row?JSON.parse(row.snapshot_json):{status:'pending',category,count:0},200,request,row?1800:60);
   }catch(_){return json({status:'storage_error',category,count:0},503,request);}
  }
+ if(path==='/api/bls-snapshot'){
+  const db=env?.CATEGORY_DB_JOBS;
+  if(!db)return json({status:'not_configured',count:0},503,request);
+  try{
+   const row=await db.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?').bind('bls_laus_county').first();
+   return json(row?JSON.parse(row.snapshot_json):{status:'pending',count:0,source:'U.S. Bureau of Labor Statistics'},200,request,row?1800:60);
+  }catch(_){return json({status:'storage_error',count:0},503,request);}
+ }
  if(path==='/api/bea-snapshot'){
   const db=env?.CATEGORY_DB_JOBS;
   if(!db)return json({status:'not_configured',count:0},503,request);
