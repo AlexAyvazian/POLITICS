@@ -234,18 +234,37 @@ test('FEC analysis joins an exact Bioguide-to-FEC candidate ID and labels self-r
    return new Response(JSON.stringify({results:[{committee_id:'C00000001',designation:'P'}]}));
   if(u.pathname.endsWith('/by_employer/'))
    return new Response(JSON.stringify({results:[{employer:'SCHOOL DISTRICT',total:1300,count:2}]}));
+  if(u.pathname.endsWith('/schedules/schedule_a/'))
+   return new Response(JSON.stringify({results:[
+    {entity_type:'IND',contributor_name:'DOE, JANE',contributor_city:'LOS ANGELES',contributor_state:'CA',
+     contributor_employer:'EXAMPLE HEALTH',contributor_occupation:'PHYSICIAN',contribution_receipt_amount:3500,
+     contributor_aggregate_ytd:7000,contribution_receipt_date:'2026-06-01T00:00:00',sub_id:'1',memoed_subtotal:false},
+    {entity_type:'IND',contributor_name:'SMITH, JOHN',contributor_city:'FRESNO',contributor_state:'CA',
+     contributor_employer:'SELF-EMPLOYED',contributor_occupation:'ATTORNEY',contribution_receipt_amount:3500,
+     contributor_aggregate_ytd:3500,contribution_receipt_date:'2026-05-15T00:00:00',sub_id:'2',memoed_subtotal:false}
+   ]}));
   throw Error('unexpected '+u.pathname);
  };
  const out=await refreshMemberFinanceDetail({COUNTY_DB:store,FEC_API_KEY:'test-fec'},'H000001',mock,now);
- assert.equal(out.candidateId,'H1CA00001');assert.equal(out.sections,4);
+ assert.equal(out.candidateId,'H1CA00001');assert.equal(out.sections,5);
  assert.equal(store.writes[0][0],'member_finance_detail_H000001');
  const saved=JSON.parse(store.writes[0][1]);
  assert.equal(saved.contributionSizes[0].total,1200);
  assert.equal(saved.byState[0].state,'CA');
  assert.equal(saved.outsideSpending[0].total,550);
  assert.equal(saved.reportedEmployers[0].employer,'SCHOOL DISTRICT');
+ assert.equal(saved.topIndividualContributors[0].name,'DOE, JANE');
+ assert.equal(saved.topIndividualContributors[0].aggregate,7000);
+ assert.equal(saved.topIndividualContributors[0].employer,'EXAMPLE HEALTH');
+ assert.equal(saved.topIndividualContributors[1].name,'SMITH, JOHN');
+ assert.equal(saved.individualContributorScope,'Principal campaign committee; itemized individuals only. Ranked from the 100 largest individual receipt transactions returned by FEC; aggregate is the FEC-reported election-cycle-to-date amount on that contributor record.');
  assert.equal(saved.employerScope,'Principal campaign committee only; employer is self-reported and does not establish a corporate contribution.');
  assert.ok(!JSON.stringify(saved).includes('test-fec'));
+ const donorRequest=urls.find(x=>x.pathname.endsWith('/schedules/schedule_a/'));
+ assert.equal(donorRequest.searchParams.get('committee_id'),'C00000001');
+ assert.equal(donorRequest.searchParams.get('is_individual'),'true');
+ assert.equal(donorRequest.searchParams.get('two_year_transaction_period'),'2026');
+ assert.equal(donorRequest.searchParams.get('sort'),'-contribution_receipt_amount');
  assert.ok(urls.filter(x=>x.hostname==='api.open.fec.gov').every(x=>x.searchParams.get('candidate_id')==='H1CA00001'||x.searchParams.get('committee_id')==='C00000001'||x.pathname.endsWith('/committees/')));
  await assert.rejects(refreshMemberFinanceDetail({COUNTY_DB:store,FEC_API_KEY:'test-fec'},'bad',mock,now));
  assert.equal(store.writes.length,1);
