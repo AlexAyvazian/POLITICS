@@ -53,13 +53,14 @@ test('voting summaries preserve all recorded statuses and never invent missed vo
  assert.equal(m.voteDistribution([{cast:'Unknown status'}]).total,0);
 });
 
-test('profile opens with accessible evidence overview and finance before the archived roll call list',()=>{
+test('profile opens with an overview and keeps detailed voting and funding in separate panels',()=>{
  const html=read('records.html');
  assert.match(html,/id="memberDashboard"/);
  assert.match(html,/id="recentDecisions"/);
  assert.match(html,/id="voteArchive"/);
- assert.match(html,/id="profileOverviewNav"/);
- assert.ok(html.indexOf('id="financeLinks"')<html.indexOf('id="memberVotes"'));
+ assert.match(html,/id="profileOverviewNav"[^>]*role="tablist"/);
+ assert.ok(html.indexOf('id="profilePanelVotes"')<html.indexOf('id="votesArchivePanel"'));
+ assert.ok(html.indexOf('id="profilePanelFunding"')<html.indexOf('id="financeLinks"'));
  assert.match(html,/<details[^>]*id="voteArchive"/);
 });
 test('member evidence aggregates only verified cached inputs with explicit missing statuses',()=>{
@@ -89,8 +90,8 @@ test('profile has data-first FEC and lobbying evidence, with no unverified relat
  assert.match(js,/\/api\/member-finance-detail/);
  assert.match(js,/\/api\/member-lobby-network/);
  assert.match(css,/recordsInsightGrid/);
- assert.ok(html.indexOf('id="financeLinks"')<html.indexOf('id="votesArchivePanel"'));
- assert.ok(html.indexOf('id="lobbyLinks"')<html.indexOf('id="votesArchivePanel"'));
+ assert.ok(html.indexOf('id="financeLinks"')>html.indexOf('id="profilePanelFunding"'));
+ assert.ok(html.indexOf('id="lobbyLinks"')>html.indexOf('id="profilePanelFunding"'));
 });
 
 test('every member receives a common source-linked committee-network panel',()=>{
