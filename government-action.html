@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#050814">
+ <meta name="description" content="Search federal rules, regulatory documents, official publications and current legislation from primary government sources.">
+ <title>Government Action · POLITICS</title>
+ <link rel="stylesheet" href="assets/css/atlas.css">
+ <link rel="stylesheet" href="assets/css/government-action.css">
+</head>
+<body data-view="government-action">
+ <header class="governmentNav">
+  <div class="governmentBrand"><i aria-hidden="true"></i><span>POLITICS · Public Record</span></div>
+  <strong>Government Action</strong>
+  <nav aria-label="POLITICS sections">
+   <a href="index.html#map">County Atlas</a>
+   <a href="congressional.html">Congressional Atlas</a>
+   <a href="records.html">Congressional Records</a>
+   <a href="foreign-influence.html">Foreign Influence</a>
+   <span aria-current="page">Government Action</span>
+   <a href="sources.html">Data Sources</a>
+  </nav>
+ </header>
+
+ <main class="governmentMain">
+  <section class="governmentHero">
+   <p class="governmentEyebrow">WHAT THE FEDERAL GOVERNMENT IS ACTUALLY DOING</p>
+   <h1>Government Action</h1>
+   <p>Search primary federal records without jumping between agency websites. Rules and notices, regulatory documents, official Government Publishing Office publications, and congressional legislation are kept in separate views so they are not mistaken for the same kind of government action.</p>
+   <form id="governmentSearch" class="governmentSearch">
+    <label for="governmentQuery"><span>Search the selected source</span><input id="governmentQuery" type="search" maxlength="70" placeholder="immigration, Medicare, tariffs, voting rights…" autocomplete="off"></label>
+    <button type="submit">Search records</button>
+   </form>
+  </section>
+
+  <div class="governmentTabs" role="tablist" aria-label="Government action source">
+   <button id="governmentTabRegister" type="button" role="tab" aria-selected="true" data-government-tab="register">Rules &amp; Notices</button>
+   <button id="governmentTabRegulations" type="button" role="tab" aria-selected="false" data-government-tab="regulations">Regulatory Dockets</button>
+   <button id="governmentTabGovInfo" type="button" role="tab" aria-selected="false" data-government-tab="govinfo">Official Publications</button>
+   <button id="governmentTabCongress" type="button" role="tab" aria-selected="false" data-government-tab="congress">Federal Legislation</button>
+  </div>
+
+  <section class="governmentContext" id="governmentContext">
+   <div><span id="governmentSourceKicker">FEDERAL REGISTER</span><h2 id="governmentTitle">Rules, proposed rules and notices</h2></div>
+   <p id="governmentExplanation">The Federal Register is the official daily publication for rules, proposed rules, notices, and presidential documents published by federal agencies.</p>
+  </section>
+
+  <div id="governmentStatus" class="governmentStatus" role="status">Loading the latest federal records…</div>
+  <section id="governmentResults" class="governmentResults" aria-live="polite"></section>
+
+  <section class="governmentMethod">
+   <h2>What these records do—and do not mean</h2>
+   <p>A <strong>proposed rule</strong> is not the same thing as a final rule. A document posted to <strong>Regulations.gov</strong> may be a proposed rule, final rule, supporting material, or another docket document. <strong>GovInfo</strong> is an official publication repository, not an interpretation of policy. A bill listed by <strong>Congress.gov</strong> is legislation introduced in Congress; appearing here does not mean it passed or became law.</p>
+   <p>POLITICS labels the source on every record and links back to the official government record whenever a stable link is available.</p>
+  </section>
+ </main>
+ <script src="assets/js/government-action.js?v=2026112011"></script>
+</body>
+</html>
