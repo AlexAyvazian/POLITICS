@@ -14,7 +14,7 @@ const META={
  fec:{name:'Federal Election Commission',where:'Congressional Records · Campaign Money / PAC & Networks',match:['member_finance_detail','political_money','member_finance_collection_health'],note:'Campaign finance, itemized receipts and committee-network filings.'},
  fred:{name:'Federal Reserve Economic Data',where:'Future County Atlas · Jobs & Economy',match:[],note:'Economic time series.'},
  govinfo:{name:'GovInfo',where:'Future Government Action / legislation enrichment',match:[],note:'Official federal publications and documents.'},
- lda:{name:'Senate LDA',where:'Future Congressional Records · Lobbying',match:[],note:'Official federal lobbying disclosure filings.'},
+ lda:{name:'Senate LDA',where:'Congressional Records · Lobbying',match:[],onDemandLive:true,note:'Official federal LD-1/LD-2 lobbying disclosure filings searched on demand.'},
  lobbyview:{name:'LobbyView',where:'Congressional Records · Lobbying',match:['member_lobby_network','member_lobby_collection_health'],note:'Research-coded lobbying and legislator relationships.'},
  maptiler:{name:'MapTiler',where:'Geocoding utility · no public data panel',match:[],note:'Geocoding support.'},
  noaa:{name:'NOAA NCEI',where:'Future County Atlas · Infrastructure & Environment',match:[],note:'Climate-data catalog.'},
@@ -45,6 +45,7 @@ function matchesDataset(row,key){return key===row.source||row.source.startsWith(
 function classify(provider,datasets,health){
  const keys=provider.match||[];
  if(provider.staticLive)return {status:'live',label:'Live',linked:[],issue:null};
+ if(provider.onDemandLive&&provider.configured)return {status:'live',label:'Live on demand',linked:[],issue:null};
  const linked=datasets.filter(row=>keys.some(key=>matchesDataset(row,key)));
  const issue=health.find(row=>keys.includes(row.source)||keys.some(key=>row.source.startsWith(key)))||
   health.find(row=>provider.id==='lobbyview'&&row.source==='member_lobby_collection_health');
@@ -68,7 +69,9 @@ function card(provider,datasets,health){
  const records=state.linked.reduce((sum,x)=>sum+(Number(x.records)||0),0);
  const snapshots=state.linked.reduce((sum,x)=>sum+(Number(x.snapshots)||0),0);
  const meta=document.createElement('div');meta.className='sourceMeta';
- for(const [label,value] of [['Last stored refresh',fmtDate(newest)],['Coverage',state.linked.length?(fmt(records)+' records · '+fmt(snapshots)+' snapshots'):'No stored dataset yet']]){
+ const coverage=provider.onDemandLive?'Official API search available on demand · results are not stored':
+  state.linked.length?(fmt(records)+' records · '+fmt(snapshots)+' snapshots'):'No stored dataset yet';
+ for(const [label,value] of [['Last stored refresh',provider.onDemandLive?'On-demand query':fmtDate(newest)],['Coverage',coverage]]){
   const box=document.createElement('div'),l=document.createElement('span'),v=document.createElement('strong');l.textContent=label;v.textContent=value;box.append(l,v);meta.append(box);
  }
  el.append(meta);
@@ -100,7 +103,8 @@ async function load(){
   }
   const providers=(catalog.providers||[]).map(p=>({
    ...p,id:p.id,name:META[p.id]?.name||p.id,description:META[p.id]?.note||p.description,
-   match:META[p.id]?.match||[],where:META[p.id]?.where||'Research adapter · no public surface'
+   match:META[p.id]?.match||[],where:META[p.id]?.where||'Research adapter · no public surface',
+   onDemandLive:!!META[p.id]?.onDemandLive
   })).concat(EXTRA.map(x=>({...x,note:x.description})));
   const grid=document.getElementById('sourceGrid');grid.replaceChildren();
   providers.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>grid.append(card(p,health.datasets||[],health.collectionHealth||[])));

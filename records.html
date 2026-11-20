@@ -8,7 +8,7 @@
  <title>Congressional Records · POLITICS</title>
  <link rel="stylesheet" href="assets/css/atlas.css">
  <link rel="stylesheet" href="assets/css/records.css">
- <link rel="stylesheet" href="assets/css/records-editorial.css?v=2026112005">
+ <link rel="stylesheet" href="assets/css/records-editorial.css?v=2026112007">
 </head>
 <body data-view="records">
  <header class="recordsNav">
@@ -176,6 +176,18 @@
    <section class="recordsProfilePanel" id="profilePanelLobbying" role="tabpanel" aria-labelledby="profileTabLobbying" data-profile-panel="lobbying" hidden>
     <div class="recordsTabIntro"><span class="recordsKicker">WHO IS TRYING TO SHAPE POLICY</span><h3>Lobbying &amp; Influence</h3><p>Lobbying records and research associations belong here separately from campaign contributions. A lobbying relationship is not treated as proof of a donation, payment to the member, or improper influence.</p></div>
     <div class="recordsEvidence recordsFundingEvidence" aria-label="Lobbying records">
+     <section class="recordsPanel recordsEvidencePanel recordsLdaPanel" id="ldaOfficialSearch">
+      <div class="recordsSectionHead"><div><span class="recordsKicker">OFFICIAL FILINGS · SENATE LOBBYING DISCLOSURE ACT DATABASE</span><h3>Search federal lobbying disclosures</h3></div></div>
+      <p class="recordsHelp">Search official LD-1/LD-2 filings by specific lobbying issue, client, or registrant. A filing that mentions a bill or issue does <strong>not</strong> prove this member was personally contacted, supported the filer, or changed a vote because of lobbying.</p>
+      <form id="ldaSearchForm" class="recordsLdaSearchForm">
+       <label><span>Search by</span><select id="ldaSearchMode"><option value="issue">Specific lobbying issue</option><option value="client">Client</option><option value="registrant">Registrant / lobbying firm</option></select></label>
+       <label class="recordsLdaQuery"><span>Search term</span><input id="ldaSearchQuery" type="search" maxlength="70" placeholder="H.R. 1234, Medicaid, AARP…"></label>
+       <label><span>Filing year</span><select id="ldaSearchYear"><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option></select></label>
+       <button type="submit">Search official filings</button>
+      </form>
+      <div id="ldaBillSearches" class="recordsLdaBillSearches" aria-live="polite"></div>
+      <div id="ldaSearchResults" class="recordsLdaResults" aria-live="polite"><p class="recordsEvidenceNote">Search the official LDA database above, or use a sponsored-bill shortcut when Congress.gov data is available.</p></div>
+     </section>
      <section class="recordsPanel recordsEvidencePanel" id="lobbyLinks">
       <div class="recordsSectionHead"><div><span class="recordsKicker">RESEARCH LINKS · LOBBYVIEW</span><h3>Lobbying and legislative overlap</h3></div></div>
       <p class="recordsHelp">LobbyView links organizations and legislators through research-coded lobbying and bill data. These associations do not show that a client donated to, paid, contacted, or personally influenced a lawmaker. Published coverage may be partial.</p>
@@ -201,6 +213,6 @@
  <script src="assets/js/geo-colors.js"></script>
  <script src="assets/js/records-address-model.js"></script>
  <script src="assets/js/records-model.js"></script>
- <script src="assets/js/records.js?v=2026112005"></script>
+ <script src="assets/js/records.js?v=2026112007"></script>
 </body>
 </html>

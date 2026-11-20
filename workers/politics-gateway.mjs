@@ -142,7 +142,16 @@ function target(id,p,env){
  case 'fec':if(!q)throw Error('Candidate q required');u=qs('https://api.open.fec.gov/v1/candidates/search/',{api_key:k,q,per_page:n});break;
  case 'fred':{const series=limited(p.get('series')||'UNRATE',/^[A-Z0-9._-]{2,30}$/,30);if(!series)throw Error('Invalid series');u=qs('https://api.stlouisfed.org/fred/series/observations',{series_id:series,api_key:k,file_type:'json',limit:n,sort_order:'desc'});break;}
  case 'govinfo':u=qs('https://api.govinfo.gov/collections',{api_key:k});break;
- case 'lda':u=qs('https://lda.gov/api/v1/filings/',{page_size:n,...(q?{search:q}:{})});options.headers.Authorization='Token '+k;break;
+ case 'lda':{
+  const mode=p.get('mode')||'issue';
+  if(!['issue','client','registrant'].includes(mode))throw Error('Invalid LDA search mode');
+  if(!q)throw Error('LDA search query required');
+  const year=Number(p.get('year')||2026);
+  if(!Number.isInteger(year)||year<1999||year>2026)throw Error('Invalid LDA filing year');
+  const field={issue:'filing_specific_lobbying_issues',client:'client_name',registrant:'registrant_name'}[mode];
+  u=qs('https://lda.gov/api/v1/filings/',{page_size:n,filing_year:year,[field]:q,ordering:'-dt_posted'});
+  options.headers.Authorization='Token '+k;break;
+ }
  case 'lobbyview':u=qs('https://rest-api.lobbyview.org/api/legislators',{page:1});break;
  case 'maptiler':if(!q)throw Error('Location q required');u=qs('https://api.maptiler.com/geocoding/'+encodeURIComponent(q)+'.json',{key:k,limit:Math.min(n,5)});break;
  case 'noaa':u=qs('https://www.ncei.noaa.gov/cdo-web/api/v2/datasets',{limit:n});options.headers.token=k;break;

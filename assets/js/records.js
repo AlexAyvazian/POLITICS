@@ -7,6 +7,7 @@
 const $=id=>document.getElementById(id);
 const model=window.POLITICS_RECORDS_MODEL;
 const readerBase='https://politics-daily-snapshot.alxayvazian.workers.dev';
+const gatewayBase='https://crimson-mud-d254.alxayvazian.workers.dev';
 const reader=readerBase+'/api/congress-snapshot';
 const rosterStatus=$('directoryStatus'),stateGrid=$('stateGrid');
 const state={members:[],member:null,votes:[],voteData:null,rosterDate:null,selectedState:null,activeVoteFilter:'all',measures:{},financeData:null,travelData:null,sponsorData:null};
@@ -954,6 +955,126 @@ async function loadTravel(m){
  renderTravel(m,report);
 }
 
+function ldaBillLabel(bill){
+ const type=String(bill?.type||'').toUpperCase();
+ const number=String(bill?.number||'').replace(/[^0-9]/g,'');
+ if(!number)return null;
+ const labels={HR:'H.R.',S:'S.',HRES:'H.Res.',SRES:'S.Res.',HJRES:'H.J.Res.',SJRES:'S.J.Res.',HCONRES:'H.Con.Res.',SCONRES:'S.Con.Res.'};
+ return labels[type]?(labels[type]+' '+number):null;
+}
+function renderLdaBillSearches(m,data){
+ const root=$('ldaBillSearches');if(!root)return;
+ root.replaceChildren();
+ if(state.member?.bioguide!==m.bioguide||!Array.isArray(data?.sponsored))return;
+ const bills=data.sponsored.map(bill=>({bill,label:ldaBillLabel(bill)})).filter(x=>x.label).slice(0,8);
+ if(!bills.length){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='No sponsored bill identifiers are available in the current Congress.gov sample for an automatic LDA issue search.';
+  root.append(p);return;
+ }
+ const label=document.createElement('p');label.className='recordsLdaShortcutLabel';
+ label.textContent='Search official lobbying filings that mention a bill this member sponsored';
+ root.append(label);
+ const list=document.createElement('div');list.className='recordsLdaBillButtons';
+ for(const item of bills){
+  const button=document.createElement('button');button.type='button';button.className='recordsLdaBillButton';
+  button.textContent=item.label;
+  button.title=item.bill.title||item.label;
+  button.addEventListener('click',()=>runLdaSearch({mode:'issue',query:item.label,year:2026}));
+  list.append(button);
+ }
+ root.append(list);
+ const note=document.createElement('p');note.className='recordsEvidenceNote';
+ note.textContent='A filing match means the lobbying disclosure mentions that bill or issue. It does not prove the lobbyist contacted this member personally.';
+ root.append(note);
+}
+function ldaActivityText(item,query,mode){
+ const activities=Array.isArray(item?.lobbying_activities)?item.lobbying_activities:[];
+ const q=String(query||'').toLowerCase();
+ const chosen=mode==='issue'&&q?activities.filter(a=>String(a?.description||'').toLowerCase().includes(q)):activities;
+ return (chosen.length?chosen:activities).slice(0,3);
+}
+function renderLdaResults(payload,query,mode,year){
+ const root=$('ldaSearchResults');if(!root)return;
+ root.replaceChildren();
+ const data=payload?.data;
+ const rows=Array.isArray(data?.results)?data.results:[];
+ if(!data||typeof data.count!=='number'){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='The official LDA search did not return a usable filing response.';root.append(p);return;
+ }
+ const summary=document.createElement('div');summary.className='recordsLdaSummary';
+ const strong=document.createElement('strong');strong.textContent=data.count.toLocaleString('en-US')+' matching official filing'+(data.count===1?'':'s');
+ const span=document.createElement('span');span.textContent=' · '+year+' · showing '+rows.length+' returned record'+(rows.length===1?'':'s');
+ summary.append(strong,span);root.append(summary);
+ if(!rows.length){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='No filings matched this search. This is not evidence that no lobbying occurred under different terms or filing descriptions.';
+  root.append(p);return;
+ }
+ for(const item of rows){
+  const article=document.createElement('article');article.className='recordsLdaFiling';
+  const top=document.createElement('div');top.className='recordsLdaFilingTop';
+  const names=document.createElement('div');
+  const client=document.createElement('strong');client.textContent=item?.client?.name||'Client not reported';
+  const registrant=document.createElement('span');registrant.textContent='Registrant: '+(item?.registrant?.name||'Not reported');
+  names.append(client,registrant);
+  const type=document.createElement('span');type.className='recordsLdaType';
+  type.textContent=item?.filing_type_display||item?.filing_type||'LDA filing';
+  top.append(names,type);article.append(top);
+  const meta=document.createElement('div');meta.className='recordsLdaMeta';
+  const reported=item?.income??item?.expenses;
+  const amount=reported!==null&&reported!==undefined&&Number.isFinite(Number(reported))?moneyLabel(Number(reported)):null;
+  meta.textContent=(item?.filing_period_display||String(item?.filing_year||year))+
+   (amount?' · Reported '+(item?.income!==null&&item?.income!==undefined?'income ':'expenses ')+amount:'');
+  article.append(meta);
+  for(const activity of ldaActivityText(item,query,mode)){
+   const issue=document.createElement('div');issue.className='recordsLdaActivity';
+   const issueName=document.createElement('strong');issueName.textContent=activity?.general_issue_code_display||'Lobbying issue';
+   const desc=document.createElement('p');desc.textContent=activity?.description||'Specific issue description not supplied.';
+   issue.append(issueName,desc);
+   const entities=Array.isArray(activity?.government_entities)?activity.government_entities.map(x=>x?.name).filter(Boolean).slice(0,6):[];
+   if(entities.length){
+    const e=document.createElement('span');e.textContent='Government entities listed: '+entities.join(' · ');issue.append(e);
+   }
+   article.append(issue);
+  }
+  if(typeof item?.filing_document_url==='string'&&/^https:\/\/lda\.gov\/filings\/public\/filing\//.test(item.filing_document_url)){
+   const link=document.createElement('a');link.href=item.filing_document_url;link.target='_blank';link.rel='noopener noreferrer';
+   link.textContent='Official LDA filing ↗';article.append(link);
+  }
+  root.append(article);
+ }
+ const caveat=document.createElement('p');caveat.className='recordsEvidenceNote';
+ caveat.textContent='Source: U.S. Senate Lobbying Disclosure Act database. Search matches reflect filing text and reported clients/registrants. A match does not prove this member was contacted, persuaded, paid, or financially connected to the filer.';
+ root.append(caveat);
+}
+let ldaSearchRequest=0;
+async function runLdaSearch(options=null){
+ const root=$('ldaSearchResults');if(!root)return;
+ const mode=options?.mode||$('ldaSearchMode')?.value||'issue';
+ const query=String(options?.query??$('ldaSearchQuery')?.value??'').trim();
+ const year=Number(options?.year||$('ldaSearchYear')?.value||2026);
+ if(!query){
+  root.innerHTML='<p class="recordsEvidenceNote">Enter a specific issue, client, or registrant to search official LDA filings.</p>';return;
+ }
+ if(options){
+  if($('ldaSearchMode'))$('ldaSearchMode').value=mode;
+  if($('ldaSearchQuery'))$('ldaSearchQuery').value=query;
+  if($('ldaSearchYear'))$('ldaSearchYear').value=String(year);
+ }
+ const requestId=++ldaSearchRequest;
+ root.textContent='Searching official Senate LDA filings…';
+ let payload=null;
+ try{
+  const params=new URLSearchParams({mode,q:query,year:String(year),limit:'12'});
+  const response=await fetch(gatewayBase+'/api/lda?'+params.toString(),{headers:{Accept:'application/json'},credentials:'omit'});
+  if(response.ok)payload=await response.json();
+ }catch(_){}
+ if(requestId!==ldaSearchRequest)return;
+ renderLdaResults(payload,query,mode,year);
+}
+
 async function loadSponsored(m){
  const root=$('sponsorVisualization');if(!root)return;
  root.textContent='Loading cached Congress.gov legislation…';
@@ -1006,6 +1127,7 @@ async function loadSponsored(m){
   grid.append(section);
  }
  root.append(grid);
+ renderLdaBillSearches(m,data);
 }
 
 function renderMeasures(){
@@ -1113,6 +1235,8 @@ function select(id){
  refreshDashboard();
  $('financeVisualization').textContent='Loading official FEC totals…';
  $('travelVisualization').replaceChildren();$('legislationVisualization').replaceChildren();
+ const ldaBills=$('ldaBillSearches');if(ldaBills)ldaBills.replaceChildren();
+ const ldaResults=$('ldaSearchResults');if(ldaResults)ldaResults.innerHTML='<p class="recordsEvidenceNote">Search the official LDA database above, or use a sponsored-bill shortcut when Congress.gov data is available.</p>';
  for(const [key,name] of [['all','voteFilterAll'],['yes','voteFilterYea'],['no','voteFilterNay'],['absent','voteFilterAbsent']])
   $(name).setAttribute('aria-pressed',String(key==='all'));
  loadTravel(m);loadFinance(m);loadPacFunding(m);loadSponsored(m);loadFinanceDetail(m);loadLobby(m);loadMoneyNetwork(m);
@@ -1183,5 +1307,6 @@ for(const [name,key] of [['voteFilterAll','all'],['voteFilterYea','yes'],['voteF
  });
 }
 $('votesQuery').addEventListener('input',()=>{if(state.member)renderVotes();});
+$('ldaSearchForm')?.addEventListener('submit',event=>{event.preventDefault();runLdaSearch();});
 begin();
 })();
