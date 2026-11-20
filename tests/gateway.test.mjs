@@ -28,7 +28,7 @@ test('adapters use fixed origins, correct bindings and no keys in response',asyn
   census:'/api/census?county=06019',congress:'/api/congress',
   datagov:'/api/datagov?q=housing',eia:'/api/eia?state=CA',
   fda:'/api/fda',fdic:'/api/fdic?state=CA',fec:'/api/fec?q=Smith',
-  fred:'/api/fred?series=UNRATE',govinfo:'/api/govinfo',lda:'/api/lda',
+  fred:'/api/fred?series=UNRATE',govinfo:'/api/govinfo?q=Medicare',lda:'/api/lda?q=Medicare',
   lobbyview:'/api/lobbyview',maptiler:'/api/maptiler?q=Fresno',
   noaa:'/api/noaa',openstates:'/api/openstates?jurisdiction=ca',
   regulations:'/api/regulations',usgs:'/api/usgs'
@@ -101,4 +101,27 @@ test('Congress.gov uses validated existing cross-agency 40-character key when Co
  assert.equal(seen.length,1);
  assert.equal(seen[0].searchParams.get('api_key'),valid);
  assert.equal((await res.json()).provider,'congress');
+});
+
+
+test('GovInfo topical search uses POST search service without leaking the API key into output',async()=>{
+ const seen=[];
+ const fetcher=async(url,options)=>{
+  seen.push({url:new URL(url),options});
+  return new Response(JSON.stringify({count:1,results:[{title:'Official publication',packageId:'TEST-1'}]}),{status:200,headers:{'Content-Type':'application/json'}});
+ };
+ const res=await handle(req('/api/govinfo?q=Medicare&limit=7'),env,{},fetcher);
+ assert.equal(res.status,200);
+ assert.equal(seen.length,1);
+ assert.equal(seen[0].url.hostname,'api.govinfo.gov');
+ assert.equal(seen[0].url.pathname,'/search');
+ assert.equal(seen[0].options.method,'POST');
+ const requestBody=JSON.parse(seen[0].options.body);
+ assert.equal(requestBody.query,'Medicare');
+ assert.equal(requestBody.pageSize,'7');
+ assert.equal(requestBody.offsetMark,'*');
+ assert.equal(requestBody.sorts[0].field,'publishdate');
+ const body=await res.json();
+ assert.equal(body.provider,'govinfo');
+ assert.equal(JSON.stringify(body).includes('test-GOVINFO_API_KEY'),false);
 });
