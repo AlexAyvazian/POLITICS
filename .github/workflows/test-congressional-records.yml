@@ -23,6 +23,11 @@ on:
       - assets/css/map.css
       - tests/county-transparency-tabs.test.mjs
       - tests/political-panel-pending.test.mjs
+      - government-action.html
+      - assets/js/government-action.js
+      - assets/css/government-action.css
+      - tests/government-action.test.mjs
+      - tests/gateway.test.mjs
       - tests/lda-search.test.mjs
       - tests/lda-records-ui.test.mjs
       - tests/federal-money-tab.test.mjs
@@ -62,6 +67,11 @@ on:
       - assets/css/map.css
       - tests/county-transparency-tabs.test.mjs
       - tests/political-panel-pending.test.mjs
+      - government-action.html
+      - assets/js/government-action.js
+      - assets/css/government-action.css
+      - tests/government-action.test.mjs
+      - tests/gateway.test.mjs
       - tests/lda-search.test.mjs
       - tests/lda-records-ui.test.mjs
       - tests/federal-money-tab.test.mjs
@@ -93,6 +103,8 @@ jobs:
           node-version: "22"
       - name: Verify state-first directory, exact member profiles, and voting joins
         run: node --test tests/congressional-records*.test.mjs
+      - name: Verify Government Action source separation and gateway adapters
+        run: node --test tests/government-action.test.mjs tests/gateway.test.mjs
       - name: Verify records refresh scheduling and member collection
         run: node --test tests/records-refresh.test.mjs tests/scheduled-collection.test.mjs tests/lda-search.test.mjs tests/lda-records-ui.test.mjs
       - name: Verify public data health and County Atlas transparency tabs
