@@ -316,6 +316,99 @@ async function updateCountyCategory(env,category,fetchImpl=fetch,now=new Date())
 }
 
 
+/* BLS LAUS county labor market: registered API batches. Four measures per
+ * county (03 rate, 04 unemployed, 05 employed, 06 labor force) are collected
+ * server-side and merged into one D1 snapshot. With 72 counties per half-hour
+ * run this uses six <=50-series requests and stays below the registered daily
+ * query ceiling while continuously walking the national county roster. */
+async function refreshBlsCountyLaborBatch(env,batchIndex,fetchImpl=fetch,now=new Date()){
+ const db=env?.CATEGORY_DB_JOBS,apiKey=key(env,'BLS_API_KEY');
+ if(!db||!apiKey)throw Error('Missing jobs D1 or BLS credential');
+ const censusRow=await db.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?').bind('census_jobs').first();
+ if(!censusRow)return {status:'census_jobs_pending',attempted:0,updated:0};
+ let census;
+ try{census=JSON.parse(censusRow.snapshot_json)}catch{throw Error('Stored Census jobs snapshot is invalid');}
+ const ids=Object.keys(census?.counties||{}).filter(id=>/^\d{5}$/.test(id)&&!id.endsWith('000')).sort();
+ if(ids.length<2900)return {status:'incomplete_county_roster',attempted:0,updated:0,totalEligible:ids.length};
+ const batchSize=72,batchCount=Math.ceil(ids.length/batchSize);
+ const index=((Number(batchIndex)||0)%batchCount+batchCount)%batchCount;
+ const selected=ids.slice(index*batchSize,index*batchSize+batchSize);
+ if(!selected.length)return {status:'empty_batch',attempted:0,updated:0,batchIndex:index,totalEligible:ids.length};
+
+ const existingRow=await db.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?').bind('bls_laus_county').first();
+ let existing=null;
+ try{existing=existingRow?JSON.parse(existingRow.snapshot_json):null}catch{}
+ const counties=existing?.source==='U.S. Bureau of Labor Statistics'&&existing?.counties?{...existing.counties}:{};
+ const observations={};
+ const measures=['03','04','05','06'];
+ const seriesIds=[];
+ for(const fips of selected){
+  for(const measure of measures)seriesIds.push('LAUCN'+fips+'00000000'+measure);
+ }
+ for(let offset=0;offset<seriesIds.length;offset+=50){
+  const chunk=seriesIds.slice(offset,offset+50);
+  const response=await fetchImpl('https://api.bls.gov/publicAPI/v2/timeseries/data/',{
+   method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},
+   body:JSON.stringify({seriesid:chunk,registrationkey:apiKey})
+  });
+  if(!response.ok)throw Error('BLS LAUS HTTP '+response.status);
+  const raw=await response.json();
+  if(raw?.status!=='REQUEST_SUCCEEDED')throw Error('BLS LAUS request failed: '+String(raw?.message?.[0]||raw?.status||'unknown'));
+  const series=Array.isArray(raw?.Results?.series)?raw.Results.series:
+   Array.isArray(raw?.Results?.[0]?.series)?raw.Results[0].series:[];
+  for(const item of series){
+   const id=String(item?.seriesID||'');
+   const fips=id.slice(5,10),measure=id.slice(-2);
+   if(!selected.includes(fips)||!measures.includes(measure))continue;
+   const target=(observations[fips] ||= {});
+   const values=(target[measure] ||= {});
+   for(const point of Array.isArray(item?.data)?item.data:[]){
+    const year=String(point?.year||''),period=String(point?.period||'');
+    if(!/^20\d{2}$/.test(year)||!/^M(?:0[1-9]|1[0-2])$/.test(period))continue;
+    const value=Number(String(point?.value??'').replaceAll(',',''));
+    if(!Number.isFinite(value)||value<0)continue;
+    values[year+'-'+period.slice(1)]=value;
+   }
+  }
+ }
+
+ let updated=0;
+ for(const fips of selected){
+  const obs=observations[fips];
+  if(!obs||measures.some(measure=>!obs[measure]))continue;
+  const common=Object.keys(obs['03']).filter(period=>measures.every(measure=>Object.hasOwn(obs[measure],period))).sort().reverse();
+  if(!common.length)continue;
+  const period=common[0];
+  counties[fips]={
+   unemploymentRatePct:Math.round(obs['03'][period]*10)/10,
+   unemployed:Math.round(obs['04'][period]),
+   employed:Math.round(obs['05'][period]),
+   laborForce:Math.round(obs['06'][period]),
+   period
+  };
+  updated++;
+ }
+ const count=Object.keys(counties).length;
+ const latestPeriod=Object.values(counties).map(row=>row?.period).filter(Boolean).sort().at(-1)||null;
+ const snapshot=JSON.stringify({
+  source:'U.S. Bureau of Labor Statistics',dataset:'Local Area Unemployment Statistics (LAUS)',
+  sourceUrl:'https://www.bls.gov/lau/tables.htm',retrievedAt:now.toISOString(),
+  seasonalAdjustment:'Not seasonally adjusted',latestPeriod,count,totalEligible:ids.length,
+  collectionStatus:count>=ids.length?'complete':'partial',batchIndex:index,batchSize,
+  coverage:'Latest available monthly county LAUS labor-force measures collected from registered BLS Public Data API series. County estimates are by place of residence.',
+  fields:{
+   unemploymentRatePct:{label:'Unemployment rate',unit:'percent'},
+   unemployed:{label:'Unemployed residents',unit:'count'},
+   employed:{label:'Employed residents',unit:'count'},
+   laborForce:{label:'Civilian labor force',unit:'count'}
+  },counties
+ });
+ if(new TextEncoder().encode(snapshot).length>=1900000)throw Error('BLS county labor snapshot exceeds D1 2MB row limit');
+ await db.prepare('INSERT INTO county_snapshots(source,snapshot_json,refreshed_at,record_count) VALUES(?,?,?,?) ON CONFLICT(source) DO UPDATE SET snapshot_json=excluded.snapshot_json,refreshed_at=excluded.refreshed_at,record_count=excluded.record_count')
+  .bind('bls_laus_county',snapshot,now.toISOString(),count).run();
+ return {source:'BLS LAUS',batchIndex:index,batchCount,attempted:selected.length,updated,count,totalEligible:ids.length,latestPeriod};
+}
+
 /* BEA CAINC1: official annual county per-capita personal income. The collector
  * discovers the newest published year first, then requests all counties in one
  * Regional API call. County clicks read the stored D1 snapshot only. */
@@ -970,6 +1063,9 @@ export default {
   // Every slot is a single source group; reserve remaining slots for 27-provider future jobs.
   const when=new Date(event.scheduledTime??Date.now());
   const slot=when.getUTCHours()*2+(when.getUTCMinutes()>=30?1:0);
+  const rollingHalfHour=Math.floor(when.getTime()/1800000);
+  ctx.waitUntil(refreshBlsCountyLaborBatch(env,rollingHalfHour).catch(e=>
+   console.warn('BLS county labor refresh failed: '+String(e?.message||e).slice(0,180))));
   const tasks=['housing','jobs','income','healthcare','education','families','infrastructure','eia','census','places','congressMembers'];
   // Slot 11: once/day update recent House roll calls from official Congress.gov.
   if(slot===11){ctx.waitUntil(refreshFederalHouseVotes(env));return;}
@@ -995,4 +1091,4 @@ export default {
 };
 
 // Named exports for the scheduled-collection regression suite.
-export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshBeaCountyIncome, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes, refreshMemberLegislation, refreshMemberLegislationBatch, refreshMemberFinanceDetail, refreshMemberFinanceRosterBatch, refreshMemberLobby, refreshMemberExtraBatch };
+export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshBeaCountyIncome, refreshBlsCountyLaborBatch, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes, refreshMemberLegislation, refreshMemberLegislationBatch, refreshMemberFinanceDetail, refreshMemberFinanceRosterBatch, refreshMemberLobby, refreshMemberExtraBatch };
