@@ -207,6 +207,19 @@ function clean(obj,depth=0){
  }
  return obj;
 }
+function cfpbSummary(body){
+ const buckets=node=>Array.isArray(node)?node.slice(0,12).map(row=>({
+  key:typeof row?.key==='string'?row.key.slice(0,180):String(row?.key??'').slice(0,180),
+  doc_count:Number.isFinite(Number(row?.doc_count))?Number(row.doc_count):0
+ })).filter(row=>row.key):[];
+ const total=Number(body?.hits?.total?.value);
+ return {
+  total:Number.isFinite(total)?total:0,
+  issue:buckets(body?.aggregations?.issue?.issue?.buckets),
+  timely:buckets(body?.aggregations?.timely?.timely?.buckets),
+  company_response:buckets(body?.aggregations?.company_response?.company_response?.buckets)
+ };
+}
 
 /* Scheduled nationwide ingest — NEVER fetch external providers during a county click.
    Snapshots are D1 rows with explicit source vintage. */
@@ -1056,7 +1069,7 @@ async function handleCore(request,env,ctx={},fetcher=fetch){
  if(!upstream.ok)return json({provider:id,error:'Upstream HTTP '+upstream.status},upstream.status===429?429:502);
  let body;
  try{const raw=await upstream.text();if(raw.length>1400000)throw Error('too large');body=JSON.parse(raw);}catch(_){return json({provider:id,error:'Invalid or oversized provider response'},502);}
- const response=json({provider:id,source:(KEYLESS_SOURCES[id]?.[1]||ACCESS_REQUIRED[id]?.[1]||CATALOG[id][2]),retrievedAt:new Date().toISOString(),data:clean(body)},200,(KEYLESS_SOURCES[id]?.[2]||ACCESS_REQUIRED[id]?.[4]||TTL[id]));
+ const response=json({provider:id,source:(KEYLESS_SOURCES[id]?.[1]||ACCESS_REQUIRED[id]?.[1]||CATALOG[id][2]),retrievedAt:new Date().toISOString(),data:clean(body),...(id==='cfpb'?{summary:cfpbSummary(body)}:{})},200,(KEYLESS_SOURCES[id]?.[2]||ACCESS_REQUIRED[id]?.[4]||TTL[id]));
  if(cache){try{const p=cache.put(request,response.clone());if(ctx.waitUntil)ctx.waitUntil(p);else await p;}catch{}}
  return response;
 }
