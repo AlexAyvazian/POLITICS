@@ -6,7 +6,7 @@ contains counties with monitoring data sufficient for an annual AQI row.
 Missing counties are omitted, never converted to zero.
 """
 from __future__ import annotations
-import csv, io, json, os, sys, time, urllib.request, zipfile
+import csv, io, json, os, sys, time, urllib.parse, urllib.request, zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
