@@ -119,9 +119,14 @@ def get_json(url: str, attempts: int=6):
             if attempt+1<attempts: time.sleep(1.8*(attempt+1))
     raise RuntimeError(str(last))
 
+def state_filter(state: str) -> str:
+    if state not in STATES:
+        raise ValueError("Invalid state abbreviation")
+    return f'STALP:"{state}"'
+
 def fetch_state(state: str):
     params=urllib.parse.urlencode({
-        "filters":f'STALP:"{state}"',
+        "filters":state_filter(state),
         "fields":FIELDS,
         "limit":"10000",
         "format":"json",
