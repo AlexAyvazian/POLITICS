@@ -4,7 +4,7 @@
  'use strict';
  const ROOT='https://politics-daily-snapshot.alxayvazian.workers.dev';
  const cats=['housing','jobs','income','healthcare','education','families','infrastructure'];
- const data={core:null,categories:{},states:null,places:null,congress:null,federalMoney:null,housingFinance:null,cmsPartB:null,bea:null,bls:null,bills:{},billStatus:{},openstates:{},openstatesStatus:{},houseVotes:null,houseVotesStatus:'loading'};
+ const data={core:null,categories:{},states:null,places:null,congress:null,federalMoney:null,housingFinance:null,cmsPartB:null,epaAirQuality:null,bea:null,bls:null,bills:{},billStatus:{},openstates:{},openstatesStatus:{},houseVotes:null,houseVotesStatus:'loading'};
  const billJobs=new Map(),openstatesJobs=new Map();
  let job=null;
  const notify=()=>window.dispatchEvent(new Event('politics-county-snapshot-ready'));
@@ -104,6 +104,10 @@
     if(value?.source==='Centers for Medicare & Medicaid Services'&&value?.states&&value?.stateCount)data.cmsPartB=value;
     notify();
    }).catch(error=>{console.warn('Stored CMS Part B provider activity unavailable:',error.message);notify();});
+   const epaAirQuality=fetchLocal('assets/data/county/epa-air-quality-2025.json').then(value=>{
+    if(value?.source==='U.S. EPA Air Quality System / Air Trends'&&value?.counties&&value?.count)data.epaAirQuality=value;
+    notify();
+   }).catch(error=>{console.warn('Stored EPA county monitoring snapshot unavailable:',error.message);notify();});
    const houseVotes=fetchSnapshot('/api/house-votes-snapshot').then(value=>{
     if(value?.chamber==='House'&&Array.isArray(value?.votes)&&value?.votes.length){
      data.houseVotes=value;
@@ -115,7 +119,7 @@
     console.warn('Stored House vote data unavailable:',error.message);
     notify();
    });
-   job=Promise.allSettled([core,...other,bea,bls,states,places,congress,federalMoney,housingFinance,cmsPartB,houseVotes]).then(()=>data);
+   job=Promise.allSettled([core,...other,bea,bls,states,places,congress,federalMoney,housingFinance,cmsPartB,epaAirQuality,houseVotes]).then(()=>data);
    return job;
   }
  };

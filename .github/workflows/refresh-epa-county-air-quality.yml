@@ -1,0 +1,61 @@
+# Official EPA 2025 county monitoring workbook; commit only when the data change.
+name: Refresh EPA county air-quality monitoring
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 4,16 * * *"
+  push:
+    paths:
+      - scripts/update_epa_county_air_quality.py
+      - tests/test_epa_county_air_quality.py
+      - .github/workflows/refresh-epa-county-air-quality.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-epa-county-air-quality
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install workbook reader
+        run: python3 -m pip install --quiet openpyxl
+      - name: Verify EPA transform and missing-monitor semantics
+        run: python3 -m unittest discover -s tests -p test_epa_county_air_quality.py -v
+      - name: Download official EPA 2025 county monitoring workbook
+        shell: bash
+        run: |
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+            --connect-timeout 15 --max-time 120 \
+            --user-agent "POLITICS civic transparency project" \
+            --output /tmp/epa-county-2025.xlsx \
+            https://www.epa.gov/system/files/documents/2026-06/aqstatsbycounty2025.xlsx
+      - name: Refresh EPA county monitoring snapshot
+        env:
+          EPA_COUNTY_XLSX: /tmp/epa-county-2025.xlsx
+        run: python3 scripts/update_epa_county_air_quality.py
+      - name: Commit changed EPA snapshot
+        shell: bash
+        run: |
+          if [ -z "$(git status --porcelain -- assets/data/county/epa-air-quality-2025.json)" ]; then
+            echo "EPA county monitoring snapshot unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/county/epa-air-quality-2025.json
+          git commit -m "Refresh EPA county air-quality monitoring"
+          git push origin HEAD:${GITHUB_REF_NAME}
