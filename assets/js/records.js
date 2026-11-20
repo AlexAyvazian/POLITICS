@@ -359,6 +359,172 @@ function renderRecentDecisions(){
 
 const moneyLabel=n=>typeof n==='number'&&Number.isFinite(n)?
  new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n):'Not reported';
+const PAC_SECTOR_COLORS={
+ 'Health Insurance':'#4d83ef',
+ 'Insurance & Employee Benefits':'#a05ce4',
+ 'Finance, Banking & Investment':'#42b86b',
+ 'Healthcare & Pharmaceuticals':'#e05258',
+ 'Housing, Real Estate & Construction':'#e8a52d',
+ 'Technology & Telecommunications':'#4d83ef',
+ 'Retail, Consumer & Media':'#a05ce4',
+ 'Defense & Federal Contracting':'#b64257',
+ 'Industry, Energy & Agriculture':'#42b86b',
+ 'Transportation & Vehicles':'#e8a52d',
+ 'Legal, Lobbying & Professional':'#9a63df',
+ 'Labor & Unions':'#3da9c6',
+ 'Advocacy & Civic Organizations':'#d36a9d',
+ 'Leadership PACs':'#d5b55b',
+ 'Party Committees':'#91a5bb',
+ 'Other / Unclassified':'#71869b'
+};
+const sectorColor=name=>PAC_SECTOR_COLORS[name]||PAC_SECTOR_COLORS['Other / Unclassified'];
+function pacFundingBar(label,total,max,sector){
+ const row=document.createElement('div');row.className='recordsPacBar';
+ const name=document.createElement('span');name.textContent=label;
+ const track=document.createElement('div');track.className='recordsPacBarTrack';
+ const fill=document.createElement('span');fill.className='recordsPacBarFill';
+ fill.style.width=(Math.max(0,total)/Math.max(1,max)*100).toFixed(1)+'%';
+ fill.style.background=sectorColor(sector);
+ track.append(fill);
+ const amount=document.createElement('strong');amount.textContent=moneyLabel(total);
+ row.append(name,track,amount);return row;
+}
+function pacContributorRow(item){
+ const row=document.createElement('div');row.className='recordsPacContributor';
+ const main=document.createElement('div');main.className='recordsPacContributorName';
+ const name=document.createElement('strong');name.textContent=item.name||item.committeeId||'Unnamed committee';
+ main.append(name);
+ const meta=document.createElement('span');meta.textContent=item.sector||'Other / Unclassified';
+ meta.style.setProperty('--pac-accent',sectorColor(item.sector));
+ main.append(meta);
+ if(item.leadershipPac){
+  const badge=document.createElement('em');badge.textContent='Leadership PAC';
+  main.append(badge);
+ }
+ const amount=document.createElement('strong');amount.className='recordsPacContributorAmount';amount.textContent=moneyLabel(item.total);
+ row.append(main,amount);
+ if(typeof item.sourceUrl==='string'&&/^https:\/\/www\.fec\.gov\//.test(item.sourceUrl)){
+  const link=document.createElement('a');link.href=item.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';
+  link.textContent='FEC';link.setAttribute('aria-label','FEC records for '+(item.name||item.committeeId));row.append(link);
+ }
+ return row;
+}
+function renderPacFunding(data,m){
+ const root=$('pacFundingVisualization');if(!root)return;
+ root.replaceChildren();
+ if(state.member?.bioguide!==m.bioguide)return;
+ if(!data||data.bioguide!==m.bioguide||data.cycle!==2026||
+   !Array.isArray(data.topContributors)||!Array.isArray(data.sectors)){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='Named PAC and committee funding has not been published for this member yet. The FEC campaign totals and filing detail below remain available.';
+  root.append(p);return;
+ }
+ const top=data.topContributors.filter(x=>x&&typeof x.total==='number'&&x.total>0);
+ const sectors=data.sectors.filter(x=>x&&typeof x.total==='number'&&x.total>0);
+ const own=Array.isArray(data.memberLeadershipPacs)?data.memberLeadershipPacs:[];
+ const incomingLeadership=Array.isArray(data.leadershipPacContributors)?data.leadershipPacContributors:[];
+ const metrics=document.createElement('div');metrics.className='recordsPacMetrics';
+ for(const [label,value,kind] of [
+  ['Direct committee contributions',data.directCommitteeTotal,'money'],
+  ['Named PACs / committees',top.length,'number'],
+  ['Funding sectors',sectors.length,'number'],
+  ['Member leadership PACs',own.length,'number']
+ ]){
+  const box=document.createElement('div');box.className='recordsPacMetric';
+  const span=document.createElement('span');span.textContent=label;
+  const strong=document.createElement('strong');strong.textContent=kind==='money'?moneyLabel(value):String(value??0);
+  box.append(span,strong);metrics.append(box);
+ }
+ root.append(metrics);
+ if(!top.length){
+  const none=document.createElement('p');none.className='recordsEvidenceNote';
+  none.textContent='No direct committee-to-candidate contribution rows were found in the current FEC bulk snapshot for this candidate. Independent expenditures are not treated as campaign receipts here.';
+  root.append(none);
+ }else{
+  const comparison=document.createElement('div');comparison.className='recordsPacCompare';
+  const sectorBlock=document.createElement('section');sectorBlock.className='recordsPacChart';
+  const sh=document.createElement('h4');sh.textContent='Funding by sector';sectorBlock.append(sh);
+  const sectorMax=Math.max(...sectors.slice(0,10).map(x=>x.total),1);
+  for(const item of sectors.slice(0,10))sectorBlock.append(pacFundingBar(item.sector,item.total,sectorMax,item.sector));
+  const topBlock=document.createElement('section');topBlock.className='recordsPacChart';
+  const th=document.createElement('h4');th.textContent='Top PAC & committee contributors';topBlock.append(th);
+  const topMax=Math.max(...top.slice(0,10).map(x=>x.total),1);
+  for(const item of top.slice(0,10))topBlock.append(pacFundingBar(item.name,item.total,topMax,item.sector));
+  comparison.append(sectorBlock,topBlock);root.append(comparison);
+ }
+ if(own.length||incomingLeadership.length){
+  const leadership=document.createElement('section');leadership.className='recordsLeadershipPacSection';
+  const h=document.createElement('div');h.className='recordsPacSubhead';
+  h.innerHTML='<span>FEC-REGISTERED RELATIONSHIPS</span><h4>Leadership PAC connections</h4>';
+  leadership.append(h);
+  if(own.length){
+   const label=document.createElement('p');label.className='recordsPacSectionLabel';
+   label.textContent='Leadership PACs sponsored by this member';leadership.append(label);
+   const cards=document.createElement('div');cards.className='recordsLeadershipPacGrid';
+   for(const pac of own){
+    const card=document.createElement('article');card.className='recordsLeadershipPacCard';
+    const title=document.createElement('strong');title.textContent=pac.name||pac.committeeId;
+    const sponsor=document.createElement('span');sponsor.textContent='FEC sponsor: '+(pac.sponsorName||m.name);
+    const stats=document.createElement('div');stats.className='recordsLeadershipPacStats';
+    for(const [label,value] of [['Receipts',pac.totalReceipts],['Disbursements',pac.totalDisbursements],['Cash on hand',pac.cashOnHand]]){
+     const item=document.createElement('span');item.innerHTML='<small>'+esc(label)+'</small><b>'+esc(moneyLabel(value))+'</b>';stats.append(item);
+    }
+    card.append(title,sponsor,stats);
+    if(typeof pac.sourceUrl==='string'&&/^https:\/\/www\.fec\.gov\//.test(pac.sourceUrl)){
+     const a=document.createElement('a');a.href=pac.sourceUrl;a.target='_blank';a.rel='noopener noreferrer';a.textContent='FEC leadership PAC record ↗';card.append(a);
+    }
+    cards.append(card);
+   }
+   leadership.append(cards);
+  }
+  if(incomingLeadership.length){
+   const label=document.createElement('p');label.className='recordsPacSectionLabel';
+   label.textContent='Leadership PACs that gave directly to this campaign';leadership.append(label);
+   const list=document.createElement('div');list.className='recordsPacTable';
+   for(const item of incomingLeadership.slice(0,12))list.append(pacContributorRow(item));
+   leadership.append(list);
+  }
+  root.append(leadership);
+ }
+ if(sectors.length){
+  const sectorArea=document.createElement('section');sectorArea.className='recordsFundingSectors';
+  const h=document.createElement('div');h.className='recordsPacSubhead';
+  h.innerHTML='<span>NAMED PACS, GROUPED FOR BROWSING</span><h4>PACs by sector</h4>';
+  sectorArea.append(h);
+  const note=document.createElement('p');note.className='recordsEvidenceNote';
+  note.textContent='Sector labels are a POLITICS browsing taxonomy based on committee names; they are not industry classifications assigned by the FEC.';
+  sectorArea.append(note);
+  const grid=document.createElement('div');grid.className='recordsFundingSectorGrid';
+  for(const [index,sector] of sectors.entries()){
+   const details=document.createElement('details');details.className='recordsFundingSector';
+   details.style.setProperty('--sector-accent',sectorColor(sector.sector));
+   if(index<3)details.open=true;
+   const summary=document.createElement('summary');
+   const name=document.createElement('span');name.textContent=sector.sector;
+   const count=document.createElement('small');count.textContent=sector.committeeCount+' committee'+(sector.committeeCount===1?'':'s');
+   const total=document.createElement('strong');total.textContent=moneyLabel(sector.total);
+   summary.append(name,count,total);details.append(summary);
+   const table=document.createElement('div');table.className='recordsPacTable';
+   for(const item of (Array.isArray(sector.items)?sector.items:[]).slice(0,20))table.append(pacContributorRow(item));
+   details.append(table);grid.append(details);
+  }
+  sectorArea.append(grid);root.append(sectorArea);
+ }
+ const methodology=document.createElement('p');methodology.className='recordsEvidenceNote recordsPacMethodology';
+ methodology.textContent=(data.methodology||'')+' Bulk snapshot updated '+formatDate(data.retrievedAt)+'.';
+ root.append(methodology);
+}
+async function loadPacFunding(m){
+ const root=$('pacFundingVisualization');if(!root)return;
+ root.textContent='Loading named PAC contributors and sector totals…';
+ let data=null;
+ try{
+  const response=await fetch('assets/data/records/pac-funding/'+encodeURIComponent(m.bioguide)+'.json',{credentials:'same-origin',cache:'default'});
+  if(response.ok)data=await response.json();
+ }catch(_){}
+ renderPacFunding(data,m);
+}
+
 function makeMetric(label,value){
  const box=document.createElement('div');box.className='recordsFinanceMetric';
  const h=document.createElement('span');h.textContent=label;
@@ -828,6 +994,13 @@ function activateProfileTab(name,focus=false){
  }
  if(focus)$(tabs[name])?.focus();
 }
+function setProfileTabRoute(key){
+ if(!state.member)return;
+ try{
+  history.replaceState(null,'','#state='+encodeURIComponent(state.member.state)+
+   '&member='+encodeURIComponent(state.member.bioguide)+'&tab='+encodeURIComponent(key));
+ }catch{}
+}
 function select(id){
  const m=model.getMember(state.members,id);if(!m)return;
  if(state.selectedState!==m.state)showState(m.state);
@@ -854,7 +1027,7 @@ function select(id){
  $('travelVisualization').replaceChildren();$('legislationVisualization').replaceChildren();
  for(const [key,name] of [['all','voteFilterAll'],['yes','voteFilterYea'],['no','voteFilterNay'],['absent','voteFilterAbsent']])
   $(name).setAttribute('aria-pressed',String(key==='all'));
- loadTravel(m);loadFinance(m);loadSponsored(m);loadFinanceDetail(m);loadLobby(m);loadMoneyNetwork(m);
+ loadTravel(m);loadFinance(m);loadPacFunding(m);loadSponsored(m);loadFinanceDetail(m);loadLobby(m);loadMoneyNetwork(m);
  try{history.replaceState(null,'','#state='+encodeURIComponent(m.state)+'&member='+encodeURIComponent(id));}catch{}
  $('memberProfile').scrollIntoView?.({behavior:'smooth',block:'start'});
  loadVotes(m);
@@ -869,11 +1042,14 @@ async function begin(){
   state.members=members;state.rosterDate=payload.asOf||payload.retrievedAt;
   renderStateDirectory();
   const route=new URLSearchParams(location.hash.slice(1));
-  const id=route.get('member'),stateCode=route.get('state');
+  const id=route.get('member'),stateCode=route.get('state'),requestedTab=route.get('tab');
   const target=id?model.getMember(members,id):null;
   if(target)showState(target.state);
   else if(stateCode&&stateByCode[stateCode.toUpperCase()])showState(stateCode.toUpperCase());
-  if(target)select(target.bioguide);
+  if(target){
+   select(target.bioguide);
+   if(['overview','votes','funding'].includes(requestedTab))activateProfileTab(requestedTab);
+  }
  }catch(_){
   rosterStatus.textContent='The cached congressional roster is temporarily unavailable. Reopen the page to retry.';
  }
@@ -893,7 +1069,7 @@ $('backToDelegation').addEventListener('click',()=>{
 });
 for(const [id,key] of [['profileTabOverview','overview'],['profileTabVotes','votes'],['profileTabFunding','funding']]){
  const tab=$(id);if(!tab)continue;
- tab.addEventListener('click',()=>activateProfileTab(key));
+ tab.addEventListener('click',()=>{activateProfileTab(key);setProfileTabRoute(key);});
  tab.addEventListener('keydown',event=>{
   const order=['overview','votes','funding'];
   const currentIndex=order.indexOf(key);
@@ -902,7 +1078,7 @@ for(const [id,key] of [['profileTabOverview','overview'],['profileTabVotes','vot
   else if(event.key==='ArrowLeft')next=order[(currentIndex+order.length-1)%order.length];
   else if(event.key==='Home')next=order[0];
   else if(event.key==='End')next=order[order.length-1];
-  if(next){event.preventDefault();activateProfileTab(next,true);}
+  if(next){event.preventDefault();activateProfileTab(next,true);setProfileTabRoute(next);}
  });
 }
 renderStateDirectory();

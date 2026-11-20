@@ -149,3 +149,28 @@ test('member profile separates overview, voting record, and funding into accessi
  assert.match(css,/\.recordsProfileTab/);
  assert.match(css,/\.recordsProfilePanel\[hidden\]/);
 });
+
+
+test('funding tab prioritizes named PACs, sectors, and leadership PAC relationships before raw filing aggregates',()=>{
+ const html=read('records.html'),js=read('assets/js/records.js'),css=read('assets/css/records-editorial.css');
+ for(const id of ['fundingIntelligence','pacFundingVisualization'])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.ok(html.indexOf('id="fundingIntelligence"')<html.indexOf('id="moneyNetwork"'));
+ assert.ok(html.indexOf('id="fundingIntelligence"')<html.indexOf('id="financeLinks"'));
+ assert.match(js,/function renderPacFunding/);
+ assert.match(js,/async function loadPacFunding/);
+ assert.match(js,/assets\/data\/records\/pac-funding\//);
+ assert.match(js,/Top PAC & committee contributors/);
+ assert.match(js,/Funding by sector/);
+ assert.match(js,/Leadership PAC/);
+ assert.match(css,/\.recordsPacFunding/);
+ assert.match(css,/\.recordsFundingSector/);
+ assert.match(css,/\.recordsPacContributor/);
+});
+
+
+test('member profile tabs are deep-linkable so funding views can be shared directly',()=>{
+ const js=read('assets/js/records.js');
+ assert.match(js,/route\.get\('tab'\)/);
+ assert.match(js,/\['overview','votes','funding'\]\.includes\(requestedTab\)/);
+ assert.match(js,/tab='\+encodeURIComponent\(key\)/);
+});

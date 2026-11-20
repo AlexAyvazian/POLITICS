@@ -1,0 +1,85 @@
+name: Refresh Congressional PAC funding intelligence
+
+on:
+  schedule:
+    - cron: "41 */6 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/update_congressional_pac_funding.py
+      - tests/test_congressional_pac_funding.py
+      - records.html
+      - assets/js/records.js
+      - assets/css/records-editorial.css
+      - ".github/workflows/refresh-congressional-pac-funding.yml"
+  push:
+    paths:
+      - scripts/update_congressional_pac_funding.py
+      - tests/test_congressional_pac_funding.py
+      - assets/data/records/finance/**
+      - ".github/workflows/refresh-congressional-pac-funding.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: congressional-pac-funding-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify PAC aggregation and sector rules
+        run: python3 -m unittest discover -s tests -p test_congressional_pac_funding.py -v
+      - name: Build national PAC funding cache from official FEC bulk files
+        run: python3 scripts/update_congressional_pac_funding.py
+      - name: Validate published member snapshots
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("assets/data/records/pac-funding")
+          files=list(root.glob("*.json"))
+          assert len(files) >= 400, len(files)
+          with_rows=0
+          with_sectors=0
+          with_leadership=0
+          for path in files:
+              data=json.loads(path.read_text())
+              assert data["cycle"] == 2026
+              assert data["source"] == "Federal Election Commission"
+              assert data["bioguide"] == path.stem
+              assert isinstance(data["topContributors"], list)
+              assert isinstance(data["sectors"], list)
+              assert isinstance(data["memberLeadershipPacs"], list)
+              if data["topContributors"]: with_rows += 1
+              if data["sectors"]: with_sectors += 1
+              if data["memberLeadershipPacs"]: with_leadership += 1
+          assert with_rows >= 250, with_rows
+          assert with_sectors >= 250, with_sectors
+          assert with_leadership >= 20, with_leadership
+          print({"files":len(files),"with_rows":with_rows,"with_sectors":with_sectors,"with_leadership":with_leadership})
+          PY
+      - name: Commit refreshed PAC funding cache
+        if: github.event_name != 'pull_request'
+        run: |
+          git add assets/data/records/pac-funding
+          if git diff --cached --quiet; then
+            echo "PAC funding cache unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh Congressional PAC funding intelligence"
+          TARGET_BRANCH="${GITHUB_REF_NAME}"
+          git fetch origin "${TARGET_BRANCH}"
+          git rebase "origin/${TARGET_BRANCH}"
+          git push origin "HEAD:${TARGET_BRANCH}"

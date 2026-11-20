@@ -518,3 +518,91 @@ body[data-view="records"] .recordsProfile{
  .recordsProfileTab{text-align:left;padding:11px 13px}
  .recordsTabIntro{padding:17px 16px}
 }
+
+
+/* Funding intelligence: named PACs first, raw FEC accounting second. */
+#fundingIntelligence{grid-column:1/-1}
+.recordsPacFunding{margin-top:18px}
+.recordsPacMetrics{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ border-block:1px solid rgba(155,199,220,.2);margin:4px 0 28px;padding:18px 0;
+}
+.recordsPacMetric{padding:2px clamp(10px,2vw,24px);border-right:1px solid rgba(155,199,220,.18);min-width:0}
+.recordsPacMetric:first-child{padding-left:0}
+.recordsPacMetric:last-child{border-right:0}
+.recordsPacMetric span{display:block;color:#9fb9cc;font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:760;line-height:1.45}
+.recordsPacMetric strong{display:block;color:#f1f8fb;font-size:clamp(22px,2.7vw,36px);letter-spacing:-.045em;margin-top:8px;font-variant-numeric:tabular-nums}
+.recordsPacMetric:first-child strong{color:#8ed7ca}
+.recordsPacCompare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px;margin:12px 0 34px}
+.recordsPacChart{min-width:0}
+.recordsPacChart h4,.recordsPacSubhead h4{font-size:clamp(19px,2.3vw,27px);letter-spacing:-.035em;margin:0 0 17px;color:#edf7fb}
+.recordsPacBar{display:grid;grid-template-columns:minmax(120px,1.15fr) minmax(90px,1fr) 92px;align-items:center;gap:10px;margin:10px 0}
+.recordsPacBar>span{font-size:11px;color:#c1d7e4;line-height:1.35;overflow-wrap:anywhere}
+.recordsPacBar>strong{text-align:right;font-size:11px;color:#edf7fb;font-variant-numeric:tabular-nums}
+.recordsPacBarTrack{height:9px;border-radius:99px;overflow:hidden;background:rgba(156,197,216,.12)}
+.recordsPacBarFill{display:block;height:100%;border-radius:99px}
+.recordsPacSubhead{margin:4px 0 17px}
+.recordsPacSubhead>span{display:block;color:#82d7cf;font-size:10px;font-weight:800;letter-spacing:.1em;margin-bottom:6px}
+.recordsLeadershipPacSection,.recordsFundingSectors{
+ border-top:1px solid rgba(149,195,215,.2);padding-top:25px;margin-top:29px
+}
+.recordsPacSectionLabel{font-size:11px;color:#a8c5d5;text-transform:uppercase;letter-spacing:.06em;font-weight:760;margin:17px 0 10px}
+.recordsLeadershipPacGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:20px}
+.recordsLeadershipPacCard{
+ padding:18px;border-radius:16px;border:1px solid rgba(213,181,91,.28);
+ background:linear-gradient(145deg,rgba(64,53,25,.15),rgba(7,19,35,.7));
+}
+.recordsLeadershipPacCard>strong{display:block;font-size:15px;color:#f2f8fb;line-height:1.35}
+.recordsLeadershipPacCard>span{display:block;font-size:10px;color:#b5c9d5;margin-top:6px}
+.recordsLeadershipPacStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0}
+.recordsLeadershipPacStats span{min-width:0}
+.recordsLeadershipPacStats small{display:block;color:#94aebd;font-size:9px;text-transform:uppercase;letter-spacing:.05em}
+.recordsLeadershipPacStats b{display:block;color:#eaf4f8;font-size:12px;margin-top:5px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.recordsLeadershipPacCard>a{font-size:11px;color:#d7c37d;text-underline-offset:3px}
+.recordsFundingSectorGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.recordsFundingSector{
+ border:1px solid rgba(143,187,207,.18);border-left:3px solid var(--sector-accent,#71869b);
+ border-radius:14px;background:rgba(6,19,36,.58);overflow:hidden
+}
+.recordsFundingSector>summary{
+ display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;
+ cursor:pointer;padding:14px 15px;list-style:none
+}
+.recordsFundingSector>summary::-webkit-details-marker{display:none}
+.recordsFundingSector>summary span{font-size:13px;font-weight:760;color:#eaf5fa}
+.recordsFundingSector>summary small{font-size:10px;color:#91adbd}
+.recordsFundingSector>summary strong{font-size:12px;color:#eef7fb;font-variant-numeric:tabular-nums}
+.recordsFundingSector[open]>summary{background:rgba(72,113,134,.12);border-bottom:1px solid rgba(142,187,207,.14)}
+.recordsPacTable{display:grid}
+.recordsPacContributor{
+ display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;
+ padding:11px 14px;border-top:1px solid rgba(144,188,208,.12)
+}
+.recordsPacContributor:first-child{border-top:0}
+.recordsPacContributorName{min-width:0}
+.recordsPacContributorName>strong{display:block;color:#e6f1f7;font-size:11px;line-height:1.35;overflow-wrap:anywhere}
+.recordsPacContributorName>span{
+ display:inline-block;color:var(--pac-accent,#93a8b8);font-size:9px;margin-top:4px
+}
+.recordsPacContributorName>em{
+ display:inline-block;margin-left:7px;padding:2px 6px;border-radius:999px;
+ border:1px solid rgba(213,181,91,.38);color:#d9c477;font-size:8px;font-style:normal;font-weight:800
+}
+.recordsPacContributorAmount{font-size:11px;color:#eff8fb;font-variant-numeric:tabular-nums}
+.recordsPacContributor>a{font-size:9px;color:#8ed8df;text-decoration:none;border-bottom:1px solid rgba(142,216,223,.25)}
+.recordsPacMethodology{border-top:1px solid rgba(144,190,210,.16);padding-top:16px;margin-top:25px}
+@media(max-width:900px){
+ .recordsPacMetrics{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:16px}
+ .recordsPacMetric:nth-child(2){border-right:0}
+ .recordsPacMetric:nth-child(3){padding-left:0}
+ .recordsPacCompare,.recordsFundingSectorGrid{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+ .recordsPacBar{grid-template-columns:minmax(100px,1fr) minmax(65px,.7fr) 76px;gap:6px}
+ .recordsPacBar>span,.recordsPacBar>strong{font-size:10px}
+ .recordsLeadershipPacGrid{grid-template-columns:1fr}
+ .recordsLeadershipPacStats{grid-template-columns:1fr}
+ .recordsFundingSector>summary{grid-template-columns:minmax(0,1fr) auto}
+ .recordsFundingSector>summary small{grid-column:1}
+ .recordsFundingSector>summary strong{grid-column:2;grid-row:1/3}
+}
