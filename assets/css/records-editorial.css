@@ -476,3 +476,45 @@ body[data-view="records"] .recordsProfile{
 @media(max-width:430px){
  .recordsStateCard--alaska .recordsStateGlyph svg{transform:scale(1.08)}
 }
+
+
+/* Member profile primary navigation: keep voting and funding as distinct views. */
+.recordsProfileTabs{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
+ margin:0 0 22px;padding:7px;
+ border:1px solid rgba(149,201,227,.22);border-radius:18px;
+ background:rgba(6,16,31,.78);box-shadow:0 16px 40px rgba(0,0,0,.14);
+}
+.recordsProfileTab{
+ min-width:0;border:1px solid transparent;border-radius:13px;padding:14px 16px;
+ background:transparent;color:#9eb9cc;cursor:pointer;
+ font:inherit;font-size:13px;font-weight:780;letter-spacing:.01em;text-align:center;
+ transition:background .16s,border-color .16s,color .16s,transform .16s;
+}
+.recordsProfileTab:hover,.recordsProfileTab:focus-visible{
+ color:#effcff;border-color:rgba(130,214,225,.35);outline:none;
+}
+.recordsProfileTab:focus-visible{box-shadow:0 0 0 2px rgba(130,214,225,.22)}
+.recordsProfileTab[aria-selected="true"]{
+ color:#effcff;background:linear-gradient(135deg,rgba(52,124,144,.38),rgba(28,79,103,.42));
+ border-color:rgba(126,213,222,.48);box-shadow:inset 0 0 0 1px rgba(185,240,243,.04);
+}
+.recordsProfilePanel{animation:recordsProfilePanelIn .18s ease-out}
+.recordsProfilePanel[hidden]{display:none!important}
+@keyframes recordsProfilePanelIn{from{opacity:.55;transform:translateY(4px)}to{opacity:1;transform:none}}
+.recordsTabIntro{
+ margin:0 0 20px;padding:clamp(18px,2.7vw,30px);
+ border:1px solid rgba(149,201,227,.18);border-radius:20px;
+ background:linear-gradient(140deg,rgba(15,31,52,.82),rgba(7,17,32,.86));
+}
+.recordsTabIntro h3{font-size:clamp(30px,4vw,50px);letter-spacing:-.055em;line-height:1.04;margin:7px 0 9px}
+.recordsTabIntro p{max-width:760px;margin:0;color:#acc5d5;font-size:12px;line-height:1.65}
+.recordsOverviewEvidence,.recordsVotingEvidence,.recordsFundingEvidence{margin-top:0}
+.recordsVotingEvidence{margin-bottom:18px}
+.recordsVotingEvidence #legislationLinks{grid-column:1/-1}
+.recordsFundingEvidence{margin-bottom:34px}
+@media(max-width:640px){
+ .recordsProfileTabs{grid-template-columns:1fr;padding:6px;gap:5px}
+ .recordsProfileTab{text-align:left;padding:11px 13px}
+ .recordsTabIntro{padding:17px 16px}
+}
