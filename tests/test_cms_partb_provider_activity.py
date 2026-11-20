@@ -16,7 +16,7 @@ class CmsPartBProviderActivityTests(unittest.TestCase):
         self.assertEqual(out["stateCount"],2)
         self.assertEqual(out["reportingYear"],2024)
         self.assertEqual(out["states"]["CA"]["publishedProviderRows"],105363)
-        self.assertIn("not all licensed",out["coverage"].lower())
+        self.assertIn("all licensed clinicians",out["coverage"].lower())
         self.assertIn("fewer than 11 beneficiaries",out["coverage"].lower())
 
 if __name__=="__main__":
