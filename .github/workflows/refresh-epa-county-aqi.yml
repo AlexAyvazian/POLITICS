@@ -32,16 +32,20 @@ jobs:
           python-version: "3.13"
       - name: Verify EPA transform and missing-county semantics
         run: python3 -m unittest discover -s tests -p test_epa_county_aqi.py -v
-      - name: Download official EPA annual county AQI
+      - name: Download official EPA annual county AQI when available
         shell: bash
         run: |
-          curl --http1.1 --fail --location \
-            --retry 10 --retry-all-errors --retry-delay 3 \
-            --connect-timeout 20 --max-time 180 \
+          if curl --http1.1 --fail --location \
+            --retry 5 --retry-all-errors --retry-delay 2 \
+            --connect-timeout 15 --max-time 90 \
             --user-agent "POLITICS civic transparency project" \
             --output /tmp/epa-aqi-2025.zip \
-            https://aqs.epa.gov/aqsweb/airdata/annual_aqi_by_county_2025.zip
-          unzip -t /tmp/epa-aqi-2025.zip
+            https://aqs.epa.gov/aqsweb/airdata/annual_aqi_by_county_2025.zip; then
+            unzip -t /tmp/epa-aqi-2025.zip
+          else
+            echo "EPA AirData ZIP host unavailable; parser will use the published EPA-derived mirror."
+            rm -f /tmp/epa-aqi-2025.zip
+          fi
       - name: Refresh EPA annual county AQI
         env:
           EPA_AQI_ZIP: /tmp/epa-aqi-2025.zip
