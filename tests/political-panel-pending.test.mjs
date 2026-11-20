@@ -20,29 +20,26 @@ test('selected place changes reset the sidebar scroll, but snapshots preserve cu
  assert.match(js,/let lastCardSelection=null/);
  assert.match(js,/card\.scrollTop=selectionChanged\?0:priorScroll/);
 });
-test('the map sidebar shows political control and original state/county statistics without legislative lists',()=>{
+test('the map sidebar exposes stored policy datasets only when voters choose the relevant tab',()=>{
  const js=read('assets/js/map.js');
  const start=js.indexOf('function renderCard()');
  const end=js.indexOf('\nfunction selectState(',start);
  const body=js.slice(start,end);
- assert.match(body,/renderStatePoliticalControl\(state,stateMode\)/);
- assert.match(body,/metricGrid\(vals\)/);
- assert.match(body,/categorySections\(data,'state',state\.fips\)/);
- assert.match(body,/metricGrid\(CORE_FIELDS\.map\(/);
+ assert.match(js,/function countyTabBody/);
+ assert.match(js,/renderStatePoliticalControl\(state,stateMode\)/);
  for(const name of ['renderOpenStates','renderHouseVotes','renderBillCommons',
-    'renderCongressionalDelegation','renderCdcPlaces','renderDataCollectionStatus']){
-  assert.equal(body.includes(name+'('),false,name+' should not clutter the map sidebar');
- }
- assert.doesNotMatch(body,/loadBills\?\.|loadOpenStates\?\./,'hidden lists should not be fetched when selecting a state');
- assert.doesNotMatch(body,/collectionStatus/,'hidden data sources must not add a pending footer');
- assert.ok(!body.includes('fetch('));
+    'renderCongressionalDelegation','renderCdcPlaces','renderDataCollectionStatus'])
+  assert.ok(js.includes(name+'('),name+' is available to a voter-facing tab');
+ assert.match(body,/loadBills\?\./);
+ assert.match(body,/loadOpenStates\?\./);
+ assert.ok(!body.includes('fetch('),'selection still reads stored POLITICS snapshots only');
 });
-test('legislative sources and collectors remain in repository for future dedicated pages',()=>{
+test('legislative and health collectors are wired into the County Atlas representation and health tabs',()=>{
  const js=read('assets/js/map.js');
  const worker=read('workers/politics-gateway.mjs');
  const cache=read('assets/js/county-cache.js');
  for(const name of ['renderOpenStates','renderHouseVotes','renderBillCommons','renderCongressionalDelegation','renderCdcPlaces'])
-  assert.ok(js.includes('function '+name+'('));
+  assert.ok(js.split(name+'(').length-1>=2,name+' must be defined and rendered');
  for(const name of ['refreshOpenStatesState','refreshFederalHouseVotes','refreshBillCommonsState'])
   assert.ok(worker.includes('function '+name+'('));
  assert.match(cache,/loadOpenStates\(abbr\)/);
