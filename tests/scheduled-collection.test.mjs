@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes,refreshMemberLegislation,refreshMemberFinanceDetail,refreshMemberFinanceRosterBatch,refreshMemberLobby} from '../workers/politics-gateway.mjs';
+import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes,refreshMemberLegislation,refreshMemberFinanceDetail,refreshMemberFinanceRosterBatch,refreshMemberLobby,refreshBeaCountyIncome} from '../workers/politics-gateway.mjs';
 
 const specs=COUNTY_CATEGORY_CONFIG.specs;
 const expectedCategories=['housing','jobs','income','healthcare','education','families','infrastructure'];
@@ -326,4 +326,39 @@ test('full-roster finance batch selects six deterministic members and advances b
  assert.equal(final.attempted,0);
  assert.equal(final.complete,true);
  assert.equal(identityIds.length,6);
+});
+
+
+test('BEA county per-capita income collector uses the county CAINC1 table and stores the newest published year',async()=>{
+ const store=db(),seen=[];
+ const mock=async input=>{
+  const u=new URL(input);seen.push(u);
+  if(u.searchParams.get('method')==='GetParameterValuesFiltered'){
+   return new Response(JSON.stringify({BEAAPI:{Results:{ParamValue:[{Key:'2023'},{Key:'2024'}]}}}));
+  }
+  if(u.searchParams.get('method')==='GetData'){
+   const rows=[];
+   for(let i=0;i<3000;i++){
+    const fips=String(Math.floor(i/1000)+1).padStart(2,'0')+String(i%1000).padStart(3,'0');
+    rows.push({GeoFIPS:fips,GeoName:'Example County',Code:'CAINC1-3',TimePeriod:'2024',DataValue:'55,432',CL_UNIT:'Dollars',UNIT_MULT:'0'});
+   }
+   return new Response(JSON.stringify({BEAAPI:{Results:{Data:rows}}}));
+  }
+  throw Error('unexpected BEA request');
+ };
+ const out=await refreshBeaCountyIncome({CATEGORY_DB_JOBS:store,BEA_API_KEY:'test-bea'},mock,now);
+ assert.equal(out.count,3000);
+ assert.equal(out.year,2024);
+ assert.equal(seen[0].searchParams.get('TableName'),'CAINC1');
+ assert.equal(seen[0].searchParams.get('TargetParameter'),'Year');
+ assert.equal(seen[1].searchParams.get('TableName'),'CAINC1');
+ assert.equal(seen[1].searchParams.get('LineCode'),'3');
+ assert.equal(seen[1].searchParams.get('GeoFIPS'),'COUNTY');
+ assert.equal(seen[1].searchParams.get('Year'),'2024');
+ assert.equal(store.writes[0][0],'bea_county_per_capita_income');
+ const saved=JSON.parse(store.writes[0][1]);
+ assert.equal(saved.counties['01000']?.perCapitaPersonalIncome,undefined);
+ assert.equal(saved.counties['01001'].perCapitaPersonalIncome,55432);
+ assert.equal(saved.fields.perCapitaPersonalIncome.unit,'currency');
+ assert.ok(!JSON.stringify(saved).includes('test-bea'));
 });
