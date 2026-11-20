@@ -32,18 +32,25 @@ class SectorClassificationTests(unittest.TestCase):
 class ContributionAggregationTests(unittest.TestCase):
     def test_amendments_replace_old_rows_and_independent_expenditures_do_not_become_contributions(self):
         rows = [
-            ["C00000001", "N", "Q2", "P2026", "img", "15K", "PAC", "Example Bank PAC", "", "", "", "", "", "01012026", "5000", "C00999999", "H2CA00001", "TX-1", "100", "", "", "1"],
-            ["C00000001", "A", "Q2", "P2026", "img", "15K", "PAC", "Example Bank PAC", "", "", "", "", "", "01012026", "7500", "C00999999", "H2CA00001", "TX-1", "200", "", "", "2"],
-            ["C00000002", "N", "Q2", "G2026", "img", "15K", "PAC", "Workers Leadership PAC", "", "", "", "", "", "02012026", "5000", "C00999999", "H2CA00001", "TX-2", "100", "", "", "3"],
-            ["C00000003", "N", "Q2", "G2026", "img", "24A", "PAC", "Outside Spending PAC", "", "", "", "", "", "03012026", "90000", "C00999999", "H2CA00001", "TX-3", "100", "", "", "4"],
-            ["C00000004", "N", "Q2", "G2026", "img", "15K", "PAC", "Memo PAC", "", "", "", "", "", "04012026", "10000", "C00999999", "H2CA00001", "TX-4", "100", "X", "memo", "5"],
+            ["C00000001", "N", "Q2", "P2026", "img", "24K", "CAN", "Recipient Candidate", "", "", "", "", "", "01012026", "5000", "C00999999", "H2CA00001", "TX-1", "100", "", "", "1"],
+            ["C00000001", "A", "Q2", "P2026", "img", "24K", "CAN", "Recipient Candidate", "", "", "", "", "", "01012026", "7500", "C00999999", "H2CA00001", "TX-1", "200", "", "", "2"],
+            ["C00000002", "N", "Q2", "G2026", "img", "24Z", "CCM", "Recipient Campaign", "", "", "", "", "", "02012026", "5000", "C00999999", "H2CA00001", "TX-2", "100", "", "", "3"],
+            ["C00000003", "N", "Q2", "G2026", "img", "24A", "CAN", "Recipient Candidate", "", "", "", "", "", "03012026", "90000", "C00999999", "H2CA00001", "TX-3", "100", "", "", "4"],
+            ["C00000004", "N", "Q2", "G2026", "img", "24K", "CAN", "Recipient Candidate", "", "", "", "", "", "04012026", "10000", "C00999999", "H2CA00001", "TX-4", "100", "X", "memo", "5"],
         ]
         leadership = {"C00000002": {"committeeId": "C00000002", "name": "Workers Leadership PAC", "sponsorName": "DOE, JANE"}}
-        out = aggregate_candidate_rows(rows, leadership)
+        committees = {
+            "C00000001": {"name": "Example Bank PAC", "connectedOrganization": "Example Bank"},
+            "C00000002": {"name": "Workers Leadership PAC", "connectedOrganization": None},
+            "C00000004": {"name": "Memo PAC", "connectedOrganization": None},
+        }
+        out = aggregate_candidate_rows(rows, leadership, committees)
         self.assertEqual(out["directTotal"], 12500.0)
         self.assertEqual([x["committeeId"] for x in out["contributors"]], ["C00000001", "C00000002"])
+        self.assertEqual(out["contributors"][0]["name"], "Example Bank PAC")
         self.assertEqual(out["contributors"][0]["total"], 7500.0)
         self.assertTrue(out["contributors"][1]["leadershipPac"])
+        self.assertEqual(out["contributors"][1]["name"], "Workers Leadership PAC")
         self.assertEqual(out["excludedIndependentExpenditureRows"], 1)
         self.assertEqual(out["excludedMemoRows"], 1)
 
