@@ -12,6 +12,7 @@ from pathlib import Path
 
 YEAR=2025
 URL=f"https://aqs.epa.gov/aqsweb/airdata/annual_aqi_by_county_{YEAR}.zip"
+CENSUS_COUNTIES="https://api.census.gov/data/2024/acs/acs5?get=NAME&for=county:*&in=state:*"
 OUTPUT=Path(f"assets/data/county/epa-aqi-{YEAR}.json")
 USER_AGENT="POLITICS civic transparency project (+https://politics-e5yt.onrender.com)"
 STATE_FIPS={
@@ -40,11 +41,28 @@ def _int(value):
     except (TypeError,ValueError):
         return None
 
-def normalize_row(row: dict):
+def _name(value):
+    return " ".join(str(value or "").strip().lower().replace(".","").replace("'","").split())
+
+def _strip_county_suffix(value):
+    text=_name(value)
+    for suffix in (" county"," parish"," borough"," census area"," municipality"," city and borough"," city"):
+        if text.endswith(suffix):
+            text=text[:-len(suffix)]
+            break
+    return text.strip()
+
+def normalize_row(row: dict, name_lookup=None):
     state=str(_lookup(row,"State Code","state_code","state fips") or "").strip().zfill(2)
     county=str(_lookup(row,"County Code","county_code","county fips") or "").strip().zfill(3)
     if state not in STATE_FIPS or len(county)!=3 or not county.isdigit():
-        return None
+        state_name=_name(_lookup(row,"State"))
+        county_name=_name(_lookup(row,"County"))
+        county_simple=_strip_county_suffix(_lookup(row,"County"))
+        fips=(name_lookup or {}).get((state_name,county_name)) or (name_lookup or {}).get((state_name,county_simple))
+        if not fips:
+            return None
+        state,county=fips[:2],fips[2:]
     year=_int(_lookup(row,"Year"))
     if year not in (None,YEAR):
         return None
@@ -74,10 +92,10 @@ def normalize_row(row: dict):
         "medianAqi":_int(_lookup(row,"Median AQI")),
     }
 
-def build_snapshot(rows, retrieved_at: str, min_count: int=850):
+def build_snapshot(rows, retrieved_at: str, min_count: int=850, name_lookup=None):
     counties={}
     for raw in rows:
-        item=normalize_row(raw)
+        item=normalize_row(raw,name_lookup)
         if item:
             fips=item.pop("fips")
             counties[fips]=item
@@ -98,6 +116,38 @@ def build_snapshot(rows, retrieved_at: str, min_count: int=850):
         "counties":dict(sorted(counties.items())),
     }
 
+def fetch_county_lookup():
+    req=urllib.request.Request(CENSUS_COUNTIES,headers={"Accept":"application/json","User-Agent":USER_AGENT})
+    with urllib.request.urlopen(req,timeout=90) as response:
+        if response.status!=200:
+            raise RuntimeError(f"Census county lookup HTTP {response.status}")
+        rows=json.load(response)
+    if not isinstance(rows,list) or len(rows)<2900:
+        raise RuntimeError("Incomplete Census county lookup")
+    header=rows[0]
+    idx={name:i for i,name in enumerate(header)}
+    lookup={}
+    for row in rows[1:]:
+        state=str(row[idx["state"]]).zfill(2)
+        county=str(row[idx["county"]]).zfill(3)
+        if state not in STATE_FIPS:
+            continue
+        full=str(row[idx["NAME"]])
+        parts=[p.strip() for p in full.split(",")]
+        if len(parts)<2:
+            continue
+        county_name,state_name=parts[0],parts[-1]
+        fips=state+county
+        exact=(_name(state_name),_name(county_name))
+        simple=(_name(state_name),_strip_county_suffix(county_name))
+        lookup[exact]=fips
+        # Only keep suffix-stripped aliases when they are unambiguous.
+        if simple not in lookup:
+            lookup[simple]=fips
+        elif lookup[simple]!=fips:
+            lookup[simple]=None
+    return {k:v for k,v in lookup.items() if v}
+
 def fetch_rows():
     req=urllib.request.Request(URL,headers={"Accept":"application/zip","User-Agent":USER_AGENT})
     with urllib.request.urlopen(req,timeout=90) as response:
@@ -114,8 +164,9 @@ def fetch_rows():
 
 def main():
     rows=fetch_rows()
+    lookup=fetch_county_lookup()
     now=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00","Z")
-    snapshot=build_snapshot(rows,now)
+    snapshot=build_snapshot(rows,now,name_lookup=lookup)
     if OUTPUT.exists():
         try:
             old=json.loads(OUTPUT.read_text(encoding="utf-8"))
