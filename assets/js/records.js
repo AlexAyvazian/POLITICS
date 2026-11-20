@@ -816,6 +816,18 @@ async function loadVotes(m){
  renderVotes();
  refreshDashboard();renderRecentDecisions();
 }
+function activateProfileTab(name,focus=false){
+ const tabs={overview:'profileTabOverview',votes:'profileTabVotes',funding:'profileTabFunding'};
+ const panels={overview:'profilePanelOverview',votes:'profilePanelVotes',funding:'profilePanelFunding'};
+ if(!tabs[name])name='overview';
+ for(const key of Object.keys(tabs)){
+  const active=key===name;
+  const tab=$(tabs[key]),panel=$(panels[key]);
+  if(tab){tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;}
+  if(panel)panel.hidden=!active;
+ }
+ if(focus)$(tabs[name])?.focus();
+}
 function select(id){
  const m=model.getMember(state.members,id);if(!m)return;
  if(state.selectedState!==m.state)showState(m.state);
@@ -824,6 +836,7 @@ function select(id){
  $('delegationDirectory').hidden=true;
  $('stateDirectory').hidden=true;
  $('memberProfile').hidden=false;
+ activateProfileTab('overview');
  $('profileName').textContent=m.name;
  $('profileChamber').textContent=m.chamber==='House'?'U.S. House of Representatives':'U.S. Senate';
  $('profileInfo').textContent=(m.chamber==='House'?stateByCode[m.state]?.name+' · '+(Number(m.district)===0?'At-large district':'Congressional District '+m.district):stateByCode[m.state]?.name+' · U.S. Senate')+' · '+(m.party||'Party not reported');
@@ -878,6 +891,20 @@ $('backToDelegation').addEventListener('click',()=>{
  }
  $('delegationDirectory').scrollIntoView?.({behavior:'smooth',block:'start'});
 });
+for(const [id,key] of [['profileTabOverview','overview'],['profileTabVotes','votes'],['profileTabFunding','funding']]){
+ const tab=$(id);if(!tab)continue;
+ tab.addEventListener('click',()=>activateProfileTab(key));
+ tab.addEventListener('keydown',event=>{
+  const order=['overview','votes','funding'];
+  const currentIndex=order.indexOf(key);
+  let next=null;
+  if(event.key==='ArrowRight')next=order[(currentIndex+1)%order.length];
+  else if(event.key==='ArrowLeft')next=order[(currentIndex+order.length-1)%order.length];
+  else if(event.key==='Home')next=order[0];
+  else if(event.key==='End')next=order[order.length-1];
+  if(next){event.preventDefault();activateProfileTab(next,true);}
+ });
+}
 renderStateDirectory();
 loadOfficialSummaries();
 for(const [name,key] of [['voteFilterAll','all'],['voteFilterYea','yes'],['voteFilterNay','no'],['voteFilterAbsent','absent']]){
