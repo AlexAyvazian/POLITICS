@@ -26,12 +26,14 @@ class HousingFinanceTests(unittest.TestCase):
           "aggregations":{
             "issue":{"issue":{"buckets":[{"key":"Trouble during payment process","doc_count":3371}]}},
             "timely":{"timely":{"buckets":[{"key":"Yes","doc_count":7177},{"key":"No","doc_count":263}]}},
+            "company":{"company":{"buckets":[{"key":"Shellpoint Partners, LLC","doc_count":1088}]}},
             "company_response":{"company_response":{"buckets":[{"key":"Closed with explanation","doc_count":6798}]}},
           }
         }
         out=normalize_cfpb(raw)
         self.assertEqual(out["complaintCount"],7440)
         self.assertEqual(out["topIssue"],{"name":"Trouble during payment process","count":3371})
+        self.assertEqual(out["topCompany"],{"name":"Shellpoint Partners, LLC","count":1088})
         self.assertEqual(out["topCompanyResponse"],{"name":"Closed with explanation","count":6798})
         self.assertAlmostEqual(out["timelyResponsePct"],96.47,places=2)
 
