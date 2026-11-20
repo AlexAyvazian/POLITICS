@@ -29,7 +29,7 @@ async function snapshotHealthRows(db,aggregate=false){
   const rows=await db.prepare(sql).all();
   return Array.isArray(rows?.results)?rows.results.map(row=>({
    source:String(row.source||''),refreshedAt:row.refreshed_at||null,
-   records:Number(row.records)||0,snapshots:Number(row.snapshots)||1
+   records:Number(row.records??row.record_count)||0,snapshots:Number(row.snapshots)||1
   })).filter(row=>row.source):[];
  }catch(_){return [];}
 }
