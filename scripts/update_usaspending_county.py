@@ -88,7 +88,7 @@ def fetch(today: date) -> dict:
         ENDPOINT,data=payload,method="POST",
         headers={"Accept":"application/json","Content-Type":"application/json","User-Agent":"POLITICS civic transparency project"},
     )
-    with urllib.request.urlopen(req,timeout=90) as response:
+    with urllib.request.urlopen(req,timeout=120) as response:
         if response.status!=200:
             raise RuntimeError(f"USAspending HTTP {response.status}")
         raw=json.load(response)
