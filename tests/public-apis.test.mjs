@@ -58,6 +58,17 @@ test('EPA AQS and FCC build authenticated fixed routes with configured bindings'
  assert.equal(new URL(urls[0].u).hostname,'aqs.epa.gov');
  assert.equal(urls[1].opts.headers.hash_value,'test-token');
 });
+test('HMDA adapter accepts a state filter for scheduled statewide context',async()=>{
+ let called;
+ const fake=async (url,opts)=>{called={url:new URL(url),opts};return new Response('{"aggregations":[{"actions_taken":"1","count":10},{"actions_taken":"3","count":2}]}');};
+ const r=await handle(request('/api/hmda?state=CA&year=2025'),{}, {},fake);
+ assert.equal(r.status,200);
+ assert.equal(called.url.hostname,'ffiec.cfpb.gov');
+ assert.equal(called.url.searchParams.get('states'),'CA');
+ assert.equal(called.url.searchParams.get('years'),'2025');
+ assert.equal(called.url.searchParams.get('counties'),null);
+});
+
 test('input validation blocks bogus company IDs, years, and counties',async()=>{
  for(const path of ['/api/sec?cik=abc','/api/hmda?county=bad','/api/usaspending?county=bad','/api/epa_aqs?county=abc']){
   const r=await handle(request(path),{EPA_AQS_KEY:'mock',EPA_AQS_EMAIL:'contact@example.test'});
