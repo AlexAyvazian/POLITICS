@@ -12,6 +12,8 @@ on:
       - tests/category-reader.test.mjs
       - workers/politics-gateway.mjs
       - workers/county-snapshot.mjs
+      - scripts/update_congressional_pac_funding.py
+      - tests/test_congressional_pac_funding.py
       - ".github/workflows/test-congressional-records.yml"
   push:
     paths:
@@ -30,6 +32,8 @@ on:
       - assets/js/records-address-model.js
       - scripts/update_voteview_rollcalls.py
       - tests/test_voteview_rollcalls.py
+      - scripts/update_congressional_pac_funding.py
+      - tests/test_congressional_pac_funding.py
       - ".github/workflows/test-congressional-records.yml"
   workflow_dispatch:
 
@@ -52,6 +56,8 @@ jobs:
       - name: Run full JS suite (informational; three unrelated legacy test failures)
         continue-on-error: true
         run: npm test
+      - name: Verify PAC funding aggregation, sector grouping, and leadership-PAC joins
+        run: python3 -m unittest discover -s tests -p test_congressional_pac_funding.py -v
       - name: Verify DOJ FARA country normalization and documentary-source claims
         run: python3 -m unittest discover -s tests -p test_fara_world.py -v
       - name: Verify archived roll-call dataset joins and vote code meanings
