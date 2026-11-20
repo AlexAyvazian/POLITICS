@@ -14,3 +14,14 @@ test('Lobbying tab exposes official LDA search separately from LobbyView researc
  assert.match(js,/does not prove.*contact/i);
  assert.match(css,/recordsLda/);
 });
+
+
+test('official LDA form has an explicit submit control and renders visible search errors instead of leaving the default message',()=>{
+ const html=read('records.html'),js=read('assets/js/records.js');
+ assert.match(html,/id="ldaSearchSubmit"/);
+ assert.match(html,/id="ldaSearchStatus"/);
+ assert.match(js,/function setLdaSearchStatus/);
+ assert.match(js,/ldaSearchSubmit/);
+ assert.match(js,/Official LDA search failed/);
+ assert.match(js,/response\.status/);
+});
