@@ -778,6 +778,39 @@ async function refreshMemberLobby(env,bioguide,fetchImpl=fetch,now=new Date()){
  await politicalSnapshotWrite(db,'member_lobby_network_'+bioguide,record,now,record.clientCount);
  return {bioguide,clientCount:unique.length,identifiedClients:clients.length};
 }
+async function refreshMemberFinanceRosterBatch(env,batchIndex,batchSize=6,fetchImpl=fetch,now=new Date()){
+ const db=env?.COUNTY_DB;
+ if(!db)throw Error('D1 not configured');
+ if(!Number.isInteger(batchIndex)||batchIndex<0||batchIndex>95)throw Error('Invalid finance batch index');
+ if(!Number.isInteger(batchSize)||batchSize<1||batchSize>6)throw Error('Invalid finance batch size');
+ const r=await db.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?').bind('congress_members_current').first();
+ if(!r)return {status:'roster_pending'};
+ const roster=JSON.parse(r.snapshot_json);
+ const ids=[...new Set(Object.values(roster.states||{}).flatMap(s=>[...(s.house||[]),...(s.senators||[])])
+  .map(m=>m.bioguide).filter(id=>/^[A-Z][0-9]{6}$/.test(String(id||''))))].sort();
+ if(ids.length<400)return {status:'incomplete_roster'};
+ const start=batchIndex*batchSize;
+ const selected=ids.slice(start,start+batchSize);
+ const half=now.getUTCHours()<12?'00':'12';
+ const cycleKey=now.toISOString().slice(0,10)+'T'+half+':00Z';
+ if(!selected.length)return {source:'FEC twice-daily full-roster collector',cycleKey,batchIndex,attempted:0,updated:0,failed:0,complete:start>=ids.length,totalMembers:ids.length};
+ const results=[];
+ // One member at a time keeps the request below the free Worker connection and
+ // external-subrequest ceilings while still covering the full roster per cycle.
+ for(const id of selected){
+  try{await refreshMemberFinanceDetail(env,id,fetchImpl,now);results.push({status:'fulfilled'});}
+  catch(reason){results.push({status:'rejected',reason});}
+ }
+ const failed=results.filter(x=>x.status==='rejected');
+ const issues=[...new Set(failed.map(x=>String(x.reason?.message||'unknown failure').slice(0,130)))].slice(0,6);
+ const summary={source:'FEC twice-daily full-roster collector',cycleKey,asOf:now.toISOString(),
+  batchIndex,batchSize,start,totalMembers:ids.length,attempted:selected.length,
+  updated:selected.length-failed.length,failed:failed.length,examples:issues,
+  complete:start+selected.length>=ids.length};
+ await politicalSnapshotWrite(db,'member_finance_collection_health',summary,now,summary.updated);
+ return summary;
+}
+
 async function refreshMemberExtraBatch(env,kind,slot,fetchImpl=fetch,now=new Date()){
  const db=env?.COUNTY_DB;
  if(!db)throw Error('D1 not configured');
@@ -882,4 +915,4 @@ export default {
 };
 
 // Named exports for the scheduled-collection regression suite.
-export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes, refreshMemberLegislation, refreshMemberLegislationBatch, refreshMemberFinanceDetail, refreshMemberLobby, refreshMemberExtraBatch };
+export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes, refreshMemberLegislation, refreshMemberLegislationBatch, refreshMemberFinanceDetail, refreshMemberFinanceRosterBatch, refreshMemberLobby, refreshMemberExtraBatch };
