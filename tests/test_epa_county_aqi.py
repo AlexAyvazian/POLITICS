@@ -22,6 +22,11 @@ class EpaCountyAqiTests(unittest.TestCase):
         self.assertEqual(out["p90Aqi"],121)
         self.assertEqual(out["medianAqi"],64)
 
+    def test_name_lookup_maps_code_less_epa_rows_to_fips(self):
+        row={"State":"California","County":"Fresno","Year":"2025","Days with AQI":"300","Good Days":"100","Moderate Days":"150","Unhealthy for Sensitive Groups Days":"40","Unhealthy Days":"10","Very Unhealthy Days":"0","Hazardous Days":"0"}
+        out=normalize_row(row,{("california","fresno"):"06019"})
+        self.assertEqual(out["fips"],"06019")
+
     def test_missing_or_invalid_fips_is_not_converted_to_zero_air_quality(self):
         row={"State Code":"","County Code":"","Year":"2025","Days with AQI":"0"}
         self.assertIsNone(normalize_row(row))
