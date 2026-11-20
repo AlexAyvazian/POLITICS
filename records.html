@@ -8,7 +8,7 @@
  <title>Congressional Records · POLITICS</title>
  <link rel="stylesheet" href="assets/css/atlas.css">
  <link rel="stylesheet" href="assets/css/records.css">
- <link rel="stylesheet" href="assets/css/records-editorial.css?v=2026112007">
+ <link rel="stylesheet" href="assets/css/records-editorial.css?v=2026112008">
 </head>
 <body data-view="records">
  <header class="recordsNav">
@@ -183,9 +183,10 @@
        <label><span>Search by</span><select id="ldaSearchMode"><option value="issue">Specific lobbying issue</option><option value="client">Client</option><option value="registrant">Registrant / lobbying firm</option></select></label>
        <label class="recordsLdaQuery"><span>Search term</span><input id="ldaSearchQuery" type="search" maxlength="70" placeholder="H.R. 1234, Medicaid, AARP…"></label>
        <label><span>Filing year</span><select id="ldaSearchYear"><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option></select></label>
-       <button type="submit">Search official filings</button>
+       <button type="submit" id="ldaSearchSubmit">Search official filings</button>
       </form>
       <div id="ldaBillSearches" class="recordsLdaBillSearches" aria-live="polite"></div>
+      <p id="ldaSearchStatus" class="recordsLdaSearchStatus" role="status" aria-live="polite"></p>
       <div id="ldaSearchResults" class="recordsLdaResults" aria-live="polite"><p class="recordsEvidenceNote">Search the official LDA database above, or use a sponsored-bill shortcut when Congress.gov data is available.</p></div>
      </section>
      <section class="recordsPanel recordsEvidencePanel" id="lobbyLinks">
@@ -213,6 +214,6 @@
  <script src="assets/js/geo-colors.js"></script>
  <script src="assets/js/records-address-model.js"></script>
  <script src="assets/js/records-model.js"></script>
- <script src="assets/js/records.js?v=2026112007"></script>
+ <script src="assets/js/records.js?v=2026112008"></script>
 </body>
 </html>
