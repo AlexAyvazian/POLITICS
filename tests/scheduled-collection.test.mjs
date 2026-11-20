@@ -263,6 +263,7 @@ test('FEC analysis joins an exact Bioguide-to-FEC candidate ID and labels self-r
  const donorRequest=urls.find(x=>x.pathname.endsWith('/schedules/schedule_a/'));
  assert.equal(donorRequest.searchParams.get('committee_id'),'C00000001');
  assert.equal(donorRequest.searchParams.get('is_individual'),'true');
+ assert.equal(donorRequest.searchParams.get('two_year_transaction_period'),'2026');
  assert.equal(donorRequest.searchParams.get('sort'),'-contribution_receipt_amount');
  assert.ok(urls.filter(x=>x.hostname==='api.open.fec.gov').every(x=>x.searchParams.get('candidate_id')==='H1CA00001'||x.searchParams.get('committee_id')==='C00000001'||x.pathname.endsWith('/committees/')));
  await assert.rejects(refreshMemberFinanceDetail({COUNTY_DB:store,FEC_API_KEY:'test-fec'},'bad',mock,now));
