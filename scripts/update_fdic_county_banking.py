@@ -106,7 +106,7 @@ def build_snapshot(rows, retrieved_at: str, min_offices: int=70000, min_counties
         "counties":counties,
     }
 
-def get_json(url: str, attempts: int=4):
+def get_json(url: str, attempts: int=6):
     last=None
     for attempt in range(attempts):
         try:
@@ -116,7 +116,7 @@ def get_json(url: str, attempts: int=4):
                 return json.load(response)
         except Exception as exc:
             last=exc
-            if attempt+1<attempts: time.sleep(1.2*(attempt+1))
+            if attempt+1<attempts: time.sleep(1.8*(attempt+1))
     raise RuntimeError(str(last))
 
 def fetch_state(state: str):
@@ -139,13 +139,25 @@ def fetch_state(state: str):
 def fetch_all():
     rows=[]
     totals={}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+    failed=[]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
         futures={pool.submit(fetch_state,state):state for state in STATES}
         for future in concurrent.futures.as_completed(futures):
             state=futures[future]
-            data,total=future.result()
+            try:
+                data,total=future.result()
+                rows.extend(data);totals[state]=total
+                print(f"{state}: {total:,} FDIC office locations")
+            except Exception as exc:
+                failed.append((state,str(exc)))
+                print(f"{state}: initial FDIC request failed; will retry sequentially: {exc}")
+    for state,first_error in failed:
+        try:
+            data,total=fetch_state(state)
             rows.extend(data);totals[state]=total
-            print(f"{state}: {total:,} FDIC office locations")
+            print(f"{state}: {total:,} FDIC office locations (sequential retry)")
+        except Exception as exc:
+            raise RuntimeError(f"FDIC {state} failed after parallel and sequential retries: {first_error} | {exc}")
     if len(totals)!=len(STATES):
         raise RuntimeError(f"Incomplete FDIC state coverage ({len(totals)}/{len(STATES)})")
     return rows
