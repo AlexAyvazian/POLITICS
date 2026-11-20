@@ -50,7 +50,8 @@ SECTOR_RULES: list[tuple[str, tuple[str, ...]]] = [
         "INSURANCE", "AFLAC", "PRUDENTIAL", "MUTUAL OF OMAHA", "BENEFITS",
         "ACTUAR", "TRAVELERS", "CHUBB", "ALLSTATE", "STATE FARM",
         "NORTHWESTERN MUTUAL", "NEW YORK LIFE", "PACIFIC LIFE", "UNUM",
-        "MARSH", "GUARDIAN LIFE", "PRIMERICA", "THRIVENT",
+        "MARSH", "GUARDIAN LIFE", "PRIMERICA", "THRIVENT", "LIFE INSURERS",
+        "ZURICH", "ESOP ASSOCIATION",
     )),
     ("Finance, Banking & Investment", (
         "BANK", "BANKERS", "BANCORP", "FINANCIAL", "INVESTMENT", "INVESTOR",
@@ -58,7 +59,8 @@ SECTOR_RULES: list[tuple[str, tuple[str, ...]]] = [
         "MASTERCARD", "VISA", "BLACKROCK", "FIDELITY", "FMR LLC", "VANGUARD",
         "GOLDMAN SACHS", "MORGAN STANLEY", "JPMORGAN", "CITIGROUP", "BARCLAYS",
         "UBS ", "DELOITTE", "ERNST & YOUNG", "KPMG", "PRICEWATERHOUSE",
-        "ACCOUNTANTS", "PENSION PROFESSIONALS", "FARM CREDIT",
+        "ACCOUNTANTS", "PENSION PROFESSIONALS", "FARM CREDIT", "AMERICAN EXPRESS",
+        "ONEMAIN", "WELLS FARGO", "FINSECA",
     )),
     ("Healthcare & Pharmaceuticals", (
         "HEALTH", "PHARMA", "PHARMACY", "PHARMACEUT", "MEDICAL", "MEDICINE",
@@ -66,21 +68,22 @@ SECTOR_RULES: list[tuple[str, tuple[str, ...]]] = [
         "OPHTHAL", "ANESTH", "CARDIO", "CHIROPRACT", "OSTEOPATH", "THERAP",
         "PSYCHIATR", "PSYCHOLOG", "SURGEON", "RADIOLOG", "PODIATR",
         "AUDIOLOGY", "ONCOLOGY", "RENAL", "DAVITA", "FRESENIUS", "CVS ",
-        "WALGREEN", "ABBVIE", "CARDINAL HEALTH", "TELADOC",
+        "WALGREEN", "ABBVIE", "CARDINAL HEALTH", "TELADOC", "ALZHEIMER",
+        "OB-GYN", "OBGYN", "SPEECH-LANGUAGE", "PATHOLOGIST", "VASCULAR SURGERY",
     )),
     ("Housing, Real Estate & Construction", (
         "REAL ESTATE", "REALTOR", "APARTMENT", "MULTIFAMILY", "HOME BUILDER",
         "HOME BUILDERS", "HOUSING", "MORTGAGE", "LAND TITLE", "NAIOP",
         "NAREIT", "PROPERTY MANAGER", "PROPERTY MANAGEMENT", "ARCHITECT",
         "CONSTRUCTION", "CONTRACTOR", "CONCRETE", "SHOPPING CENTERS",
-        "1031", "ROCK HOLDINGS", "ZILLOW",
+        "1031", "ROCK HOLDINGS", "ROCKET LIMITED", "ROCKET MORTGAGE", "ZILLOW",
     )),
     ("Technology & Telecommunications", (
         "TELECOM", "TELECOMM", "WIRELESS", "CABLE", "INTERNET", "SOFTWARE",
         "AMAZON", "GOOGLE", "META PLATFORMS", "MICROSOFT", "ORACLE", "CISCO",
         "VERIZON", "T-MOBILE", "AT&T", "COMCAST", "CHARTER COMMUNICATION",
         "SAMSUNG", "SYNOPSYS", "EBAY", "DOORDASH", "ECHOSTAR", "DISH NETWORK",
-        "HEWLETT PACKARD", "NIELSEN", "GRAIL",
+        "HEWLETT PACKARD", "NIELSEN", "GRAIL", "COX ENTERPRISES", "DELL TECHNOLOGIES",
     )),
     ("Retail, Consumer & Media", (
         "RETAIL", "CONSUMER", "WALMART", "TARGET", "HOME DEPOT", "LOWE'S",
@@ -88,13 +91,13 @@ SECTOR_RULES: list[tuple[str, tuple[str, ...]]] = [
         "BROADCAST", "MUSIC", "ENTERTAINMENT", "FRANCHISE", "BEER", "SPIRITS",
         "ANHEUSER", "BROWN-FORMAN", "SAZERAC", "CONVENIENCE STORES",
         "MAJOR LEAGUE BASEBALL", "PARAMOUNT", "DRAFTKINGS", "TRACTOR SUPPLY",
-        "GAP INC",
+        "GAP INC", "BMI ", "HOTEL", "LODGING",
     )),
     ("Defense & Federal Contracting", (
         "DEFENSE", "AEROSPACE", "LOCKHEED", "RAYTHEON", "NORTHROP", "GENERAL DYNAMICS",
         "L3HARRIS", "BAE SYSTEMS", "BOEING", "HUNTINGTON INGALLS", "LEIDOS",
         "PARSONS CORPORATION", "ROLLS-ROYCE", "TEXTRON", "AECOM", "HONEYWELL",
-        "ACCENTURE", "DELL INC",
+        "ACCENTURE", "DELL INC", "RTX CORPORATION",
     )),
     ("Industry, Energy & Agriculture", (
         "ENERGY", "ELECTRIC", "UTILITY", "OIL", "GAS", "MINING", "METALS",
@@ -114,10 +117,16 @@ SECTOR_RULES: list[tuple[str, tuple[str, ...]]] = [
         "BROWNSTEIN", "BRYAN CAVE", "COZEN", "FOLEY & LARDNER", "HOLLAND & KNIGHT",
         "K&L GATES", "MCKINSEY", "SQUIRE PATTON", "STEPTOE", "WILLIAMS AND JENSEN",
         "INTELLECTUAL PROPERTY LAW", "COUNCIL OF ENGINEERING COMPANIES",
+        "ASSOCIATION FOR JUSTICE", "HDR, INC", "ENGINEERING",
     )),
     ("Labor & Unions", (
         "AFL-CIO", "LABORERS", "TEAMSTERS", "UNION", "IBEW", "SEIU", "AFSCME",
         "UAW", "TEACHERS UNION", "FIREFIGHTERS", "LETTER CARRIERS", "PILOTS ASSOCIATION",
+        "FEDERATION OF GOVT", "FEDERATION OF GOV'T", "BROTHERHOOD", "AIR TRAFFIC CONTROLLERS",
+        "EDUCATION ASSOCIATION", "THEATRICAL STAGE EMPLOYEES", "TRANSIT UNION",
+    )),
+    ("Advocacy & Civic Organizations", (
+        "HUMAN RIGHTS", "HUMANE WORLD", "HUMANE SOCIETY",
     )),
 ]
 
@@ -239,6 +248,8 @@ def aggregate_candidate_rows(
         source_id = row[PAS2["committee_id"]].strip()
         meta = committee_metadata.get(source_id) or {}
         leadership = leadership_map.get(source_id)
+        designated_leadership = str(meta.get("designation") or "").upper() == "D"
+        is_leadership = bool(leadership) or designated_leadership
         name = (
             (leadership or {}).get("name")
             or meta.get("name")
@@ -247,7 +258,7 @@ def aggregate_candidate_rows(
         connected = meta.get("connectedOrganization")
         party_committee = str(meta.get("committeeType") or "").upper() in {"X", "Y", "Z"}
         sector = "Party Committees" if party_committee else (
-            "Leadership PACs" if leadership else classify_sector(
+            "Leadership PACs" if is_leadership else classify_sector(
                 " ".join(x for x in [name, connected] if x)
             )
         )
@@ -261,7 +272,7 @@ def aggregate_candidate_rows(
             "committeeType": meta.get("committeeType"),
             "designation": meta.get("designation"),
             "sector": sector,
-            "leadershipPac": bool(leadership),
+            "leadershipPac": is_leadership,
             "leadershipSponsor": leadership.get("sponsorName") if leadership else None,
             "sourceUrl": f"https://www.fec.gov/data/committee/{source_id}/?cycle=2026",
         })
@@ -409,7 +420,7 @@ def _sector_summary(contributors: list[dict]) -> list[dict]:
         group["total"] = round(group["total"], 2)
         group["items"] = sorted(group["items"], key=lambda x: (-x["total"], x["name"]))[:30]
         result.append(group)
-    return sorted(result, key=lambda x: (-x["total"], x["sector"]))
+    return sorted(result, key=lambda x: (x["sector"] == "Other / Unclassified", -x["total"], x["sector"]))
 
 
 def build_snapshot(
