@@ -79,7 +79,7 @@ function authenticatedPublicRoute(id,p,env){
   for(const [k,v] of Object.entries({email:account,key:apiKey,param:'88101',bdate:d+'0101',edate:d+'0107',state:county.slice(0,2),county:county.slice(2)}))u.searchParams.set(k,v);
   u=u.toString();
  }else{
-  u='https://bdc.fcc.gov/api/public/map/listAsOfDates';
+  u='https://broadbandmap.fcc.gov/api/public/map/listAsOfDates';
   options.headers.username=account;options.headers.hash_value=apiKey;
  }
  return {u,options};
@@ -188,7 +188,20 @@ function target(id,p,env){
  }
  case 'lobbyview':u=qs('https://rest-api.lobbyview.org/api/legislators',{page:1});break;
  case 'maptiler':if(!q)throw Error('Location q required');u=qs('https://api.maptiler.com/geocoding/'+encodeURIComponent(q)+'.json',{key:k,limit:Math.min(n,5)});break;
- case 'noaa':u=qs('https://www.ncei.noaa.gov/cdo-web/api/v2/datasets',{limit:n});options.headers.token=k;break;
+ case 'noaa':{
+  if(f){
+   const daysRaw=Number(p.get('days')||7);
+   if(!Number.isInteger(daysRaw)||daysRaw<1||daysRaw>30)throw Error('NOAA days must be 1–30');
+   const end=new Date(),start=new Date(end.getTime()-(daysRaw-1)*86400000);
+   const day=d=>d.toISOString().slice(0,10);
+   u=qs('https://www.ncei.noaa.gov/cdo-web/api/v2/data',{
+    datasetid:'GHCND',locationid:'FIPS:'+f,startdate:day(start),enddate:day(end),
+    units:'standard',datatypeid:'TMAX,TMIN,PRCP',sortfield:'date',sortorder:'desc',
+    includemetadata:'false',limit:n
+   });
+  }else u=qs('https://www.ncei.noaa.gov/cdo-web/api/v2/datasets',{limit:n});
+  options.headers.token=k;break;
+ }
  case 'openstates':{
   const resource=p.get('record')||'bills';
   if(!['bills','people'].includes(resource))throw Error('Invalid Open States record type');
@@ -198,7 +211,18 @@ function target(id,p,env){
   options.headers['X-API-KEY']=k;break;
  }
  case 'regulations':u=qs('https://api.regulations.gov/v4/documents',{'page[size]':n,sort:'-postedDate',...(q?{'filter[searchTerm]':q}:{})});options.headers['X-Api-Key']=k;break;
- case 'usgs':u=qs('https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items',{limit:n});options.headers['X-Api-Key']=k;break;
+ case 'usgs':{
+  if(f){
+   const daysRaw=Number(p.get('days')||7);
+   if(!Number.isInteger(daysRaw)||daysRaw<1||daysRaw>30)throw Error('USGS days must be 1–30');
+   u=qs('https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items',{
+    f:'json',limit:n,state_code:f.slice(0,2),county_code:f.slice(2),
+    parameter_code:'00060',statistic_id:'00003',datetime:'P'+daysRaw+'D',
+    properties:'monitoring_location_id,monitoring_location_name,state_code,county_code,value,unit_of_measure,time,approval_status,qualifier'
+   });
+  }else u=qs('https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items',{f:'json',limit:n});
+  options.headers['X-Api-Key']=k;break;
+ }
  }
  return {u,options};
 }
