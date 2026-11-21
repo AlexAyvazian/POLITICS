@@ -252,7 +252,13 @@ let lobbyCounter=0;
 async function getUpstream(id,route,env,fetcher){
  if(id==='fcc_broadband'&&route?.fccCounty){
   const base='https://broadbandmap.fcc.gov/nbm/map/api/';
-  const filingResponse=await fetcher(base+'published/filing',{headers:{Accept:'application/json'}});
+  const fccHeaders={
+   Accept:'application/json, text/plain, */*',
+   'User-Agent':'Mozilla/5.0 (compatible; POLITICS/1.0; public-data research)',
+   Referer:'https://broadbandmap.fcc.gov/',
+   Origin:'https://broadbandmap.fcc.gov'
+  };
+  const filingResponse=await fetcher(base+'published/filing',{headers:fccHeaders});
   if(!filingResponse.ok)return filingResponse;
   let filingBody;try{filingBody=await filingResponse.json();}catch(_){return new Response('{}',{status:502});}
   const months={January:'01',February:'02',March:'03',April:'04',May:'05',June:'06',July:'07',August:'08',September:'09',October:'10',November:'11',December:'12'};
@@ -265,8 +271,8 @@ async function getUpstream(id,route,env,fetcher){
   if(!latest)return new Response(JSON.stringify({error:'FCC current filing metadata unavailable'}),{status:502,headers:{'Content-Type':'application/json'}});
   const uuid=latest.process_uuid,county=route.fccCounty;
   const [summaryResponse,providerResponse]=await Promise.all([
-   fetcher(base+'geography/summary/'+uuid+'/county/'+county,{headers:{Accept:'application/json'}}),
-   fetcher(base+'provider/summary/'+uuid+'/county/'+county+'/1/1',{headers:{Accept:'application/json'}})
+   fetcher(base+'geography/summary/'+uuid+'/county/'+county,{headers:fccHeaders}),
+   fetcher(base+'provider/summary/'+uuid+'/county/'+county+'/1/1',{headers:fccHeaders})
   ]);
   if(!summaryResponse.ok)return summaryResponse;
   if(!providerResponse.ok)return providerResponse;
