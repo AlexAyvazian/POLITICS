@@ -593,8 +593,8 @@ function renderUsgsLive(payload){
   return liveObservationCard(label,Number.isFinite(value)?value.toLocaleString('en-US',{maximumFractionDigits:2})+' '+(p.unit_of_measure||''):String(p.value??'Unavailable'),
    [p.time,p.approval_status,p.monitoring_location_id].filter(Boolean).join(' · '));
  }).join('');
- return '<h4 class="countyFactsTitle">USGS Water · recent streamflow observations</h4><div class="countyFactGrid">'+cards+
-  '</div><p class="countyFactSource">Recent daily-mean discharge observations (parameter 00060) from USGS monitoring sites associated with this county. These are <strong>monitoring-site measurements, not a countywide water-supply, flood-risk, or drought score</strong>. <a href="https://waterdata.usgs.gov/" target="_blank" rel="noopener noreferrer">USGS Water Data</a>.</p>';
+ return '<h4 class="countyFactsTitle">USGS Water · current streamflow observations</h4><div class="countyFactGrid">'+cards+
+  '</div><p class="countyFactSource">Latest continuous discharge observations (parameter 00060) from USGS monitoring sites associated with this county. These are <strong>monitoring-site measurements, not a countywide water-supply, flood-risk, or drought score</strong>. <a href="https://waterdata.usgs.gov/" target="_blank" rel="noopener noreferrer">USGS Water Data</a>.</p>';
 }
 function renderAirNowLive(payload){
  const rows=Array.isArray(payload?.data)?payload.data:[];
@@ -637,8 +637,8 @@ function wireLiveEnvironment(state,stateMode,selected){
   try{write(renderer(await fetchLiveEnvironment(path)));}
   catch(error){write('<p class="categoryNote">'+esc(source)+' could not be loaded right now: '+esc(error?.message||'request failed')+'</p>');}
  };
- section.querySelector('[data-live-source="noaa"]')?.addEventListener('click',()=>load('NOAA','/api/noaa?county='+encodeURIComponent(selected)+'&days=7&limit=20',renderNoaaLive));
- section.querySelector('[data-live-source="usgs"]')?.addEventListener('click',()=>load('USGS','/api/usgs?county='+encodeURIComponent(selected)+'&days=7&limit=20',renderUsgsLive));
+ section.querySelector('[data-live-source="noaa"]')?.addEventListener('click',()=>load('NOAA','/api/noaa?county='+encodeURIComponent(selected)+'&days=30&limit=20',renderNoaaLive));
+ section.querySelector('[data-live-source="usgs"]')?.addEventListener('click',()=>load('USGS','/api/usgs?county='+encodeURIComponent(selected)+'&limit=20',renderUsgsLive));
  section.querySelector('[data-live-source="fcc"]')?.addEventListener('click',()=>load('FCC broadband metadata','/api/fcc_broadband',renderFccLive));
  section.querySelector('[data-airnow-form]')?.addEventListener('submit',event=>{
   event.preventDefault();
