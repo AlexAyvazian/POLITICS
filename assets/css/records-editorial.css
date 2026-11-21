@@ -456,13 +456,13 @@ body[data-view="records"] .recordsProfile{
 
 /* Member profile primary navigation: keep voting and funding as distinct views. */
 .recordsProfileTabs{
- display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;
+ display:flex;flex-wrap:wrap;gap:8px;overflow:visible;
  margin:0 0 22px;padding:7px;
  border:1px solid rgba(149,201,227,.22);border-radius:18px;
  background:rgba(6,16,31,.78);box-shadow:0 16px 40px rgba(0,0,0,.14);
 }
 .recordsProfileTab{
- flex:1 0 132px;min-width:0;border:1px solid transparent;border-radius:13px;padding:14px 16px;
+ flex:1 1 132px;min-width:132px;border:1px solid transparent;border-radius:13px;padding:14px 16px;
  background:transparent;color:#9eb9cc;cursor:pointer;
  font:inherit;font-size:13px;font-weight:780;letter-spacing:.01em;text-align:center;
  transition:background .16s,border-color .16s,color .16s,transform .16s;
