@@ -48,6 +48,8 @@ on:
       - tests/test_epa_county_air_quality.py
       - tests/epa-air-quality-tab.test.mjs
       - tests/live-environment-tab.test.mjs
+      - tests/lobbyview-token-health.test.mjs
+      - tests/research-tools.test.mjs
       - assets/data/county/fdic-banking-access.json
       - .github/workflows/refresh-fdic-county-banking.yml
       - scripts/update_fdic_county_banking.py
@@ -108,6 +110,8 @@ on:
       - tests/test_epa_county_air_quality.py
       - tests/epa-air-quality-tab.test.mjs
       - tests/live-environment-tab.test.mjs
+      - tests/lobbyview-token-health.test.mjs
+      - tests/research-tools.test.mjs
       - assets/data/county/fdic-banking-access.json
       - .github/workflows/refresh-fdic-county-banking.yml
       - scripts/update_fdic_county_banking.py
@@ -167,6 +171,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_epa_county_air_quality.py -v
       - name: Verify live Environment and Infrastructure sources
         run: node --test tests/live-environment-tab.test.mjs
+      - name: Verify research tools and LobbyView token health
+        run: node --test tests/research-tools.test.mjs tests/lobbyview-token-health.test.mjs
       - name: Verify CMS Part B gateway and Health surface
         run: node --test tests/public-apis.test.mjs tests/cms-partb-tab.test.mjs
       - name: Verify CMS Part B state transform
