@@ -166,7 +166,7 @@ function target(id,p,env){
  const s=limited(p.get('state'),/^[A-Za-z]{2}$/,2)?.toUpperCase()||'CA';
  const q=limited(p.get('q')||'',/^[\p{L}\p{N}\s,.'()\-]{0,70}$/u,70)||'';
  const n=maxRows(p);let u,options={headers:{Accept:'application/json'}};
- if(!k&&!['fdic','datagov','lobbyview'].includes(id))throw Error('Missing '+CATALOG[id][0]);
+ if(!k&&!['fdic','lobbyview'].includes(id))throw Error('Missing '+CATALOG[id][0]);
  switch(id){
  case 'bea':{
   if(!f)throw Error('Five-digit county FIPS required');
@@ -177,7 +177,9 @@ function target(id,p,env){
  case 'bls':u='https://api.bls.gov/publicAPI/v2/timeseries/data/';options={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seriesid:[f?'LAUCN'+f+'0000000003':'CUUR0000SA0'],registrationkey:k})};break;
  case 'census':if(!f)throw Error('Five-digit county FIPS required');u=qs('https://api.census.gov/data/2024/acs/acs5',{get:'NAME,B19013_001E,B17001_001E,B17001_002E',for:'county:'+f.slice(2),in:'state:'+f.slice(0,2),key:k});break;
  case 'congress':u=qs('https://api.congress.gov/v3/bill',{api_key:k,format:'json',limit:n});break;
- case 'datagov':u=qs('https://catalog.data.gov/api/3/action/package_search',{q:q||'housing affordability',rows:n});break;
+ case 'datagov':
+  u=qs('https://api.gsa.gov/technology/datagov/v4/search',{q:q||'housing affordability',per_page:n,sort:'relevance'});
+  options.headers['X-Api-Key']=k;break;
  case 'eia':u=qs('https://api.eia.gov/v2/electricity/retail-sales/data/',{api_key:k,frequency:'monthly','data[0]':'price','facets[stateid][]':s,'facets[sectorid][]':'RES','sort[0][column]':'period','sort[0][direction]':'desc',length:n});break;
  case 'fda':{
   const ingredient=q.replaceAll('"','').trim();
