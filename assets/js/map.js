@@ -608,7 +608,7 @@ function renderAirNowLive(payload){
  return '<h4 class="countyFactsTitle">AirNow · current reporting-area observations</h4><div class="countyFactGrid">'+cards+
   '</div><p class="countyFactSource">AirNow observations are preliminary and tied to a reporting area near the ZIP entered. They are <strong>not a countywide annual air-quality measure</strong> and should not be compared directly with the stored EPA annual county statistics above. <a href="https://www.airnow.gov/" target="_blank" rel="noopener noreferrer">AirNow</a>.</p>';
 }
-function renderFccLive(payload){
+function renderFccLive(payload,geoid=''){
  const raw=payload?.data;
  const rows=Array.isArray(raw)?raw:Array.isArray(raw?.data)?raw.data:[];
  const availability=rows.filter(row=>String(row?.data_type||row?.dataType||'').toLowerCase().includes('availability'));
@@ -616,9 +616,14 @@ function renderFccLive(payload){
   .sort((a,b)=>String(b.as_of_date||b.asOfDate).localeCompare(String(a.as_of_date||a.asOfDate)));
  const latest=dated[0],date=latest&&(latest.as_of_date||latest.asOfDate);
  if(!date)return '<p class="categoryNote">The FCC connection responded, but no availability release date could be identified in the returned metadata.</p>';
+ const parts=String(date).slice(0,10).split('-'),version=(parts[1]==='06'?'jun':'dec')+(parts[0]||'2026');
+ const county=/^\d{5}$/.test(String(geoid||''));
+ const areaUrl=county?'https://broadbandmap.fcc.gov/area-summary/fixed?version='+encodeURIComponent(version)+'&geoid='+encodeURIComponent(geoid)+'&type=county':
+  'https://broadbandmap.fcc.gov/area-summary/fixed?version='+encodeURIComponent(version);
  return '<h4 class="countyFactsTitle">FCC National Broadband Map · latest availability release</h4>'+
   '<div class="countyFactGrid">'+liveObservationCard('Availability data as of',String(date).slice(0,10),'National Broadband Map release metadata')+'</div>'+
-  '<p class="countyFactSource">This is <strong>release metadata</strong>, not a county broadband percentage. FCC National Broadband Map availability describes where providers report service is available; <strong>availability does not measure actual network performance, affordability, adoption, or service quality</strong>. Use the FCC Area Summary for county-level availability details. <a href="https://broadbandmap.fcc.gov/area-summary" target="_blank" rel="noopener noreferrer">FCC Area Summary</a>.</p>';
+  '<p class="countyFactSource">This is <strong>release metadata</strong>, not a county broadband percentage. Current BDC availability is distributed through the FCC map and bulk-download API rather than a simple county-summary API response. FCC availability describes where providers report service is available; <strong>availability does not measure actual network performance, affordability, adoption, or service quality</strong>. '+
+  '<a href="'+areaUrl+'" target="_blank" rel="noopener noreferrer">'+(county?'Open this county in the official FCC Area Summary':'Open FCC Area Summary')+' ↗</a>.</p>';
 }
 async function fetchLiveEnvironment(path){
  const response=await fetch(GATEWAY+path,{headers:{Accept:'application/json'},credentials:'omit',signal:AbortSignal.timeout(18000)});
@@ -639,7 +644,7 @@ function wireLiveEnvironment(state,stateMode,selected){
  };
  section.querySelector('[data-live-source="noaa"]')?.addEventListener('click',()=>load('NOAA','/api/noaa?county='+encodeURIComponent(selected)+'&days=30&limit=20',renderNoaaLive));
  section.querySelector('[data-live-source="usgs"]')?.addEventListener('click',()=>load('USGS','/api/usgs?county='+encodeURIComponent(selected)+'&limit=20',renderUsgsLive));
- section.querySelector('[data-live-source="fcc"]')?.addEventListener('click',()=>load('FCC broadband metadata','/api/fcc_broadband',renderFccLive));
+ section.querySelector('[data-live-source="fcc"]')?.addEventListener('click',()=>load('FCC broadband metadata','/api/fcc_broadband',payload=>renderFccLive(payload,selected)));
  section.querySelector('[data-airnow-form]')?.addEventListener('submit',event=>{
   event.preventDefault();
   const input=event.currentTarget.querySelector('input'),zip=String(input?.value||'').trim();
