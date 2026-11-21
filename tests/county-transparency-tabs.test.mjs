@@ -15,10 +15,10 @@ test('County Atlas exposes stored policy datasets through voter-question tabs',(
  assert.match(css,/countyDataTab/);
 });
 
-test('County Atlas navigation publicly links data-source transparency',()=>{
+test('County Atlas keeps source diagnostics out of public navigation',()=>{
  const html=read('index.html');
- assert.match(html,/href="sources\.html"/);
- assert.match(html,/>Data Sources</);
+ assert.doesNotMatch(html,/href="sources\.html"/);
+ assert.doesNotMatch(html,/>\s*Data Sources\s*</);
 });
 
 
