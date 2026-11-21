@@ -18,7 +18,7 @@ Examples:
 - `/api/airnow?zip=93720` — current AirNow reporting-area AQI resolved through public ZIP/reporting-area files; preliminary, not regulatory AQS data.
 - `/api/noaa?county=06019&days=30` — recent GHCN-Daily station observations associated with the county; not a countywide weather average.
 - `/api/usgs?county=06019` — latest continuous streamflow observations at monitoring sites associated with the county; not a countywide water-condition score.
-- `/api/fcc_broadband` — National Broadband Map release metadata; not a county broadband percentage.
+- `/api/fcc_broadband` — National Broadband Map release metadata. County coverage is refreshed daily from the FCC Area Comparison feed into `assets/data/county/fcc-broadband-availability.json` so county clicks never depend on the FCC map backend.
 - `/api/eia?state=CA` — state residential electricity price.
 - `/api/fec?q=Smith` — federal candidate search.
 - `/api/maptiler?q=Fresno` — geocoding.
@@ -38,4 +38,4 @@ Examples:
 - Worker deployment must be verified separately from a GitHub commit.
 
 ## Testing
-Run `npm test` with Node 18+. Gateway tests verify allowlisting, request construction, source classification, and 3-key LobbyView rotation with mocked upstream responses. Live deployment checks are still required; NOAA, USGS, AirNow, and FCC were separately verified against the deployed Worker on November 20, 2026 Pacific time.
+Run `npm test` with Node 18+. Gateway tests verify allowlisting, request construction, source classification, and 3-key LobbyView rotation with mocked upstream responses. Live deployment checks are still required. NOAA, USGS and AirNow were verified against the deployed Worker. FCC release metadata is verified through the gateway; the nationwide county availability snapshot is refreshed by GitHub Actions from the FCC Area Comparison feed and validates at least 3,100 county-equivalent rows before replacing the saved file.
