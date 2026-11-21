@@ -65,6 +65,24 @@
      </form>
      <div class="researchResult" data-sec-result aria-live="polite">Search for a public company.</div>
     </article>
+    <article class="researchToolCard" data-datagov-tool>
+     <div class="researchToolTitle"><span>FEDERAL DATA DISCOVERY</span><h3>Data.gov dataset search</h3></div>
+     <p>Search the federal Data.gov catalog for datasets relevant to a policy question. A catalog result identifies a dataset; it is not itself a measurement or finding.</p>
+     <form data-datagov-form>
+      <label><span>Topic</span><input data-datagov-query type="search" placeholder="housing affordability, water quality…" autocomplete="off"></label>
+      <button type="submit">Find datasets</button>
+     </form>
+     <div class="researchResult" data-datagov-result aria-live="polite">Search federal dataset metadata.</div>
+    </article>
+    <article class="researchToolCard" data-fda-tool>
+     <div class="researchToolTitle"><span>ANIMAL SAFETY REPORTS</span><h3>openFDA veterinary adverse events</h3></div>
+     <p>Search published FDA animal adverse-event reports by active ingredient. Reports are delayed, unvalidated safety reports and do not prove that a drug caused an event.</p>
+     <form data-fda-form>
+      <label><span>Active ingredient</span><input data-fda-query type="search" placeholder="carprofen, meloxicam…" autocomplete="off"></label>
+      <button type="submit">Search reports</button>
+     </form>
+     <div class="researchResult" data-fda-result aria-live="polite">Search published animal adverse-event reports.</div>
+    </article>
    </div>
   </section>
 
@@ -95,6 +113,6 @@
    <p>POLITICS uses primary government records where available and labels research or third-party sources separately. Every substantive page should link back to the underlying source or filing whenever the source provides a stable public record.</p>
   </section>
  </main>
- <script src="assets/js/sources.js?v=2026112101"></script>
+ <script src="assets/js/sources.js?v=2026112102"></script>
 </body>
 </html>
