@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {serve} from '../workers/county-snapshot.mjs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const readFileSafe=p=>{try{return read(p);}catch{return null;}};
 const req=path=>new Request('https://reader.example'+path,{headers:{Origin:'https://politics-e5yt.onrender.com'}});
 function db(rows){
  return {prepare(sql){return {
@@ -34,12 +35,6 @@ test('public data health endpoint reports stored datasets without exposing crede
  assert.ok(!JSON.stringify(body).match(/API_KEY|TOKEN|credential/i));
 });
 
-test('sources page is a real public transparency surface instead of a redirect',()=>{
- const html=read('sources.html'),js=read('assets/js/sources.js'),css=read('assets/css/sources.css');
- assert.doesNotMatch(html,/http-equiv="refresh"/i);
- assert.match(html,/Data Sources &amp; Health/);
- assert.match(html,/id="sourceGrid"/);
- assert.match(js,/\/api\/data-health/);
- assert.match(js,/\/api\/catalog/);
- assert.match(css,/sourceHealthCard/);
+test('data health remains an API capability without a public sources page',()=>{
+ assert.equal(readFileSafe('sources.html'),null);
 });
