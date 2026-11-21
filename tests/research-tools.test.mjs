@@ -103,3 +103,20 @@ test('openFDA veterinary route supports bounded active-ingredient search',async(
  assert.equal(calls[0].searchParams.get('sort'),'original_receive_date:desc');
  assert.equal(calls[0].searchParams.get('limit'),'5');
 });
+
+test('Data.gov uses the current GSA v4 Catalog API with the configured key',async()=>{
+ const calls=[];
+ const env={DATA_GOV_API_KEY:'test-datagov'};
+ const res=await handle(req('/api/datagov?q=housing&limit=4'),env,{},async(url,options)=>{
+  calls.push({url:new URL(url),options});
+  return new Response(JSON.stringify({results:[{title:'Housing data',slug:'housing-data'}]}),{status:200});
+ });
+ assert.equal(res.status,200);
+ assert.equal(calls.length,1);
+ assert.equal(calls[0].url.hostname,'api.gsa.gov');
+ assert.equal(calls[0].url.pathname,'/technology/datagov/v4/search');
+ assert.equal(calls[0].url.searchParams.get('q'),'housing');
+ assert.equal(calls[0].url.searchParams.get('per_page'),'4');
+ assert.equal(calls[0].options.headers['X-Api-Key'],'test-datagov');
+ assert.equal(JSON.stringify(await res.json()).includes('test-datagov'),false);
+});
