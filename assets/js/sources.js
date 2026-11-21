@@ -28,7 +28,7 @@ const META={
  sec:{name:'SEC EDGAR',where:'Data Sources · Live Research Tools',match:[],onDemandLive:true,note:'Public company filings searched on demand; SEC filings are corporate disclosures, not political donations.'},
  usaspending:{name:'USAspending',where:'County Atlas · Federal Money',match:['usaspending_county'],note:'Federal prime-award obligations by county place of performance.'},
  epa_aqs:{name:'EPA AQS / Air Trends',where:'County Atlas · Infrastructure & Environment',match:['epa_air_quality_county_2025'],note:'Official 2025 county air-monitoring statistics from EPA AQS, with monitoring-coverage limits.'},
- fcc_broadband:{name:'FCC Broadband Data Collection',where:'County Atlas · Infrastructure & Environment',match:[],onDemandLive:true,note:'National Broadband Map availability release metadata loaded on demand; release metadata is not a county broadband percentage.'}
+ fcc_broadband:{name:'FCC National Broadband Map',where:'County Atlas · Infrastructure & Environment',match:['fcc_broadband_county'],note:'Daily stored county fixed-broadband availability from the current FCC National Broadband Map Area Comparison feed; availability is provider-reported and is not a speed-test or affordability measure.'}
 };
 const EXTRA=[
  {id:'cdc_places',name:'CDC PLACES',category:'health',configured:true,description:'Modeled county health and well-being estimates.',match:['cdc_places_2025'],where:'County Atlas · Health & Well-Being'},
@@ -189,14 +189,15 @@ function wireSecTool(){
 async function load(){
  const status=document.getElementById('sourceStatus');
  try{
-  const [catalogRes,healthRes,spendingRes,housingFinanceRes,cmsPartBRes,epaAirQualityRes,fdicBankingRes]=await Promise.all([
+  const [catalogRes,healthRes,spendingRes,housingFinanceRes,cmsPartBRes,epaAirQualityRes,fdicBankingRes,fccBroadbandRes]=await Promise.all([
    fetch(GATEWAY+'/api/catalog',{headers:{Accept:'application/json'},credentials:'omit'}),
    fetch(READER+'/api/data-health',{headers:{Accept:'application/json'},credentials:'omit'}),
    fetch('assets/data/county/usaspending.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
    fetch('assets/data/state/housing-finance.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
    fetch('assets/data/state/cms-partb-provider-activity.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
    fetch('assets/data/county/epa-air-quality-2025.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
-   fetch('assets/data/county/fdic-banking-access.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
+   fetch('assets/data/county/fdic-banking-access.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'}),
+   fetch('assets/data/county/fcc-broadband-availability.json',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'})
   ]);
   const catalog=catalogRes.ok?await catalogRes.json():{providers:[]};
   const health=healthRes.ok?await healthRes.json():{datasets:[],collectionHealth:[]};
@@ -205,6 +206,7 @@ async function load(){
   const cmsPartB=cmsPartBRes.ok?await cmsPartBRes.json():null;
   const epaAirQuality=epaAirQualityRes.ok?await epaAirQualityRes.json():null;
   const fdicBanking=fdicBankingRes.ok?await fdicBankingRes.json():null;
+  const fccBroadband=fccBroadbandRes.ok?await fccBroadbandRes.json():null;
   if(spending?.source==='USAspending.gov'&&Number(spending.count)>0){
    health.datasets=(health.datasets||[]).concat([{
     source:'usaspending_county',refreshedAt:spending.retrievedAt||null,
@@ -234,6 +236,12 @@ async function load(){
    health.datasets=(health.datasets||[]).concat([{
     source:'fdic_county_offices',refreshedAt:fdicBanking.retrievedAt||fdicBanking.dataAsOf||null,
     records:Number(fdicBanking.officeCount)||0,snapshots:1,database:'static'
+   }]);
+  }
+  if(fccBroadband?.source==='FCC National Broadband Map'&&Number(fccBroadband.count)>0){
+   health.datasets=(health.datasets||[]).concat([{
+    source:'fcc_broadband_county',refreshedAt:fccBroadband.retrievedAt||fccBroadband.releaseDate||null,
+    records:Number(fccBroadband.count)||0,snapshots:1,database:'static'
    }]);
   }
   const providers=(catalog.providers||[]).map(p=>({
