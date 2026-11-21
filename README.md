@@ -10,7 +10,6 @@ POLITICS is a static public-facing civic data application backed by scheduled Gi
 - **Congressional Atlas** — U.S. House, U.S. Senate, state legislative, governor, and presidential geography/results.
 - **Congressional Records** — member Overview, Voting Record, Legislation, Campaign Money, PAC & Political Networks, Lobbying, and Travel & Ethics.
 - **Foreign Influence** — DOJ FARA foreign-principal/registrant directory and verified filing totals.
-- **Data Sources & Health** — public status of connected sources, stored datasets, refresh times, coverage, and sanitized collector failures.
 
 ## Data architecture
 
@@ -21,4 +20,4 @@ POLITICS is a static public-facing civic data application backed by scheduled Gi
 
 County/state clicks never call Census or EIA directly. The County Atlas reads POLITICS-owned D1 snapshots. State legislative lists are loaded from stored Open States/Bill Commons snapshots only after a state is selected.
 
-Source coverage and current collection health are visible at `sources.html`.
+Source-health and collection diagnostics remain internal implementation infrastructure and are not exposed as a public site page.
