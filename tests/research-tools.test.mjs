@@ -71,3 +71,35 @@ test('Jobs & Economy exposes national FRED context without relabeling it as coun
  assert.match(map,/not a county/i);
  assert.match(map,/tab==='economy'[\s\S]*renderFredEconomicContext/);
 });
+
+test('Data Sources exposes Data.gov discovery and openFDA animal-safety research tools',()=>{
+ const html=read('sources.html'),js=read('assets/js/sources.js');
+ assert.match(html,/data-datagov-tool/);
+ assert.match(html,/data-fda-tool/);
+ assert.match(js,/function wireDataGovTool/);
+ assert.match(js,/function wireFdaTool/);
+ assert.match(js,/\/api\/datagov\?q=/);
+ assert.match(js,/\/api\/fda\?q=/);
+ const datagov=js.match(/datagov:\{[^}]+\}/s)?.[0]||'';
+ const fda=js.match(/fda:\{[^}]+\}/s)?.[0]||'';
+ assert.match(datagov,/onDemandLive:true/);
+ assert.match(fda,/onDemandLive:true/);
+ assert.match(fda,/adverse-event/i);
+});
+
+test('openFDA veterinary route supports bounded active-ingredient search',async()=>{
+ const calls=[];
+ const env={FDA_API_KEY:'test-fda'};
+ const res=await handle(req('/api/fda?q=carprofen&limit=5'),env,{},async(url)=>{
+  const u=new URL(url);calls.push(u);
+  return new Response(JSON.stringify({meta:{last_updated:'2026-07-02'},results:[{animal:{species:'Dog'},drug:[{brand_name:'Example',active_ingredients:[{name:'Carprofen'}]}],serious_ae:'No'}]}),{status:200});
+ });
+ assert.equal(res.status,200);
+ assert.equal(calls.length,1);
+ assert.equal(calls[0].hostname,'api.fda.gov');
+ assert.equal(calls[0].pathname,'/animalandveterinary/event.json');
+ assert.match(calls[0].searchParams.get('search')||'',/drug\.active_ingredients\.name/);
+ assert.match(calls[0].searchParams.get('search')||'',/carprofen/i);
+ assert.equal(calls[0].searchParams.get('sort'),'original_receive_date:desc');
+ assert.equal(calls[0].searchParams.get('limit'),'5');
+});
