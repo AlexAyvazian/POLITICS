@@ -12,7 +12,7 @@ const META={
  fda:{name:'openFDA',where:'Research adapter · no voter-facing dataset yet',match:[],note:'Published FDA datasets; current adapter is not a healthcare-price source.'},
  fdic:{name:'FDIC BankFind Suite',where:'County Atlas · Housing',match:['fdic_county_offices'],note:'Current physical office presence for FDIC-insured banks and savings associations by county.'},
  fec:{name:'Federal Election Commission',where:'Congressional Records · Campaign Money / PAC & Networks',match:['member_finance_detail','political_money','member_finance_collection_health'],note:'Campaign finance, itemized receipts and committee-network filings.'},
- fred:{name:'Federal Reserve Economic Data',where:'Future County Atlas · Jobs & Economy',match:[],note:'Economic time series.'},
+ fred:{name:'Federal Reserve Economic Data',where:'Data Sources · Live Research Tools / County Atlas · Jobs & Economy context',match:[],onDemandLive:true,note:'Official FRED economic time series loaded on demand as national context.'},
  govinfo:{name:'GovInfo',where:'Government Action · Official Publications',match:[],onDemandLive:true,note:'Official federal publications and documents searched on demand.'},
  lda:{name:'Senate LDA',where:'Congressional Records · Lobbying',match:[],onDemandLive:true,note:'Official federal LD-1/LD-2 lobbying disclosure filings searched on demand.'},
  lobbyview:{name:'LobbyView',where:'Congressional Records · Lobbying',match:['member_lobby_network','member_lobby_collection_health'],note:'Research-coded lobbying and legislator relationships.'},
@@ -25,7 +25,7 @@ const META={
  cms:{name:'CMS',where:'County Atlas · Health & Well-Being',match:['cms_partb_state_provider_activity'],note:'2024 statewide published Medicare Part B rendering-provider activity; not a count of all clinicians or guaranteed access.'},
  hmda:{name:'FFIEC / HMDA',where:'County Atlas · Housing',match:['hmda_state_2025'],note:'2025 statewide mortgage application outcomes from the HMDA Data Browser.'},
  federalregister:{name:'Federal Register',where:'Government Action · Rules & Notices',match:[],onDemandLive:true,note:'Official federal rules, proposed rules and notices searched on demand.'},
- sec:{name:'SEC EDGAR',where:'Future influence/company research',match:[],note:'Public company filings; not a political-donation source.'},
+ sec:{name:'SEC EDGAR',where:'Data Sources · Live Research Tools',match:[],onDemandLive:true,note:'Public company filings searched on demand; SEC filings are corporate disclosures, not political donations.'},
  usaspending:{name:'USAspending',where:'County Atlas · Federal Money',match:['usaspending_county'],note:'Federal prime-award obligations by county place of performance.'},
  epa_aqs:{name:'EPA AQS / Air Trends',where:'County Atlas · Infrastructure & Environment',match:['epa_air_quality_county_2025'],note:'Official 2025 county air-monitoring statistics from EPA AQS, with monitoring-coverage limits.'},
  fcc_broadband:{name:'FCC Broadband Data Collection',where:'County Atlas · Infrastructure & Environment',match:[],onDemandLive:true,note:'National Broadband Map availability release metadata loaded on demand; release metadata is not a county broadband percentage.'}
@@ -82,6 +82,108 @@ function applyFilter(){
  document.querySelectorAll('.sourceHealthCard').forEach(card=>{
   const status=card.dataset.status,search=card.dataset.search||'';
   card.hidden=(filter!=='all'&&status!==filter)||(query&&!search.includes(query));
+ });
+}
+function researchMessage(root,text,className=''){
+ root.replaceChildren();
+ const p=document.createElement('p');if(className)p.className=className;p.textContent=text;root.append(p);
+}
+function formatFredValue(value){
+ const n=Number(value);
+ return Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:2}):String(value??'—');
+}
+function wireFredTool(){
+ const tool=document.querySelector('[data-fred-tool]');if(!tool)return;
+ const form=tool.querySelector('[data-fred-form]'),select=tool.querySelector('[data-fred-series]'),result=tool.querySelector('[data-fred-result]');
+ const labels={UNRATE:'U.S. unemployment rate',CPIAUCSL:'Consumer Price Index',FEDFUNDS:'Federal funds rate',MORTGAGE30US:'30-year mortgage rate',PAYEMS:'Total nonfarm payrolls'};
+ form?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const series=String(select?.value||'UNRATE');
+  researchMessage(result,'Loading '+(labels[series]||series)+'…');
+  try{
+   const response=await fetch(GATEWAY+'/api/fred?series='+encodeURIComponent(series)+'&limit=18',{headers:{Accept:'application/json'},credentials:'omit'});
+   const payload=await response.json();
+   if(!response.ok)throw Error(payload?.error||'FRED request failed');
+   const rows=Array.isArray(payload?.data?.observations)?payload.data.observations.filter(row=>row&&row.value!=='.').slice(0,12):[];
+   result.replaceChildren();
+   const head=document.createElement('div');head.className='researchResultHead';
+   const title=document.createElement('strong');title.textContent=labels[series]||series;
+   const source=document.createElement('a');source.href='https://fred.stlouisfed.org/series/'+encodeURIComponent(series);source.target='_blank';source.rel='noopener noreferrer';source.textContent='FRED source ↗';
+   head.append(title,source);result.append(head);
+   if(!rows.length){researchMessage(result,'FRED returned no usable observations for this series.');return;}
+   const latest=rows[0],latestBox=document.createElement('div');latestBox.className='researchLatest';
+   latestBox.append(Object.assign(document.createElement('span'),{textContent:'Latest observation'}),Object.assign(document.createElement('strong'),{textContent:formatFredValue(latest.value)}),Object.assign(document.createElement('small'),{textContent:String(latest.date||'')}));
+   result.append(latestBox);
+   const list=document.createElement('div');list.className='researchObservationList';
+   for(const row of rows.slice(0,8)){
+    const item=document.createElement('div'),date=document.createElement('span'),value=document.createElement('strong');
+    date.textContent=String(row.date||'');value.textContent=formatFredValue(row.value);item.append(date,value);list.append(item);
+   }
+   result.append(list);
+   const note=document.createElement('p');note.className='researchCaveat';note.textContent='National FRED series shown for economic context. Do not interpret this as a county-level estimate.';result.append(note);
+  }catch(error){researchMessage(result,'FRED could not be loaded right now: '+String(error?.message||'request failed'),'researchError');}
+ });
+}
+function secRecentFilings(data){
+ const recent=data?.filings?.recent||{},forms=Array.isArray(recent.form)?recent.form:[],out=[];
+ for(let i=0;i<Math.min(forms.length,12);i++){
+  const accession=recent.accessionNumber?.[i],doc=recent.primaryDocument?.[i];
+  out.push({form:forms[i],date:recent.filingDate?.[i]||'',description:recent.primaryDocDescription?.[i]||'',accession,doc});
+ }
+ return out.filter(row=>row.form);
+}
+function wireSecTool(){
+ const tool=document.querySelector('[data-sec-tool]');if(!tool)return;
+ const form=tool.querySelector('[data-sec-form]'),input=tool.querySelector('[data-sec-query]'),result=tool.querySelector('[data-sec-result]');
+ async function loadCompany(company){
+  researchMessage(result,'Loading recent SEC filings for '+company.title+'…');
+  try{
+   const response=await fetch(GATEWAY+'/api/sec?cik='+encodeURIComponent(company.cik),{headers:{Accept:'application/json'},credentials:'omit'});
+   const payload=await response.json();
+   if(!response.ok)throw Error(payload?.error||'SEC submissions request failed');
+   const data=payload?.data||{},filings=secRecentFilings(data);
+   result.replaceChildren();
+   const head=document.createElement('div');head.className='researchResultHead';
+   const title=document.createElement('strong');title.textContent=(data.name||company.title)+(company.ticker?' · '+company.ticker:'');
+   const sec=document.createElement('a');sec.href='https://www.sec.gov/edgar/browse/?CIK='+encodeURIComponent(company.cik)+'&owner=exclude';sec.target='_blank';sec.rel='noopener noreferrer';sec.textContent='SEC company page ↗';head.append(title,sec);result.append(head);
+   if(!filings.length){const p=document.createElement('p');p.textContent='No recent filings were returned in the current submissions record.';result.append(p);return;}
+   const list=document.createElement('div');list.className='researchFilingList';
+   for(const row of filings){
+    const article=document.createElement('article'),top=document.createElement('div'),formName=document.createElement('strong'),date=document.createElement('span');
+    formName.textContent=row.form;date.textContent=row.date;top.append(formName,date);article.append(top);
+    if(row.description){const d=document.createElement('p');d.textContent=row.description;article.append(d);}
+    if(row.accession&&row.doc){
+     const accessionNo=String(row.accession).replaceAll('-',''),cik=String(Number(company.cik));
+     const link=document.createElement('a');link.href='https://www.sec.gov/Archives/edgar/data/'+encodeURIComponent(cik)+'/'+encodeURIComponent(accessionNo)+'/'+encodeURIComponent(row.doc);
+     link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open filing ↗';article.append(link);
+    }
+    list.append(article);
+   }
+   result.append(list);
+   const note=document.createElement('p');note.className='researchCaveat';note.textContent='SEC EDGAR filings are corporate disclosure records. They do not establish political donations, lobbying, wrongdoing, or a relationship with a public official.';result.append(note);
+  }catch(error){researchMessage(result,'SEC filings could not be loaded right now: '+String(error?.message||'request failed'),'researchError');}
+ }
+ form?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const q=String(input?.value||'').trim();
+  if(q.length<2){researchMessage(result,'Enter at least two characters of a company name or ticker.');return;}
+  researchMessage(result,'Searching SEC company records…');
+  try{
+   const response=await fetch(GATEWAY+'/api/sec?q='+encodeURIComponent(q),{headers:{Accept:'application/json'},credentials:'omit'});
+   const payload=await response.json();
+   if(!response.ok)throw Error(payload?.error||'SEC company search failed');
+   const matches=Array.isArray(payload?.data?.results)?payload.data.results:[];
+   result.replaceChildren();
+   if(!matches.length){researchMessage(result,'No SEC company match was found for that search.');return;}
+   const list=document.createElement('div');list.className='researchCompanyList';
+   for(const company of matches){
+    const button=document.createElement('button');button.type='button';
+    const title=document.createElement('strong');title.textContent=company.title||'Unnamed company';
+    const meta=document.createElement('span');meta.textContent=[company.ticker,'CIK '+company.cik].filter(Boolean).join(' · ');
+    button.append(title,meta);button.addEventListener('click',()=>loadCompany(company));list.append(button);
+   }
+   result.append(list);
+  }catch(error){researchMessage(result,'SEC company search could not be loaded right now: '+String(error?.message||'request failed'),'researchError');}
  });
 }
 async function load(){
@@ -158,4 +260,6 @@ document.querySelectorAll('[data-source-filter]').forEach(btn=>btn.addEventListe
  document.querySelectorAll('[data-source-filter]').forEach(x=>x.setAttribute('aria-pressed',String(x===btn)));
  applyFilter();
 }));
+wireFredTool();
+wireSecTool();
 load();
