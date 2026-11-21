@@ -5,6 +5,7 @@ const $=id=>document.getElementById(id);
 const states=window.GEO_STATES, topo=window.US_ATLAS, model=window.GEO_UTIL;
 const svg=d3.select('#mapSvg'),tooltip=d3.select('#tooltip');
 const colors=window.GEO_COLORS;
+const GATEWAY='https://crimson-mud-d254.alxayvazian.workers.dev';
 const sfips=Object.fromEntries(states.map(s=>[s.fips,s]));
 const sabbr=Object.fromEntries(states.map(s=>[s.abbr,s]));
 const sel={abbr:null,fips:null};
@@ -553,6 +554,100 @@ function renderEpaCountyAirQuality(data,state,stateMode,selected){
   '<a href="'+esc(ds.sourceUrl||'https://www.epa.gov/air-trends/air-quality-cities-and-counties')+'" target="_blank" rel="noopener noreferrer">Official EPA source</a>.</p></section>';
 }
 
+function renderLiveEnvironmentTools(stateMode){
+ const countyControls=stateMode?
+  '<p class="categoryNote">Select a county to query NOAA county climate observations or USGS county monitoring sites. FCC release metadata and AirNow ZIP lookup remain available here.</p>':
+  '<div class="liveDataActions"><button type="button" data-live-source="noaa">Load NOAA climate observations</button><button type="button" data-live-source="usgs">Load USGS streamflow observations</button><button type="button" data-live-source="fcc">Check FCC broadband release</button></div>';
+ const fccOnly=stateMode?'<div class="liveDataActions"><button type="button" data-live-source="fcc">Check FCC broadband release</button></div>':'';
+ return '<section class="countyMetricSection liveEnvironmentSection" aria-label="Live environment and infrastructure data">'+
+  '<h3 class="countyFactsTitle">Live Environment & Infrastructure</h3>'+
+  '<p class="categoryNote">These official-source requests run only when you ask. They are kept separate from the stored county snapshots above so selecting a county never triggers an upstream provider call.</p>'+
+  countyControls+fccOnly+
+  '<form class="liveAirNowForm" data-airnow-form><label><span>Current AirNow by ZIP</span><input type="text" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="ZIP code" aria-label="ZIP code for AirNow current observations"></label><button type="submit">Load current AQI</button></form>'+
+  '<div class="liveEnvironmentResult" data-live-result aria-live="polite"><p class="categoryNote">Choose a live source above. AirNow reports nearby reporting-area observations; NOAA and USGS results are station or monitoring-site records, not countywide conditions.</p></div>'+
+  '</section>';
+}
+function liveObservationCard(label,value,meta=''){
+ return '<div class="countyFact"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong>'+(meta?'<small>'+esc(meta)+'</small>':'')+'</div>';
+}
+function renderNoaaLive(payload){
+ const rows=Array.isArray(payload?.data?.results)?payload.data.results:[];
+ if(!rows.length)return '<p class="categoryNote">NOAA returned no recent GHCN-Daily observations for this county and window. That is not evidence that no weather occurred; station coverage and reporting vary.</p>';
+ const names={TMAX:'Daily maximum temperature',TMIN:'Daily minimum temperature',PRCP:'Daily precipitation'};
+ const units={TMAX:'°F',TMIN:'°F',PRCP:'in'};
+ const cards=rows.slice(0,10).map(row=>{
+  const type=String(row?.datatype||'Observation');
+  const value=Number(row?.value);
+  return liveObservationCard(names[type]||type,Number.isFinite(value)?value.toLocaleString('en-US',{maximumFractionDigits:2})+' '+(units[type]||''):String(row?.value??'Unavailable'),
+   [String(row?.date||'').slice(0,10),row?.station].filter(Boolean).join(' · '));
+ }).join('');
+ return '<h4 class="countyFactsTitle">NOAA NCEI · recent station observations</h4><div class="countyFactGrid">'+cards+
+  '</div><p class="countyFactSource">GHCN-Daily observations from stations associated with this county. These are <strong>station-level observations, not a countywide temperature or precipitation estimate</strong>. Recent records can be preliminary or incomplete. <a href="https://www.ncei.noaa.gov/cdo-web/" target="_blank" rel="noopener noreferrer">NOAA Climate Data Online</a>.</p>';
+}
+function renderUsgsLive(payload){
+ const rows=Array.isArray(payload?.data?.features)?payload.data.features:[];
+ if(!rows.length)return '<p class="categoryNote">USGS returned no recent daily-mean streamflow observations for monitoring sites tagged to this county. That does not mean the county has no streams or water monitoring.</p>';
+ const cards=rows.slice(0,10).map(feature=>{
+  const p=feature?.properties||{},value=Number(p.value);
+  const label=p.monitoring_location_name||p.monitoring_location_id||'USGS monitoring site';
+  return liveObservationCard(label,Number.isFinite(value)?value.toLocaleString('en-US',{maximumFractionDigits:2})+' '+(p.unit_of_measure||''):String(p.value??'Unavailable'),
+   [p.time,p.approval_status,p.monitoring_location_id].filter(Boolean).join(' · '));
+ }).join('');
+ return '<h4 class="countyFactsTitle">USGS Water · recent streamflow observations</h4><div class="countyFactGrid">'+cards+
+  '</div><p class="countyFactSource">Recent daily-mean discharge observations (parameter 00060) from USGS monitoring sites associated with this county. These are <strong>monitoring-site measurements, not a countywide water-supply, flood-risk, or drought score</strong>. <a href="https://waterdata.usgs.gov/" target="_blank" rel="noopener noreferrer">USGS Water Data</a>.</p>';
+}
+function renderAirNowLive(payload){
+ const rows=Array.isArray(payload?.data)?payload.data:[];
+ if(!rows.length)return '<p class="categoryNote">AirNow returned no current observation for that ZIP within the configured search distance. Try a nearby ZIP if appropriate.</p>';
+ const cards=rows.slice(0,8).map(row=>{
+  const aqi=Number(row?.AQI),category=row?.Category?.Name||'Category unavailable';
+  return liveObservationCard((row?.ParameterName||'Air quality')+' · '+(row?.ReportingArea||'reporting area'),
+   Number.isFinite(aqi)?'AQI '+aqi.toLocaleString('en-US'):'AQI unavailable',
+   [category,row?.DateObserved,row?.HourObserved!==undefined?String(row.HourObserved).padStart(2,'0')+':00':'',row?.StateCode].filter(Boolean).join(' · '));
+ }).join('');
+ return '<h4 class="countyFactsTitle">AirNow · current reporting-area observations</h4><div class="countyFactGrid">'+cards+
+  '</div><p class="countyFactSource">AirNow observations are preliminary and tied to a reporting area near the ZIP entered. They are <strong>not a countywide annual air-quality measure</strong> and should not be compared directly with the stored EPA annual county statistics above. <a href="https://www.airnow.gov/" target="_blank" rel="noopener noreferrer">AirNow</a>.</p>';
+}
+function renderFccLive(payload){
+ const raw=payload?.data;
+ const rows=Array.isArray(raw)?raw:Array.isArray(raw?.data)?raw.data:[];
+ const availability=rows.filter(row=>String(row?.data_type||row?.dataType||'').toLowerCase().includes('availability'));
+ const dated=(availability.length?availability:rows).filter(row=>row?.as_of_date||row?.asOfDate)
+  .sort((a,b)=>String(b.as_of_date||b.asOfDate).localeCompare(String(a.as_of_date||a.asOfDate)));
+ const latest=dated[0],date=latest&&(latest.as_of_date||latest.asOfDate);
+ if(!date)return '<p class="categoryNote">The FCC connection responded, but no availability release date could be identified in the returned metadata.</p>';
+ return '<h4 class="countyFactsTitle">FCC National Broadband Map · latest availability release</h4>'+
+  '<div class="countyFactGrid">'+liveObservationCard('Availability data as of',String(date).slice(0,10),'National Broadband Map release metadata')+'</div>'+
+  '<p class="countyFactSource">This is <strong>release metadata</strong>, not a county broadband percentage. FCC National Broadband Map availability describes where providers report service is available; <strong>availability does not measure actual network performance, affordability, adoption, or service quality</strong>. Use the FCC Area Summary for county-level availability details. <a href="https://broadbandmap.fcc.gov/area-summary" target="_blank" rel="noopener noreferrer">FCC Area Summary</a>.</p>';
+}
+async function fetchLiveEnvironment(path){
+ const response=await fetch(GATEWAY+path,{headers:{Accept:'application/json'},credentials:'omit',signal:AbortSignal.timeout(18000)});
+ let payload={};
+ try{payload=await response.json();}catch(_){}
+ if(!response.ok)throw Error(payload?.error||'Live source HTTP '+response.status);
+ return payload;
+}
+function wireLiveEnvironment(state,stateMode,selected){
+ const section=document.querySelector('#countyFacts .liveEnvironmentSection');
+ if(!section)return;
+ const result=section.querySelector('[data-live-result]');
+ const write=html=>{if(result?.isConnected)result.innerHTML=html;};
+ const load=async(source,path,renderer)=>{
+  write('<p class="categoryNote">Loading '+esc(source)+'…</p>');
+  try{write(renderer(await fetchLiveEnvironment(path)));}
+  catch(error){write('<p class="categoryNote">'+esc(source)+' could not be loaded right now: '+esc(error?.message||'request failed')+'</p>');}
+ };
+ section.querySelector('[data-live-source="noaa"]')?.addEventListener('click',()=>load('NOAA','/api/noaa?county='+encodeURIComponent(selected)+'&days=7&limit=20',renderNoaaLive));
+ section.querySelector('[data-live-source="usgs"]')?.addEventListener('click',()=>load('USGS','/api/usgs?county='+encodeURIComponent(selected)+'&days=7&limit=20',renderUsgsLive));
+ section.querySelector('[data-live-source="fcc"]')?.addEventListener('click',()=>load('FCC broadband metadata','/api/fcc_broadband',renderFccLive));
+ section.querySelector('[data-airnow-form]')?.addEventListener('submit',event=>{
+  event.preventDefault();
+  const input=event.currentTarget.querySelector('input'),zip=String(input?.value||'').trim();
+  if(!/^\d{5}$/.test(zip)){write('<p class="categoryNote">Enter a five-digit ZIP code for the AirNow lookup.</p>');return;}
+  load('AirNow','/api/airnow?zip='+encodeURIComponent(zip),renderAirNowLive);
+ });
+}
+
 function renderFederalMoney(data,state,stateMode,selected){
  const ds=data?.federalMoney;
  if(!ds?.counties||!ds?.states)return '<p class="categoryNote">Federal spending data is still loading or has not been refreshed yet.</p>';
@@ -588,7 +683,7 @@ function countyTabBody(tab,data,base,state,county,stateMode,selected){
   renderCdcPlaces(data,stateMode?'state':'county',selected)+renderCmsPartB(data,state,stateMode,base);
  if(tab==='community')return categorySections(data,stateMode?'state':'county',selected,['education','families']);
  if(tab==='infrastructure')return categorySections(data,stateMode?'state':'county',selected,['infrastructure'])+
-  stateElectricityPanel(data,state)+renderEpaCountyAirQuality(data,state,stateMode,selected);
+  stateElectricityPanel(data,state)+renderEpaCountyAirQuality(data,state,stateMode,selected)+renderLiveEnvironmentTools(stateMode);
  if(tab==='federal')return renderFederalMoney(data,state,stateMode,selected);
  const control=renderStatePoliticalControl(state,stateMode);
  if(stateMode){
@@ -646,6 +741,7 @@ function renderCard(){
   restoreCardScroll();return;
  }
  target.innerHTML=countyTabBody(activeCountyTab,data,base,state,county,stateMode,selected);
+ if(activeCountyTab==='infrastructure')wireLiveEnvironment(state,stateMode,selected);
  restoreCardScroll();
 }
 
