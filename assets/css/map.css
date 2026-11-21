@@ -107,12 +107,11 @@
 
 /* County Atlas voter-question tabs */
 #view-map .countyDataTabs{
- display:flex;gap:6px;overflow-x:auto;padding:8px 0 12px;margin:0 -2px 10px;
- scrollbar-width:thin;scrollbar-color:rgba(125,211,252,.35) transparent;
+ display:flex;flex-wrap:wrap;gap:6px;overflow:visible;padding:8px 0 12px;margin:0 -2px 10px;
  border-bottom:1px solid rgba(255,255,255,.09)
 }
 #view-map .countyDataTab{
- flex:0 0 auto;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:800;
+ flex:1 1 auto;min-width:max-content;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:800;
  color:#aac3d8;background:rgba(255,255,255,.025);border:1px solid rgba(150,190,255,.15);
  white-space:nowrap
 }
