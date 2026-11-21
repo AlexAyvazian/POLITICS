@@ -129,4 +129,23 @@
 #view-map .countyFact strong{display:block;color:#eef8ff;font-size:12px;line-height:1.35;margin-top:4px;overflow-wrap:anywhere}
 #view-map .countyFactSource,#view-map .categoryNote{font-size:9px;line-height:1.55;color:#829db2;margin:10px 0}
 #view-map .countyFactSource a,#view-map .countyFact a{color:#9cebdd}
+#view-map .liveEnvironmentSection{margin-top:4px}
+#view-map .liveDataActions{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+#view-map .liveDataActions button,#view-map .liveAirNowForm button{
+ border:1px solid rgba(125,211,252,.28);border-radius:999px;padding:8px 11px;
+ background:rgba(125,211,252,.07);color:#dff7ff;font:inherit;font-size:9px;font-weight:850;
+ cursor:pointer;transition:border-color .15s,background .15s
+}
+#view-map .liveDataActions button:hover,#view-map .liveDataActions button:focus-visible,
+#view-map .liveAirNowForm button:hover,#view-map .liveAirNowForm button:focus-visible{
+ border-color:rgba(125,211,252,.58);background:rgba(125,211,252,.12);outline:none
+}
+#view-map .liveAirNowForm{display:flex;gap:7px;align-items:flex-end;flex-wrap:wrap;margin:12px 0}
+#view-map .liveAirNowForm label{display:grid;gap:5px;flex:1 1 155px;color:#89a6bd;font-size:9px}
+#view-map .liveAirNowForm input{
+ width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.11);border-radius:10px;
+ padding:8px 9px;background:rgba(3,11,23,.72);color:#eef8ff;font:inherit;font-size:10px
+}
+#view-map .liveEnvironmentResult{margin-top:10px}
+#view-map .liveEnvironmentResult .countyFact small{display:block;margin-top:5px;color:#7995aa;font-size:8px;line-height:1.4}
 @media(max-width:520px){#view-map .countyFactGrid{grid-template-columns:1fr}}
