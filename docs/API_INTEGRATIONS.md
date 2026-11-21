@@ -23,7 +23,7 @@ Examples:
 - `/api/fec?q=Smith` — federal candidate search.
 - `/api/maptiler?q=Fresno` — geocoding.
 
-`sources.html` is the public Data Sources & Health surface. It combines the gateway catalog with read-only D1 health summaries so visitors can distinguish connected adapters from datasets that are actually being collected. The County Atlas also exposes stored policy datasets through voter-question tabs; it never sends provider credentials to the browser. The browser calls the Cloudflare Worker. The Worker holds upstream keys and caches successful responses in Cloudflare's edge cache when available.
+Source-health and adapter diagnostics are internal infrastructure rather than a public-facing page. The County Atlas also exposes stored policy datasets through voter-question tabs; it never sends provider credentials to the browser. The browser calls the Cloudflare Worker. The Worker holds upstream keys and caches successful responses in Cloudflare's edge cache when available.
 
 ## LobbyView rotation
 **Three separate accounts**, represented by `LOBBYVIEW_API_KEY`, `_2`, and `_3`. Calls rotate between the three credentials; HTTP 429/401/403 triggers fallback to the next one. LobbyView publicly documents **100 requests per user per 24 hours**. If these are three separate eligible users, 300/day could be available in aggregate, subject to provider terms and actual enforcement. Do not assume three accounts operated by a single person automatically change a per-user limit. This basic Worker rotation **does not enforce a distributed daily quota** and caching is therefore important.
