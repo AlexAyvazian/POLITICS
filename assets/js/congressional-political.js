@@ -99,6 +99,26 @@ function openStates(state){
  }
  return stateCache.get(state);
 }
+function electionSummary(selection){
+ const result=selection?.electionResult;
+ if(!result)return [note('2026 election result is not available in the loaded election dataset for this race.')];
+ const out=[];
+ const unitParty=result.mapParty||result.party;
+ const partyCode=unitParty==='democratic'?'D':unitParty==='republican'?'R':unitParty==='split'?'S':unitParty;
+ if(result.winner)out.push(row('Winner',result.winner+' · '+party(partyCode)));
+ else if(result.leader)out.push(row('Current leader',result.leader+(partyCode?' · '+party(partyCode):'')));
+ if(Number.isFinite(result.winnerPct))out.push(row(result.winner||'Leading candidate',result.winnerPct.toFixed(1)+'%'));
+ if(result.runner&&Number.isFinite(result.runnerPct))out.push(row(result.runner,result.runnerPct.toFixed(1)+'%'));
+ if(result.demName)out.push(row(result.demName,Number.isFinite(result.demPct)?result.demPct.toFixed(1)+'%':'Democratic'));
+ if(result.repName)out.push(row(result.repName,Number.isFinite(result.repPct)?result.repPct.toFixed(1)+'%':'Republican'));
+ if(Number.isFinite(result.marginPts)&&!Number.isFinite(result.winnerPct))out.push(row('Winning margin',result.marginPts.toFixed(1)+' points'));
+ const statusLabel=selection.electionStatus==='final'||selection.electionStatus==='certified'?'Certified result':
+  selection.electionStatus==='called'?'Called result':
+  selection.electionStatus==='counting'||selection.electionStatus==='unofficial'?'Current count':'Result status unavailable';
+ out.push(note(statusLabel+' · '+esc(selection.electionDate||'date unavailable')+
+  (selection.sourceUrl?' · '+link(selection.sourceUrl,'election source'):'')+'.'));
+ return out;
+}
 function render(){
  const s=current;if(!s?.state){panel.innerHTML='';return;}
  const state=s.state,scope=s.scope,layer=s.layer;
