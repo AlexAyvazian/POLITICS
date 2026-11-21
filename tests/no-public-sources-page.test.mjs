@@ -5,7 +5,7 @@ import {existsSync,readFileSync} from 'node:fs';
 const root=new URL('../',import.meta.url);
 const read=p=>readFileSync(new URL(p,root),'utf8');
 
-test('Data Sources is not a public page or navigation destination',()=>{
+test('Data Sources stays internal and is never deployed as a public page or navigation destination',()=>{
   assert.equal(existsSync(new URL('sources.html',root)),false,'sources.html must not be deployed publicly');
   for(const page of ['index.html','records.html','congressional.html','foreign-influence.html','government-action.html']){
     const html=read(page);
