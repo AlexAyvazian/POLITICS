@@ -147,7 +147,7 @@ function target(id,p,env){
  const n=maxRows(p);let u,options={headers:{Accept:'application/json'}};
  if(!k&&!['fdic','datagov','lobbyview'].includes(id))throw Error('Missing '+CATALOG[id][0]);
  switch(id){
- case 'airnow':{const z=limited(p.get('zip'),/^\d{5}$/,5);if(!z)throw Error('Five-digit zip required');u=qs('https://www.airnowapi.org/aq/observation/current/ziplatlong/',{format:'application/json',zipcode:z,distance:25,API_KEY:k});break;}
+ case 'airnow':{const z=limited(p.get('zip'),/^\d{5}$/,5);if(!z)throw Error('Five-digit zip required');u=qs('https://www.airnowapi.org/aq/observation/zipCode/current/',{format:'application/json',zipCode:z,distance:25,API_KEY:k});break;}
  case 'bea':{
   if(!f)throw Error('Five-digit county FIPS required');
   const year=Number(p.get('year')||2024);
@@ -190,7 +190,7 @@ function target(id,p,env){
  case 'maptiler':if(!q)throw Error('Location q required');u=qs('https://api.maptiler.com/geocoding/'+encodeURIComponent(q)+'.json',{key:k,limit:Math.min(n,5)});break;
  case 'noaa':{
   if(f){
-   const daysRaw=Number(p.get('days')||7);
+   const daysRaw=Number(p.get('days')||30);
    if(!Number.isInteger(daysRaw)||daysRaw<1||daysRaw>30)throw Error('NOAA days must be 1–30');
    const end=new Date(),start=new Date(end.getTime()-(daysRaw-1)*86400000);
    const day=d=>d.toISOString().slice(0,10);
@@ -213,15 +213,12 @@ function target(id,p,env){
  case 'regulations':u=qs('https://api.regulations.gov/v4/documents',{'page[size]':n,sort:'-postedDate',...(q?{'filter[searchTerm]':q}:{})});options.headers['X-Api-Key']=k;break;
  case 'usgs':{
   if(f){
-   const daysRaw=Number(p.get('days')||7);
-   if(!Number.isInteger(daysRaw)||daysRaw<1||daysRaw>30)throw Error('USGS days must be 1–30');
-   u=qs('https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items',{
+   u=qs('https://api.waterdata.usgs.gov/ogcapi/v1/collections/latest-continuous/items',{
     f:'json',limit:n,state_code:f.slice(0,2),county_code:f.slice(2),
-    parameter_code:'00060',statistic_id:'00003',datetime:'P'+daysRaw+'D',
-    properties:'monitoring_location_id,monitoring_location_name,state_code,county_code,value,unit_of_measure,time,approval_status,qualifier'
+    parameter_code:'00060',api_key:k
    });
-  }else u=qs('https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items',{f:'json',limit:n});
-  options.headers['X-Api-Key']=k;break;
+  }else u=qs('https://api.waterdata.usgs.gov/ogcapi/v1/collections/latest-continuous/items',{f:'json',limit:n,api_key:k});
+  break;
  }
  }
  return {u,options};
