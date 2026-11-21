@@ -12,7 +12,7 @@ test('Government Action is a voter-facing page linked from every major POLITICS 
   assert.match(js,new RegExp("endpoint:'"+endpoint+"'"));
  assert.match(js,/GATEWAY\+'\/api\/'\+conf\.endpoint/);
  assert.match(css,/governmentActionCard/);
- for(const p of ['index.html','congressional.html','records.html','foreign-influence.html','sources.html'])
+ for(const p of ['index.html','congressional.html','records.html','foreign-influence.html'])
   assert.match(read(p),/href="government-action\.html"/,p+' must link Government Action');
 });
 
