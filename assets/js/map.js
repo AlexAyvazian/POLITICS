@@ -520,6 +520,45 @@ function renderBeaIncome(data,stateMode,selected){
   ' · current dollars. BEA personal income includes wages, proprietors’ income, dividends, interest, rents, and government benefits and is assigned to where people live. This is a different concept and vintage from the Census ACS income measures above. '+
   '<a href="'+esc(ds.sourceUrl||'https://www.bea.gov/data/income-saving/personal-income-by-county')+'" target="_blank" rel="noopener noreferrer">Official BEA source</a>.</p></section>';
 }
+function renderFredEconomicContext(){
+ const buttons=[
+  ['UNRATE','U.S. unemployment'],
+  ['CPIAUCSL','CPI'],
+  ['FEDFUNDS','Fed funds rate'],
+  ['MORTGAGE30US','30-year mortgage'],
+  ['PAYEMS','Nonfarm payrolls']
+ ].map(([series,label])=>'<button type="button" data-fred-series="'+series+'">'+label+'</button>').join('');
+ return '<section class="countyMetricSection fredEconomicSection" aria-label="National economic context from FRED">'+
+  '<h3 class="countyFactsTitle">National economic context · Federal Reserve FRED</h3>'+
+  '<p class="categoryNote">Use these national indicators for context alongside local BLS, BEA and Census figures. They are <strong>not a county estimate</strong> and are not used to replace local data.</p>'+
+  '<div class="liveDataActions">'+buttons+'</div>'+
+  '<div class="liveEnvironmentResult" data-fred-result aria-live="polite"><p class="categoryNote">Choose a national series to load its most recent observations.</p></div>'+
+  '</section>';
+}
+function renderFredEconomicLive(payload,series){
+ const rows=Array.isArray(payload?.data?.observations)?payload.data.observations.filter(row=>row?.value!=='.').slice(0,8):[];
+ const labels={UNRATE:'U.S. unemployment rate',CPIAUCSL:'Consumer Price Index',FEDFUNDS:'Federal funds rate',MORTGAGE30US:'30-year fixed mortgage rate',PAYEMS:'Total nonfarm payrolls'};
+ if(!rows.length)return '<p class="categoryNote">FRED returned no usable observations for '+esc(labels[series]||series)+'.</p>';
+ const cards=rows.slice(0,6).map(row=>liveObservationCard(String(row.date||'Observation'),String(row.value??'Unavailable'),labels[series]||series)).join('');
+ return '<h4 class="countyFactsTitle">'+esc(labels[series]||series)+'</h4><div class="countyFactGrid">'+cards+'</div>'+
+  '<p class="countyFactSource">Federal Reserve Bank of St. Louis FRED · national series '+esc(series)+'. <strong>This is national context, not a county-level measurement.</strong> '+
+  '<a href="https://fred.stlouisfed.org/series/'+encodeURIComponent(series)+'" target="_blank" rel="noopener noreferrer">Official FRED series ↗</a>.</p>';
+}
+function wireFredEconomicContext(){
+ const section=document.querySelector('#countyFacts .fredEconomicSection');if(!section)return;
+ const result=section.querySelector('[data-fred-result]');
+ section.querySelectorAll('[data-fred-series]').forEach(button=>button.addEventListener('click',async()=>{
+  const series=button.dataset.fredSeries;
+  if(result)result.innerHTML='<p class="categoryNote">Loading '+esc(button.textContent)+'…</p>';
+  try{
+   const payload=await fetchLiveEnvironment('/api/fred?series='+encodeURIComponent(series)+'&limit=12');
+   if(result?.isConnected)result.innerHTML=renderFredEconomicLive(payload,series);
+  }catch(error){
+   if(result?.isConnected)result.innerHTML='<p class="categoryNote">FRED could not be loaded right now: '+esc(error?.message||'request failed')+'</p>';
+  }
+ }));
+}
+
 function renderEpaCountyAirQuality(data,state,stateMode,selected){
  const ds=data?.epaAirQuality;
  if(!ds?.counties)return '<p class="categoryNote">EPA county air-monitoring statistics have not been stored yet.</p>';
@@ -683,7 +722,7 @@ function countyTabBody(tab,data,base,state,county,stateMode,selected){
  if(tab==='housing')return categorySections(data,stateMode?'state':'county',selected,['housing'])+
   renderHousingFinance(data,state,stateMode)+renderFdicBankingAccess(data,base,state,stateMode,selected);
  if(tab==='economy')return categorySections(data,stateMode?'state':'county',selected,['jobs','income'])+
-  renderBlsLaborMarket(data,stateMode,selected)+renderBeaIncome(data,stateMode,selected);
+  renderBlsLaborMarket(data,stateMode,selected)+renderBeaIncome(data,stateMode,selected)+renderFredEconomicContext();
  if(tab==='health')return categorySections(data,stateMode?'state':'county',selected,['healthcare'])+
   renderCdcPlaces(data,stateMode?'state':'county',selected)+renderCmsPartB(data,state,stateMode,base);
  if(tab==='community')return categorySections(data,stateMode?'state':'county',selected,['education','families']);
@@ -747,6 +786,7 @@ function renderCard(){
  }
  target.innerHTML=countyTabBody(activeCountyTab,data,base,state,county,stateMode,selected);
  if(activeCountyTab==='infrastructure')wireLiveEnvironment(state,stateMode,selected);
+ if(activeCountyTab==='economy')wireFredEconomicContext();
  restoreCardScroll();
 }
 
