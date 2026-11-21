@@ -9,7 +9,7 @@ const req=p=>new Request('https://example.workers.dev'+p);
 test('NOAA live route requests recent county climate observations instead of only the dataset catalog',async()=>{
  const calls=[];
  const env={NOAA_API_KEY:'test-noaa'};
- const res=await handle(req('/api/noaa?county=06019&days=7&limit=12'),env,{},async(url,options)=>{
+ const res=await handle(req('/api/noaa?county=06019&days=30&limit=12'),env,{},async(url,options)=>{
   calls.push({url:new URL(url),options});
   return new Response(JSON.stringify({results:[{date:'2026-11-20T00:00:00',datatype:'TMAX',station:'GHCND:TEST',value:72}]}),{status:200});
  });
@@ -30,20 +30,35 @@ test('NOAA live route requests recent county climate observations instead of onl
 test('USGS live route filters recent daily mean streamflow to the selected county',async()=>{
  const calls=[];
  const env={USGS_API_KEY:'test-usgs'};
- const res=await handle(req('/api/usgs?county=06019&days=7&limit=12'),env,{},async(url,options)=>{
+ const res=await handle(req('/api/usgs?county=06019&limit=12'),env,{},async(url,options)=>{
   calls.push({url:new URL(url),options});
   return new Response(JSON.stringify({type:'FeatureCollection',features:[]}),{status:200});
  });
  assert.equal(res.status,200);
  assert.equal(calls.length,1);
  assert.equal(calls[0].url.hostname,'api.waterdata.usgs.gov');
- assert.equal(calls[0].url.pathname,'/ogcapi/v1/collections/daily/items');
+ assert.equal(calls[0].url.pathname,'/ogcapi/v1/collections/latest-continuous/items');
  assert.equal(calls[0].url.searchParams.get('state_code'),'06');
  assert.equal(calls[0].url.searchParams.get('county_code'),'019');
  assert.equal(calls[0].url.searchParams.get('parameter_code'),'00060');
- assert.equal(calls[0].url.searchParams.get('statistic_id'),'00003');
- assert.equal(calls[0].url.searchParams.get('datetime'),'P7D');
- assert.equal(calls[0].options.headers['X-Api-Key'],'test-usgs');
+ assert.equal(calls[0].url.searchParams.get('api_key'),'test-usgs');
+});
+
+
+test('AirNow live route uses the documented current-observations ZIP endpoint',async()=>{
+ const calls=[];
+ const env={AIRNOW_AQS_API_KEY:'test-airnow'};
+ const res=await handle(req('/api/airnow?zip=93720'),env,{},async(url,options)=>{
+  calls.push({url:new URL(url),options});
+  return new Response(JSON.stringify([{ParameterName:'PM2.5',AQI:42,ReportingArea:'Fresno'}]),{status:200});
+ });
+ assert.equal(res.status,200);
+ assert.equal(calls.length,1);
+ assert.equal(calls[0].url.hostname,'www.airnowapi.org');
+ assert.equal(calls[0].url.pathname,'/aq/observation/zipCode/current/');
+ assert.equal(calls[0].url.searchParams.get('zipCode'),'93720');
+ assert.equal(calls[0].url.searchParams.get('distance'),'25');
+ assert.equal(calls[0].url.searchParams.get('API_KEY'),'test-airnow');
 });
 
 test('FCC live route uses the current National Broadband Map public API host',async()=>{
