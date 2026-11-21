@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {handle} from '../workers/politics-gateway.mjs';
-const vars=['AIRNOW_AQS_API_KEY','BEA_API_KEY','BLS_API_KEY','CENSUS-API-KEY','CONGRESS_API_KEY','DATA_GOV_API_KEY','EIA_API_KEY','FDA_API_KEY','FDIC_API_KEY','FEC_API_KEY','FEDERAL_RESERVE_API_KEY','GOVINFO_API_KEY','LDA_API_KEY','LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3','MAPTILER_API_KEY','NOAA_API_KEY','OPENSTATES_API_KEY','REGULATIONS_API_KEY','USGS_API_KEY'];
+const vars=['BEA_API_KEY','BLS_API_KEY','CENSUS-API-KEY','CONGRESS_API_KEY','DATA_GOV_API_KEY','EIA_API_KEY','FDA_API_KEY','FDIC_API_KEY','FEC_API_KEY','FEDERAL_RESERVE_API_KEY','GOVINFO_API_KEY','LDA_API_KEY','LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3','MAPTILER_API_KEY','NOAA_API_KEY','OPENSTATES_API_KEY','REGULATIONS_API_KEY','USGS_API_KEY'];
 const env=Object.fromEntries(vars.map(v=>[v,'test-'+v]));
 const req=(p)=>new Request('https://example.workers.dev'+p);
 test('catalog lists exactly 27 supported sources and 3 LobbyView accounts',async()=>{
@@ -24,7 +24,7 @@ test('validates county, zip, candidate q without upstream calls',async()=>{
 });
 test('adapters use fixed origins, correct bindings and no keys in response',async()=>{
  const cases={
-  airnow:'/api/airnow?zip=93720',bea:'/api/bea?county=06019',bls:'/api/bls?county=06019',
+  bea:'/api/bea?county=06019',bls:'/api/bls?county=06019',
   census:'/api/census?county=06019',congress:'/api/congress',
   datagov:'/api/datagov?q=housing',eia:'/api/eia?state=CA',
   fda:'/api/fda',fdic:'/api/fdic?state=CA',fec:'/api/fec?q=Smith',
@@ -46,10 +46,28 @@ test('adapters use fixed origins, correct bindings and no keys in response',asyn
   assert.ok(!JSON.stringify(body).includes('test-'),provider);
   urls[provider]=new URL(calls[0].url).hostname;
  }
- assert.equal(Object.keys(urls).length,19);
+ assert.equal(Object.keys(urls).length,18);
  assert.equal(urls.census,'api.census.gov');
  assert.equal(urls.lobbyview,'rest-api.lobbyview.org');
 });
+
+test('AirNow gateway is keyless and resolves ZIP through official public files',async()=>{
+ const calls=[];
+ const fake=async url=>{
+  calls.push(new URL(url));
+  if(String(url).endsWith('/cityzipcodes.csv'))return new Response('City|State|Zipcode|Latitude|Longitude\nFresno|CA|93720|36.8486|-119.7814\n',{status:200});
+  return new Response('11/20/26|11/20/26|23:00|PST|0|O|Y|Fresno|CA|36.7806|-119.7929|PM2.5|83|Moderate|No||San Joaquin Valley Unified APCD\n',{status:200});
+ };
+ const result=await handle(req('/api/airnow?zip=93720'),{}, {},fake);
+ assert.equal(result.status,200);
+ assert.equal(calls.length,2);
+ assert.equal(calls[0].hostname,'files.airnowtech.org');
+ assert.equal(calls[1].hostname,'files.airnowtech.org');
+ const body=await result.json();
+ assert.equal(body.data[0].ReportingArea,'Fresno');
+ assert.equal(body.data[0].AQI,83);
+});
+
 test('three distinct LobbyView account variables rotate across consecutive requests',async()=>{
  const tokens=[];
  for(let i=0;i<3;i++){
