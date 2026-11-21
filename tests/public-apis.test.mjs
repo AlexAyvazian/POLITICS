@@ -10,11 +10,13 @@ const cases={
  sec:['/api/sec?cik=320193','data.sec.gov'],
  usaspending:['/api/usaspending?county=06019','api.usaspending.gov']
 };
-test('six keyless sources are shown as public with empty binding environment',async()=>{
+test('seven keyless sources are shown as public with empty binding environment',async()=>{
  const r=await handle(request('/api/catalog'),{});
  const body=await r.json();
  assert.equal(body.providers.length,27);
- assert.equal(body.providers.filter(x=>x.access==='keyless-public').length,6);
+ assert.equal(body.providers.filter(x=>x.access==='keyless-public').length,7);
+ assert.equal(body.providers.find(x=>x.id==='airnow').access,'keyless-public');
+ assert.equal(body.providers.find(x=>x.id==='airnow').configured,true);
  for(const id of Object.keys(cases))assert.equal(body.providers.find(x=>x.id===id).configured,true);
  for(const id of ['epa_aqs','fcc_broadband'])assert.equal(body.providers.find(x=>x.id===id).configured,false);
 });
