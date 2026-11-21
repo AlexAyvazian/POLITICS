@@ -33,7 +33,7 @@ Examples:
 - The gateway supports fixed routes, whitelisted parameter formats, bounded response sizes and HTTP error signaling.
 - Response `retrievedAt` reflects request time, not the underlying release date.
 - API catalogs are not themselves comparable county measurements. Do not infer unsupported company-donation relationships, county veterinary prices, disaster property damage, or countywide air quality from them.
-- FEC contributor records are a separate endpoint and are **not yet represented** by the initial candidate search.
+- FEC candidate, PAC/committee, itemized individual-contributor, employer/occupation, and committee-transaction views are already represented in Congressional Records; the simple gateway candidate search is only one adapter and is not the full campaign-finance surface.
 - APIs can return empty data, 429s, or reject binding credentials; a configured key is not proof of a live connection.
 - Worker deployment must be verified separately from a GitHub commit.
 
