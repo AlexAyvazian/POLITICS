@@ -105,10 +105,10 @@ const CATALOG={
  lda:['LDA_API_KEY','influence','Federal lobbying filings'],
  lobbyview:['LOBBYVIEW_API_KEY','influence','Lobbying research and legislator data'],
  maptiler:['MAPTILER_API_KEY','geography','Geocoding'],
- noaa:['NOAA_API_KEY','environment','Climate-data catalog (not disaster costs)'],
+ noaa:['NOAA_API_KEY','environment','Recent county GHCN-Daily station observations'],
  openstates:['OPENSTATES_API_KEY','policy','State legislation'],
  regulations:['REGULATIONS_API_KEY','policy','Federal rulemaking'],
- usgs:['USGS_API_KEY','environment','Water observations (not disaster costs)']
+ usgs:['USGS_API_KEY','environment','Latest continuous streamflow observations by county']
 };
 const TTL={lobbyview:43200,bea:86400,bls:21600,census:86400,congress:3600,datagov:21600,eia:86400,fda:86400,fdic:86400,fec:3600,fred:21600,govinfo:21600,lda:3600,maptiler:86400,noaa:86400,openstates:3600,regulations:3600,usgs:10800};
 /* Match Healthcare Directory: browser CORS is limited to approved FRONTEND_ORIGIN values. */
