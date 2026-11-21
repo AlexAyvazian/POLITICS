@@ -1,5 +1,5 @@
 /* POLITICS: 19 allowlisted research API adapters; Cloudflare dashboard bindings only. */
-/* PUBLIC KEYLESS DATA: These provider endpoints require no API keys. */
+/* PUBLIC KEYLESS DATA: These provider endpoints require no API keys. AirNow uses official public file products. */
 const KEYLESS_SOURCES={
  airnow:['environment','AirNow current reporting-area observations from public file products',900],
  cfpb:['finance','CFPB published consumer complaints (not adjudicated wrongdoing)',3600],
