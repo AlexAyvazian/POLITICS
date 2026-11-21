@@ -49,7 +49,9 @@ function publicRoute(id,p){
   });break;}
  case 'federalregister':u=make('https://www.federalregister.gov/api/v1/documents.json',{per_page:limit,order:'newest',...(query('q')?{'conditions[term]':query('q')}:{})});break;
  case 'sec':{
-  const cik=p.get('cik')||'';if(!/^\d{1,10}$/.test(cik))throw Error('SEC requires a numeric CIK (1–10 digits)');
+  const search=query('q');
+  if(search)return {secSearch:search};
+  const cik=p.get('cik')||'';if(!/^\d{1,10}$/.test(cik))throw Error('SEC requires a company search or numeric CIK (1–10 digits)');
   u='https://data.sec.gov/submissions/CIK'+cik.padStart(10,'0')+'.json';
   options.headers['User-Agent']='POLITICS research website contact alex.ayvazian@outlook.com';
   break;}
@@ -132,6 +134,21 @@ function withOriginCors(response,request,env){
 }
 const json=(data,status=200,ttl=0)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json',...CORS,'Cache-Control':ttl?'public, max-age=60, s-maxage='+ttl:'no-store'}});
 const key=(env,name)=>typeof env[name]==='string'&&env[name].trim()?env[name].trim():null;
+function lobbyViewTokenActive(value,nowMs=Date.now()){
+ const raw=String(value||'').trim();if(!raw)return false;
+ const jwt=raw.split(':')[0],parts=jwt.split('.');
+ if(parts.length!==3)return true;
+ try{
+  const segment=parts[1].replace(/-/g,'+').replace(/_/g,'/');
+  const payload=JSON.parse(atob(segment+'='.repeat((4-segment.length%4)%4)));
+  const exp=Number(payload?.exp);
+  return !Number.isFinite(exp)||exp*1000>nowMs+60000;
+ }catch(_){return true;}
+}
+function activeLobbyViewTokens(env,nowMs=Date.now()){
+ return ['LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3']
+  .map(name=>key(env,name)).filter(value=>lobbyViewTokenActive(value,nowMs));
+}
 /* api.data.gov 40-character keys work across participating federal agencies.
  * Use the already validated FEC key if an older Congress binding is malformed.
  * Never expose the fallback credential to callers. */
@@ -228,6 +245,21 @@ function target(id,p,env){
 }
 let lobbyCounter=0;
 async function getUpstream(id,route,env,fetcher){
+ if(id==='sec'&&route?.secSearch){
+  const upstream=await fetcher('https://www.sec.gov/files/company_tickers.json',{headers:{Accept:'application/json','User-Agent':'POLITICS research website contact alex.ayvazian@outlook.com'}});
+  if(!upstream.ok)return upstream;
+  let raw;try{raw=await upstream.json();}catch(_){return new Response('{}',{status:502});}
+  const needle=route.secSearch.toLowerCase();
+  const results=Object.values(raw||{}).filter(row=>{
+   const ticker=String(row?.ticker||'').toLowerCase(),title=String(row?.title||'').toLowerCase();
+   return ticker===needle||ticker.includes(needle)||title.includes(needle);
+  }).slice(0,12).map(row=>({
+   cik:String(row?.cik_str??'').padStart(10,'0'),
+   ticker:String(row?.ticker||'').slice(0,12),
+   title:String(row?.title||'').slice(0,180)
+  })).filter(row=>/^\d{10}$/.test(row.cik)&&row.title);
+  return new Response(JSON.stringify({results}),{status:200,headers:{'Content-Type':'application/json'}});
+ }
  if(id==='airnow'){
   const zip=route.airnowZip;
   const zipResponse=await fetcher('https://files.airnowtech.org/airnow/today/cityzipcodes.csv',{headers:{Accept:'text/plain'}});
@@ -263,7 +295,7 @@ async function getUpstream(id,route,env,fetcher){
  }
  if(id!=='lobbyview')return fetcher(route.u,route.options);
  // Separate accounts; rotate among each independently configured token.
- const keys=['LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3'].map(x=>key(env,x)).filter(Boolean);
+ const keys=activeLobbyViewTokens(env);
  if(!keys.length)throw Error('No LobbyView key');
  const index=lobbyCounter++%keys.length;
  let answer;
@@ -1088,6 +1120,12 @@ async function refreshMemberExtraBatch(env,kind,slot,fetchImpl=fetch,now=new Dat
   .map(m=>m.bioguide).filter(id=>/^[A-Z][0-9]{6}$/.test(String(id||''))))].sort();
  if(ids.length<400)return {status:'incomplete_roster'};
  const finance=kind==='finance',count=finance?5:2;
+ if(!finance&&!activeLobbyViewTokens(env,now.getTime()).length){
+  const summary={source:'LobbyView member network collector',asOf:now.toISOString(),status:'token_refresh_required',
+   attempted:0,updated:0,failed:0,examples:['LobbyView API token refresh required; cached network records are retained.']};
+  await politicalSnapshotWrite(db,'member_lobby_collection_health',summary,now,0);
+  return summary;
+ }
  const days=Math.floor(now.getTime()/86400000);
  const start=((days*36+slot-12)*count)%ids.length;
  const selected=Array.from({length:count},(_,i)=>ids[(start+i)%ids.length]);
@@ -1136,7 +1174,7 @@ async function handleCore(request,env,ctx={},fetcher=fetch){
  if(path==='/'||path==='/health')return json({service:'POLITICS Research API',status:'operational',providers:Object.keys(CATALOG).length+Object.keys(KEYLESS_SOURCES).length+Object.keys(ACCESS_REQUIRED).length,catalog:'/api/catalog'},200,300);
  if(path==='/api/county-snapshot')return getSnapshot(env);
  if(path==='/api/district-geometry')return fetchDistrictGeometry(u,request,ctx,fetcher);
- if(path==='/api/catalog')return json({providers:[...Object.entries(CATALOG).map(([id,[binding,category,description]])=>({id,category,description,configured:id==='lobbyview'?['LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3'].filter(x=>!!key(env,x)).length:!!key(env,binding),access:'cloudflare-variable'})),...Object.entries(KEYLESS_SOURCES).map(([id,[category,description]])=>({id,category,description,configured:true,access:'keyless-public'})),...Object.entries(ACCESS_REQUIRED).map(([id,[category,description,keyName,userName]])=>({id,category,description,configured:!!key(env,keyName)&&!!key(env,userName),access:'requires-provider-credentials'}))]},200,600);
+ if(path==='/api/catalog')return json({providers:[...Object.entries(CATALOG).map(([id,[binding,category,description]])=>({id,category,description,configured:id==='lobbyview'?activeLobbyViewTokens(env).length:!!key(env,binding),access:'cloudflare-variable'})),...Object.entries(KEYLESS_SOURCES).map(([id,[category,description]])=>({id,category,description,configured:true,access:'keyless-public'})),...Object.entries(ACCESS_REQUIRED).map(([id,[category,description,keyName,userName]])=>({id,category,description,configured:!!key(env,keyName)&&!!key(env,userName),access:'requires-provider-credentials'}))]},200,600);
  const id=path.startsWith('/api/')?path.slice(5):'';
  if(!Object.hasOwn(CATALOG,id)&&!Object.hasOwn(KEYLESS_SOURCES,id)&&!Object.hasOwn(ACCESS_REQUIRED,id))return json({error:'Unknown endpoint'},404);
  let route;
