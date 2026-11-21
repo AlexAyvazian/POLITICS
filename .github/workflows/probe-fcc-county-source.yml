@@ -1,0 +1,48 @@
+name: Probe FCC nationwide county source
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/probe-fcc-county-source.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe current FCC Area Comparison county feed
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request
+          headers={
+            "Accept":"application/json, text/plain, */*",
+            "User-Agent":"Mozilla/5.0 (compatible; POLITICS/1.0; public-data research)",
+            "Referer":"https://broadbandmap.fcc.gov/",
+          }
+          def get(url):
+            req=urllib.request.Request(url,headers=headers)
+            with urllib.request.urlopen(req,timeout=45) as r:
+              return json.load(r)
+          try:
+            filing=get("https://broadbandmap.fcc.gov/nbm/map/api/published/filing")
+            rows=filing.get("data") or []
+            current=sorted(rows,key=lambda x:x.get("filing_subtype",""),reverse=True)
+            # The API response is not lexical-date ordered; select the known newest by filing_type_id.
+            current=max(rows,key=lambda x:int(x.get("filing_type_id") or 0))
+            uuid=current["process_uuid"]
+            url=f"https://broadbandmap.fcc.gov/nbm/map/api/areaGeography/fixed/{uuid}/county/t1_2_3_6_7_s4_r?area_data_type=total"
+            body=get(url)
+            data=body.get("data") or []
+            fresno=next((x for x in data if x.get("geography_id")=="06019"),None)
+            print(json.dumps({
+              "probe":"success","release":current.get("filing_subtype"),
+              "uuid":uuid,"result_count":body.get("result_count"),
+              "data_length":len(data),
+              "fresno_pct":fresno.get("percent_coverage") if fresno else None
+            }))
+          except Exception as exc:
+            print(json.dumps({"probe":"failed","error":repr(exc)}))
+          PY
