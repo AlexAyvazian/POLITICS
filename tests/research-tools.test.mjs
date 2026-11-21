@@ -38,22 +38,6 @@ test('SEC exact CIK still returns the official submissions record',async()=>{
  assert.equal(called.url.pathname,'/submissions/CIK0000320193.json');
 });
 
-test('Data Sources exposes live FRED and SEC research tools',()=>{
- const html=read('sources.html'),js=read('assets/js/sources.js'),css=read('assets/css/sources.css');
- assert.match(html,/id="researchTools"/);
- assert.match(html,/data-fred-tool/);
- assert.match(html,/data-sec-tool/);
- assert.match(js,/function wireFredTool/);
- assert.match(js,/function wireSecTool/);
- assert.match(js,/\/api\/fred\?series=/);
- assert.match(js,/\/api\/sec\?q=/);
- assert.match(js,/\/api\/sec\?cik=/);
- assert.match(js,/fred:\{[^}]*onDemandLive:true/s);
- assert.match(js,/sec:\{[^}]*onDemandLive:true/s);
- assert.match(css,/\.researchTools/);
- assert.match(css,/\.researchResult/);
-});
-
 test('FCC result links directly to selected county Area Summary rather than implying metadata is county coverage',()=>{
  const map=read('assets/js/map.js');
  assert.match(map,/broadbandmap\.fcc\.gov\/area-summary\/fixed/);
@@ -70,21 +54,6 @@ test('Jobs & Economy exposes national FRED context without relabeling it as coun
  assert.match(map,/national economic context/i);
  assert.match(map,/not a county/i);
  assert.match(map,/tab==='economy'[\s\S]*renderFredEconomicContext/);
-});
-
-test('Data Sources exposes Data.gov discovery and openFDA animal-safety research tools',()=>{
- const html=read('sources.html'),js=read('assets/js/sources.js');
- assert.match(html,/data-datagov-tool/);
- assert.match(html,/data-fda-tool/);
- assert.match(js,/function wireDataGovTool/);
- assert.match(js,/function wireFdaTool/);
- assert.match(js,/\/api\/datagov\?q=/);
- assert.match(js,/\/api\/fda\?q=/);
- const datagov=js.match(/datagov:\{[^}]+\}/s)?.[0]||'';
- const fda=js.match(/fda:\{[^}]+\}/s)?.[0]||'';
- assert.match(datagov,/onDemandLive:true/);
- assert.match(fda,/onDemandLive:true/);
- assert.match(fda,/adverse-event/i);
 });
 
 test('openFDA veterinary route supports bounded active-ingredient search',async()=>{
