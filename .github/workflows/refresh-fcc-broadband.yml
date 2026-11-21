@@ -27,7 +27,7 @@ jobs:
         run: python3 scripts/update_fcc_broadband.py
       - name: Commit snapshot if changed
         run: |
-          if git diff --quiet -- assets/data/county/fcc-broadband-availability.json; then
+          if [ -z "$(git status --porcelain -- assets/data/county/fcc-broadband-availability.json)" ]; then
             echo "FCC county snapshot unchanged"
             exit 0
           fi
