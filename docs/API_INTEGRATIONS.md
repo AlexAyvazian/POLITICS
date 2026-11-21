@@ -3,9 +3,9 @@
 Cloudflare Worker: `crimson-mud-d254` (the **second** connected Cloudflare account).
 
 ## Coverage
-19 allowlisted source adapters: AirNow, BEA, BLS, Census, Congress.gov, Data.gov, EIA, openFDA, FDIC, FEC, FRED, GovInfo, Senate LDA, LobbyView, MapTiler, NOAA NCEI, Open States, Regulations.gov, and USGS Water. These are **distinct data sources** and not universal county-wide databases. The existing map and its geometry are unchanged.
+27 allowlisted source adapters across credential-backed, keyless-public, and authenticated-provider routes. The environment/infrastructure set includes AirNow, NOAA NCEI, USGS Water, EPA AQS, and FCC National Broadband Map. These are **distinct data sources** and not universal county-wide databases. The existing map and its geometry are unchanged.
 
-All 21 runtime bindings are managed by Cloudflare and referenced by their exact configured names, including the literal `CENSUS-API-KEY` (bracket lookup), `AIRNOW_AQS_API_KEY` and `LOBBYVIEW_API_KEY` / `LOBBYVIEW_API_KEY_2` / `LOBBYVIEW_API_KEY_3`. No key values are committed to GitHub.
+Runtime bindings are managed by Cloudflare and referenced by their exact configured names, including the literal `CENSUS-API-KEY` (bracket lookup) and `LOBBYVIEW_API_KEY` / `LOBBYVIEW_API_KEY_2` / `LOBBYVIEW_API_KEY_3`. AirNow no longer depends on a credential: the live ZIP lookup uses AirNow's official public file products. No key values are committed to GitHub.
 
 ## Routes
 `GET /api/catalog`: list sources and whether their runtime bindings exist.
@@ -15,7 +15,10 @@ Examples:
 - `/api/census?county=06019` — county ACS income and poverty.
 - `/api/bea?county=06019` — regional income.
 - `/api/bls?county=06019` — county labor series; no county uses national CPI series.
-- `/api/airnow?zip=93720` — air quality reporting area, not a county economic loss.
+- `/api/airnow?zip=93720` — current AirNow reporting-area AQI resolved through public ZIP/reporting-area files; preliminary, not regulatory AQS data.
+- `/api/noaa?county=06019&days=30` — recent GHCN-Daily station observations associated with the county; not a countywide weather average.
+- `/api/usgs?county=06019` — latest continuous streamflow observations at monitoring sites associated with the county; not a countywide water-condition score.
+- `/api/fcc_broadband` — National Broadband Map release metadata; not a county broadband percentage.
 - `/api/eia?state=CA` — state residential electricity price.
 - `/api/fec?q=Smith` — federal candidate search.
 - `/api/maptiler?q=Fresno` — geocoding.
@@ -35,4 +38,4 @@ Examples:
 - Worker deployment must be verified separately from a GitHub commit.
 
 ## Testing
-Run `npm test` with Node 18+. Gateway tests verify allowlisting, 19 providers, configured-name mapping, request construction, and 3-key LobbyView rotation with mocked upstream responses. Provider live authentication is a separate deployment check.
+Run `npm test` with Node 18+. Gateway tests verify allowlisting, request construction, source classification, and 3-key LobbyView rotation with mocked upstream responses. Live deployment checks are still required; NOAA, USGS, AirNow, and FCC were separately verified against the deployed Worker on November 20, 2026 Pacific time.
