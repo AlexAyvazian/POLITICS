@@ -35,6 +35,39 @@
    </div>
   </section>
 
+  <section class="researchTools" id="researchTools" aria-labelledby="researchToolsTitle">
+   <div class="sourceSectionHead researchToolsHead">
+    <div><span>LIVE RESEARCH TOOLS</span><h2 id="researchToolsTitle">Explore the underlying records</h2></div>
+    <p>On-demand official-source lookups. Results are not stored as claims about a county, company, or politician.</p>
+   </div>
+   <div class="researchToolGrid">
+    <article class="researchToolCard" data-fred-tool>
+     <div class="researchToolTitle"><span>JOBS &amp; ECONOMY</span><h3>Federal Reserve economic trends</h3></div>
+     <p>Pull a recent national FRED series for context. These figures are national indicators, not county estimates.</p>
+     <form data-fred-form>
+      <label><span>Series</span><select data-fred-series>
+       <option value="UNRATE">U.S. unemployment rate</option>
+       <option value="CPIAUCSL">Consumer Price Index</option>
+       <option value="FEDFUNDS">Federal funds rate</option>
+       <option value="MORTGAGE30US">30-year mortgage rate</option>
+       <option value="PAYEMS">Total nonfarm payrolls</option>
+      </select></label>
+      <button type="submit">Load trend</button>
+     </form>
+     <div class="researchResult" data-fred-result aria-live="polite">Choose a series to load recent observations.</div>
+    </article>
+    <article class="researchToolCard" data-sec-tool>
+     <div class="researchToolTitle"><span>COMPANY DISCLOSURES</span><h3>SEC EDGAR company filings</h3></div>
+     <p>Find a public company by name or ticker, then inspect its recent SEC filings. SEC filings are corporate disclosures, not political-donation records.</p>
+     <form data-sec-form>
+      <label><span>Company or ticker</span><input data-sec-query type="search" placeholder="Apple, AAPL, Microsoft…" autocomplete="off"></label>
+      <button type="submit">Find company</button>
+     </form>
+     <div class="researchResult" data-sec-result aria-live="polite">Search for a public company.</div>
+    </article>
+   </div>
+  </section>
+
   <section class="sourceControls" aria-label="Filter sources">
    <label><span>Find a source</span><input id="sourceSearch" type="search" placeholder="FEC, housing, lobbying, climate…" autocomplete="off"></label>
    <div class="sourceFilters" role="group" aria-label="Filter by status">
@@ -62,6 +95,6 @@
    <p>POLITICS uses primary government records where available and labels research or third-party sources separately. Every substantive page should link back to the underlying source or filing whenever the source provides a stable public record.</p>
   </section>
  </main>
- <script src="assets/js/sources.js?v=2026112012"></script>
+ <script src="assets/js/sources.js?v=2026112101"></script>
 </body>
 </html>
