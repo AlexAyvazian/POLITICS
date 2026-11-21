@@ -179,7 +179,14 @@ function target(id,p,env){
  case 'congress':u=qs('https://api.congress.gov/v3/bill',{api_key:k,format:'json',limit:n});break;
  case 'datagov':u=qs('https://catalog.data.gov/api/3/action/package_search',{q:q||'housing affordability',rows:n});break;
  case 'eia':u=qs('https://api.eia.gov/v2/electricity/retail-sales/data/',{api_key:k,frequency:'monthly','data[0]':'price','facets[stateid][]':s,'facets[sectorid][]':'RES','sort[0][column]':'period','sort[0][direction]':'desc',length:n});break;
- case 'fda':u=qs('https://api.fda.gov/animalandveterinary/event.json',{api_key:k,limit:n});break;
+ case 'fda':{
+  const ingredient=q.replaceAll('"','').trim();
+  u=qs('https://api.fda.gov/animalandveterinary/event.json',{
+   api_key:k,...(ingredient?{search:'drug.active_ingredients.name:"'+ingredient+'"'}:{}),
+   sort:'original_receive_date:desc',limit:n
+  });
+  break;
+ }
  case 'fdic':u=qs('https://banks.data.fdic.gov/api/institutions',{filters:'STALP:'+s,limit:n,format:'json'});break;
  case 'fec':if(!q)throw Error('Candidate q required');u=qs('https://api.open.fec.gov/v1/candidates/search/',{api_key:k,q,per_page:n});break;
  case 'fred':{const series=limited(p.get('series')||'UNRATE',/^[A-Z0-9._-]{2,30}$/,30);if(!series)throw Error('Invalid series');u=qs('https://api.stlouisfed.org/fred/series/observations',{series_id:series,api_key:k,file_type:'json',limit:n,sort_order:'desc'});break;}
