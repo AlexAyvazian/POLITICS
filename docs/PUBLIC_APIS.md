@@ -1,8 +1,9 @@
 # Public API integrations — POLITICS
-The established gateway now contains **27 source adapters**: 19 previously configured source integrations, **six credential-free public data adapters**, plus two authenticated interfaces ready when their provider credentials are configured. The existing U.S. county map remains intact.
+The established gateway now contains **27 source adapters**: 18 credential-backed source integrations, **seven credential-free public data adapters**, plus two authenticated interfaces ready when their provider credentials are configured. The existing U.S. county map remains intact.
 
-## No key needed — six working adapter routes
+## No key needed — seven working adapter routes
 | Source | Gateway route | Required input | Data and limitation |
+| AirNow | /api/airnow | five-digit ZIP | Current preliminary AQI by AirNow reporting area, resolved through official public file products; not validated regulatory AQS data |
 |---|---|---|---|
 | CFPB | /api/cfpb | optional state, q, zip | Published consumer complaints, not verified wrongdoing; narratives may be unavailable |
 | CMS | /api/cms | state (defaults CA) | Public Medicare Fee-for-Service provider enrollment, not medical pricing |
@@ -17,12 +18,13 @@ Data retrieved on-demand. All requests go to fixed, documented government API en
 - **EPA AQS**, /api/epa_aqs?county=06019&year=2025: requires the EPA account's \`EPA_AQS_KEY\` and \`EPA_AQS_EMAIL\`. The upload includes an AQS Data Mart credential. Neither value is stored in the repository. Historical validated daily PM2.5 monitor summaries; data can lag observations by many months.
 - **FCC National Broadband Map**, /api/fcc_broadband: requires \`FCC_BDC_TOKEN\` and \`FCC_BDC_USERNAME\`. The June 8, 2026 FCC document explicitly requires an FCC account and access token. This basic endpoint discovers data release dates; it is **not** a full county broadband impact dataset.
 
-These two adapters return HTTP 503 when the required Cloudflare bindings are missing, rather than falsely claiming keyless access. They must not be confused with the separately configured AirNow connection.
+These two adapters return HTTP 503 when the required Cloudflare bindings are missing, rather than falsely claiming keyless access. AirNow is separate and now uses keyless official file products.
 
 ## Validation and deploy
-\`npm test\` includes mock-provider tests for all eight newly added adapters. A test passing does not prove that each external provider accepts the live request. Cloudflare Workers can cache responses. Browser source explorer at \`sources.html\` is linked from the county map. The Worker is \`crimson-mud-d254\` under the designated **second Cloudflare account**, and Wrangler must retain existing bindings.
+\`npm test\` includes mock-provider tests for the public and authenticated adapters. A test passing does not prove that each external provider accepts the live request. Cloudflare Workers can cache responses. Browser source explorer at \`sources.html\` is linked from the county map. The Worker is \`crimson-mud-d254\` under the designated **second Cloudflare account**, and Wrangler must retain existing bindings.
 
 Source documentation:
+- https://files.airnowtech.org/airnow/today/
 - https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/
 - https://data.cms.gov/api-docs
 - https://ffiec.cfpb.gov/documentation/api
