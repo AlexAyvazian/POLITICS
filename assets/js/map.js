@@ -596,8 +596,8 @@ function renderEpaCountyAirQuality(data,state,stateMode,selected){
 function renderLiveEnvironmentTools(stateMode){
  const countyControls=stateMode?
   '<p class="categoryNote">Select a county to query NOAA county climate observations or USGS county monitoring sites. FCC release metadata and AirNow ZIP lookup remain available here.</p>':
-  '<div class="liveDataActions"><button type="button" data-live-source="noaa">Load NOAA climate observations</button><button type="button" data-live-source="usgs">Load USGS streamflow observations</button><button type="button" data-live-source="fcc">Check FCC broadband release</button></div>';
- const fccOnly=stateMode?'<div class="liveDataActions"><button type="button" data-live-source="fcc">Check FCC broadband release</button></div>':'';
+  '<div class="liveDataActions"><button type="button" data-live-source="noaa">Load NOAA climate observations</button><button type="button" data-live-source="usgs">Load USGS streamflow observations</button><button type="button" data-live-source="fcc">Load FCC broadband availability</button></div>';
+ const fccOnly=stateMode?'<div class="liveDataActions"><button type="button" data-live-source="fcc">Load FCC broadband availability</button></div>':'';
  return '<section class="countyMetricSection liveEnvironmentSection" aria-label="Live environment and infrastructure data">'+
   '<h3 class="countyFactsTitle">Live Environment & Infrastructure</h3>'+
   '<p class="categoryNote">These official-source requests run only when you ask. They are kept separate from the stored county snapshots above so selecting a county never triggers an upstream provider call.</p>'+
@@ -648,6 +648,34 @@ function renderAirNowLive(payload){
   '</div><p class="countyFactSource">AirNow observations are preliminary and tied to a reporting area near the ZIP entered. They are <strong>not a countywide annual air-quality measure</strong> and should not be compared directly with the stored EPA annual county statistics above. <a href="https://www.airnow.gov/" target="_blank" rel="noopener noreferrer">AirNow</a>.</p>';
 }
 function renderFccLive(payload,geoid=''){
+ const rich=payload?.data?.county,release=payload?.data?.release,providers=Array.isArray(payload?.data?.providers)?payload.data.providers:[];
+ if(rich){
+  const coverage=rich.residentialCoveragePct||{};
+  const items=[
+   ['FCC units in area',rich.totalUnits,'count'],
+   ['≥ 25/3 Mbps · all terrestrial',coverage['25_3'],'percent'],
+   ['≥ 100/20 Mbps · all terrestrial',coverage['100_20'],'percent'],
+   ['≥ 250/25 Mbps · all terrestrial',coverage['250_25'],'percent'],
+   ['≥ 1000/100 Mbps · all terrestrial',coverage['1000_100'],'percent'],
+   ['Urban units ≥ 100/20 Mbps',rich.urbanResidential100_20Pct,'percent'],
+   ['Rural units ≥ 100/20 Mbps',rich.ruralResidential100_20Pct,'percent']
+  ].filter(([,value])=>value!==null&&value!==undefined&&value!=='');
+  const providerCards=providers.slice(0,8).map(row=>liveObservationCard(
+   row.name,
+   typeof row.residentialCoveragePct==='number'?row.residentialCoveragePct.toFixed(1)+'%':'Unavailable',
+   'Provider-reported residential availability'
+  )).join('');
+  const date=release?.date||'latest release';
+  const parts=String(date).split('-'),version=(parts[1]==='06'?'jun':'dec')+(parts[0]||'2026');
+  const areaUrl=/^\d{5}$/.test(String(geoid||''))?
+   'https://broadbandmap.fcc.gov/area-summary/fixed?version='+encodeURIComponent(version)+'&geoid='+encodeURIComponent(geoid)+'&type=county':
+   'https://broadbandmap.fcc.gov/area-summary/fixed?version='+encodeURIComponent(version);
+  return '<h4 class="countyFactsTitle">FCC National Broadband Map · '+esc(rich.name||'county summary')+'</h4>'+
+   metricGrid(items)+
+   (providerCards?'<h4 class="countyFactsTitle">Top provider-reported residential availability</h4><div class="countyFactGrid">'+providerCards+'</div>':'')+
+   '<p class="countyFactSource">FCC National Broadband Map · data as of '+esc(date)+'. Fixed residential percentages above use the FCC Area Summary’s <strong>All Terrestrial</strong> technology group (technology codes 1, 2, 3, 6 and 7). The displayed speed tiers are the FCC map’s published thresholds. <strong>Availability is provider-reported and does not measure actual speed, reliability, affordability, adoption, or customer experience.</strong> Provider percentages can overlap because more than one provider can report service to the same units. '+
+   '<a href="'+areaUrl+'" target="_blank" rel="noopener noreferrer">Open this county in the official FCC Area Summary ↗</a>.</p>';
+ }
  const raw=payload?.data;
  const rows=Array.isArray(raw)?raw:Array.isArray(raw?.data)?raw.data:[];
  const availability=rows.filter(row=>String(row?.data_type||row?.dataType||'').toLowerCase().includes('availability'));
@@ -661,7 +689,7 @@ function renderFccLive(payload,geoid=''){
   'https://broadbandmap.fcc.gov/area-summary/fixed?version='+encodeURIComponent(version);
  return '<h4 class="countyFactsTitle">FCC National Broadband Map · latest availability release</h4>'+
   '<div class="countyFactGrid">'+liveObservationCard('Availability data as of',String(date).slice(0,10),'National Broadband Map release metadata')+'</div>'+
-  '<p class="countyFactSource">This is <strong>release metadata</strong>, not a county broadband percentage. Current BDC availability is distributed through the FCC map and bulk-download API rather than a simple county-summary API response. FCC availability describes where providers report service is available; <strong>availability does not measure actual network performance, affordability, adoption, or service quality</strong>. '+
+  '<p class="countyFactSource">This is <strong>release metadata</strong>, not a county broadband percentage. Select a county to load the FCC Area Summary’s actual county coverage metrics. FCC availability describes where providers report service is available; <strong>availability does not measure actual network performance, affordability, adoption, or service quality</strong>. '+
   '<a href="'+areaUrl+'" target="_blank" rel="noopener noreferrer">'+(county?'Open this county in the official FCC Area Summary':'Open FCC Area Summary')+' ↗</a>.</p>';
 }
 async function fetchLiveEnvironment(path){
@@ -683,7 +711,10 @@ function wireLiveEnvironment(state,stateMode,selected){
  };
  section.querySelector('[data-live-source="noaa"]')?.addEventListener('click',()=>load('NOAA','/api/noaa?county='+encodeURIComponent(selected)+'&days=30&limit=20',renderNoaaLive));
  section.querySelector('[data-live-source="usgs"]')?.addEventListener('click',()=>load('USGS','/api/usgs?county='+encodeURIComponent(selected)+'&limit=20',renderUsgsLive));
- section.querySelector('[data-live-source="fcc"]')?.addEventListener('click',()=>load('FCC broadband metadata','/api/fcc_broadband',payload=>renderFccLive(payload,selected)));
+ section.querySelector('[data-live-source="fcc"]')?.addEventListener('click',()=>{
+  const county=/^\d{5}$/.test(String(selected||'')),path='/api/fcc_broadband'+(county?'?county='+encodeURIComponent(selected):'');
+  load(county?'FCC county broadband summary':'FCC broadband metadata',path,payload=>renderFccLive(payload,selected));
+ });
  section.querySelector('[data-airnow-form]')?.addEventListener('submit',event=>{
   event.preventDefault();
   const input=event.currentTarget.querySelector('input'),zip=String(input?.value||'').trim();
