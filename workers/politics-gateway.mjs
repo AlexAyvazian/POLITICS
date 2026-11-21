@@ -86,6 +86,11 @@ function authenticatedPublicRoute(id,p,env){
   for(const [k,v] of Object.entries({email:account,key:apiKey,param:'88101',bdate:d+'0101',edate:d+'0107',state:county.slice(0,2),county:county.slice(2)}))u.searchParams.set(k,v);
   u=u.toString();
  }else{
+  const county=p.get('county')||'';
+  if(county){
+   if(!/^\d{5}$/.test(county))throw Error('FCC county FIPS must be five digits');
+   return {fccCounty:county};
+  }
   u='https://broadbandmap.fcc.gov/api/public/map/listAsOfDates';
   options.headers.username=account;options.headers.hash_value=apiKey;
  }
@@ -245,6 +250,58 @@ function target(id,p,env){
 }
 let lobbyCounter=0;
 async function getUpstream(id,route,env,fetcher){
+ if(id==='fcc_broadband'&&route?.fccCounty){
+  const base='https://broadbandmap.fcc.gov/nbm/map/api/';
+  const filingResponse=await fetcher(base+'published/filing',{headers:{Accept:'application/json'}});
+  if(!filingResponse.ok)return filingResponse;
+  let filingBody;try{filingBody=await filingResponse.json();}catch(_){return new Response('{}',{status:502});}
+  const months={January:'01',February:'02',March:'03',April:'04',May:'05',June:'06',July:'07',August:'08',September:'09',October:'10',November:'11',December:'12'};
+  const releases=(Array.isArray(filingBody?.data)?filingBody.data:[]).map(row=>{
+   const match=/^(\w+)\s+(\d{1,2}),\s+(\d{4})$/.exec(String(row?.filing_subtype||''));
+   const month=match&&months[match[1]];
+   return {...row,iso:month?match[3]+'-'+month+'-'+String(match[2]).padStart(2,'0'):null};
+  }).filter(row=>row.iso&&/^[0-9a-f-]{36}$/i.test(String(row.process_uuid||''))).sort((a,b)=>b.iso.localeCompare(a.iso));
+  const latest=releases[0];
+  if(!latest)return new Response(JSON.stringify({error:'FCC current filing metadata unavailable'}),{status:502,headers:{'Content-Type':'application/json'}});
+  const uuid=latest.process_uuid,county=route.fccCounty;
+  const [summaryResponse,providerResponse]=await Promise.all([
+   fetcher(base+'geography/summary/'+uuid+'/county/'+county,{headers:{Accept:'application/json'}}),
+   fetcher(base+'provider/summary/'+uuid+'/county/'+county+'/1/1',{headers:{Accept:'application/json'}})
+  ]);
+  if(!summaryResponse.ok)return summaryResponse;
+  if(!providerResponse.ok)return providerResponse;
+  let summaryBody,providerBody;
+  try{summaryBody=await summaryResponse.json();providerBody=await providerResponse.json();}catch(_){return new Response('{}',{status:502});}
+  const rows=Array.isArray(summaryBody?.data)?summaryBody.data:[],total=rows.find(row=>row?.area_data_type==='total')||null;
+  if(!total)return new Response(JSON.stringify({error:'FCC county summary unavailable'}),{status:502,headers:{'Content-Type':'application/json'}});
+  const urban=rows.find(row=>row?.area_data_type==='urban')||{},rural=rows.find(row=>row?.area_data_type==='rural')||{};
+  const percent=value=>{const n=Number(value);return Number.isFinite(n)&&n>=0&&n<=1?Math.round(n*1000)/10:null;};
+  const residentialCoveragePct={
+   '0_2_0_2':percent(total.t1_2_3_6_7_s1_r),
+   '10_1':percent(total.t1_2_3_6_7_s2_r),
+   '25_3':percent(total.t1_2_3_6_7_s3_r),
+   '100_20':percent(total.t1_2_3_6_7_s4_r),
+   '250_25':percent(total.t1_2_3_6_7_s5_r),
+   '1000_100':percent(total.t1_2_3_6_7_s6_r)
+  };
+  const providers=(Array.isArray(providerBody?.data)?providerBody.data:[]).slice(0,10).map(row=>({
+   name:String(row?.holding_company_name||'').slice(0,180),
+   providerId:String(row?.provider_id||'').slice(0,30),
+   residentialCoveragePct:percent(row?.res_st_pct)
+  })).filter(row=>row.name&&row.residentialCoveragePct!==null);
+  const body={
+   release:{date:latest.iso,label:String(latest.filing_subtype),processUuid:uuid},
+   county:{
+    geoid:county,name:String(total.geography_desc_full||total.geography_desc||county).slice(0,160),
+    totalUnits:Number.isFinite(Number(total.total_units))?Number(total.total_units):null,
+    residentialCoveragePct,
+    urbanResidential100_20Pct:percent(urban.t1_2_3_6_7_s4_r),
+    ruralResidential100_20Pct:percent(rural.t1_2_3_6_7_s4_r)
+   },
+   providers
+  };
+  return new Response(JSON.stringify(body),{status:200,headers:{'Content-Type':'application/json'}});
+ }
  if(id==='sec'&&route?.secSearch){
   const upstream=await fetcher('https://www.sec.gov/files/company_tickers.json',{headers:{Accept:'application/json','User-Agent':'POLITICS research website contact alex.ayvazian@outlook.com'}});
   if(!upstream.ok)return upstream;
