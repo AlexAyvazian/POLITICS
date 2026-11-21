@@ -45,20 +45,23 @@ test('USGS live route filters recent daily mean streamflow to the selected count
 });
 
 
-test('AirNow live route uses the documented current-observations ZIP endpoint',async()=>{
+test('AirNow live route resolves ZIPs through official keyless file products',async()=>{
  const calls=[];
- const env={AIRNOW_AQS_API_KEY:'test-airnow'};
- const res=await handle(req('/api/airnow?zip=93720'),env,{},async(url,options)=>{
-  calls.push({url:new URL(url),options});
-  return new Response(JSON.stringify([{ParameterName:'PM2.5',AQI:42,ReportingArea:'Fresno'}]),{status:200});
+ const res=await handle(req('/api/airnow?zip=93720'),{}, {},async(url)=>{
+  calls.push(new URL(url));
+  if(String(url).endsWith('/cityzipcodes.csv'))
+   return new Response('City|State|Zipcode|Latitude|Longitude\nFresno|CA|93720|36.8486|-119.7814\n',{status:200});
+  return new Response('11/20/26|11/20/26|23:00|PST|0|O|Y|Fresno|CA|36.7806|-119.7929|PM2.5|83|Moderate|No||San Joaquin Valley Unified APCD\n',{status:200});
  });
  assert.equal(res.status,200);
- assert.equal(calls.length,1);
- assert.equal(calls[0].url.hostname,'www.airnowapi.org');
- assert.equal(calls[0].url.pathname,'/aq/observation/zipCode/current/');
- assert.equal(calls[0].url.searchParams.get('zipCode'),'93720');
- assert.equal(calls[0].url.searchParams.get('distance'),'25');
- assert.equal(calls[0].url.searchParams.get('API_KEY'),'test-airnow');
+ assert.equal(calls.length,2);
+ assert.equal(calls[0].hostname,'files.airnowtech.org');
+ assert.equal(calls[0].pathname,'/airnow/today/cityzipcodes.csv');
+ assert.equal(calls[1].pathname,'/airnow/today/reportingarea.dat');
+ const body=await res.json();
+ assert.equal(body.data[0].ReportingArea,'Fresno');
+ assert.equal(body.data[0].AQI,83);
+ assert.equal(body.data[0].ParameterName,'PM2.5');
 });
 
 test('FCC live route uses the current National Broadband Map public API host',async()=>{
