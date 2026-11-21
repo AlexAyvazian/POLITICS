@@ -6,6 +6,7 @@ const states=window.GEO_STATES, topo=window.US_ATLAS, model=window.GEO_UTIL;
 const svg=d3.select('#mapSvg'),tooltip=d3.select('#tooltip');
 const colors=window.GEO_COLORS;
 const GATEWAY='https://crimson-mud-d254.alxayvazian.workers.dev';
+let fccBroadbandSnapshotPromise=null;
 const sfips=Object.fromEntries(states.map(s=>[s.fips,s]));
 const sabbr=Object.fromEntries(states.map(s=>[s.abbr,s]));
 const sel={abbr:null,fips:null};
@@ -600,7 +601,7 @@ function renderLiveEnvironmentTools(stateMode){
  const fccOnly=stateMode?'<div class="liveDataActions"><button type="button" data-live-source="fcc">Load FCC broadband availability</button></div>':'';
  return '<section class="countyMetricSection liveEnvironmentSection" aria-label="Live environment and infrastructure data">'+
   '<h3 class="countyFactsTitle">Live Environment & Infrastructure</h3>'+
-  '<p class="categoryNote">These official-source requests run only when you ask. They are kept separate from the stored county snapshots above so selecting a county never triggers an upstream provider call.</p>'+
+  '<p class="categoryNote">NOAA, USGS and AirNow run only when you ask. FCC county broadband availability comes from the daily stored National Broadband Map snapshot, so selecting a county never triggers an FCC upstream request.</p>'+
   countyControls+fccOnly+
   '<form class="liveAirNowForm" data-airnow-form><label><span>Current AirNow by ZIP</span><input type="text" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="ZIP code" aria-label="ZIP code for AirNow current observations"></label><button type="submit">Load current AQI</button></form>'+
   '<div class="liveEnvironmentResult" data-live-result aria-live="polite"><p class="categoryNote">Choose a live source above. AirNow reports nearby reporting-area observations; NOAA and USGS results are station or monitoring-site records, not countywide conditions.</p></div>'+
@@ -699,6 +700,17 @@ async function fetchLiveEnvironment(path){
  if(!response.ok)throw Error(payload?.error||'Live source HTTP '+response.status);
  return payload;
 }
+async function fetchFccBroadbandSnapshot(){
+ if(!fccBroadbandSnapshotPromise)fccBroadbandSnapshotPromise=fetch('assets/data/county/fcc-broadband-availability.json',{
+  headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-cache'
+ }).then(async response=>{
+  if(!response.ok)throw Error('Stored FCC snapshot HTTP '+response.status);
+  const payload=await response.json();
+  if(payload?.source!=='FCC National Broadband Map'||!payload?.counties)throw Error('Stored FCC snapshot is invalid');
+  return payload;
+ }).catch(error=>{fccBroadbandSnapshotPromise=null;throw error;});
+ return fccBroadbandSnapshotPromise;
+}
 function wireLiveEnvironment(state,stateMode,selected){
  const section=document.querySelector('#countyFacts .liveEnvironmentSection');
  if(!section)return;
@@ -711,9 +723,24 @@ function wireLiveEnvironment(state,stateMode,selected){
  };
  section.querySelector('[data-live-source="noaa"]')?.addEventListener('click',()=>load('NOAA','/api/noaa?county='+encodeURIComponent(selected)+'&days=30&limit=20',renderNoaaLive));
  section.querySelector('[data-live-source="usgs"]')?.addEventListener('click',()=>load('USGS','/api/usgs?county='+encodeURIComponent(selected)+'&limit=20',renderUsgsLive));
- section.querySelector('[data-live-source="fcc"]')?.addEventListener('click',()=>{
-  const county=/^\d{5}$/.test(String(selected||'')),path='/api/fcc_broadband'+(county?'?county='+encodeURIComponent(selected):'');
-  load(county?'FCC county broadband summary':'FCC broadband metadata',path,payload=>renderFccLive(payload,selected));
+ section.querySelector('[data-live-source="fcc"]')?.addEventListener('click',async()=>{
+  const county=/^\d{5}$/.test(String(selected||''));
+  if(!county){
+   load('FCC broadband metadata','/api/fcc_broadband',payload=>renderFccLive(payload,selected));
+   return;
+  }
+  write('<p class="categoryNote">Loading stored FCC county broadband availability…</p>');
+  try{
+   const snapshot=await fetchFccBroadbandSnapshot(),row=snapshot?.counties?.[selected];
+   if(!row)throw Error('No stored FCC county row is available for this geography');
+   write(renderFccLive({data:{
+    release:{date:snapshot.releaseDate,label:snapshot.releaseLabel,processUuid:snapshot.processUuid},
+    county:{geoid:selected,...row},
+    providers:[]
+   }},selected));
+  }catch(error){
+   write('<p class="categoryNote">FCC county broadband availability could not be loaded right now: '+esc(error?.message||'request failed')+'</p>');
+  }
  });
  section.querySelector('[data-airnow-form]')?.addEventListener('submit',event=>{
   event.preventDefault();
