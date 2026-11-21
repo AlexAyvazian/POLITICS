@@ -2,7 +2,7 @@
 const READER='https://politics-daily-snapshot.alxayvazian.workers.dev';
 const GATEWAY='https://crimson-mud-d254.alxayvazian.workers.dev';
 const META={
- airnow:{name:'AirNow',where:'County Atlas · Infrastructure & Environment',match:[],note:'Preliminary reporting-area air quality.'},
+ airnow:{name:'AirNow',where:'County Atlas · Infrastructure & Environment',match:[],onDemandLive:true,note:'Current preliminary reporting-area air quality loaded on demand by ZIP.'},
  bea:{name:'Bureau of Economic Analysis',where:'County Atlas · Jobs & Economy',match:['bea_county_per_capita_income'],note:'Annual county per-capita personal income from the BEA Regional accounts.'},
  bls:{name:'Bureau of Labor Statistics',where:'County Atlas · Jobs & Economy',match:['bls_laus_county'],note:'Latest monthly county labor-force and unemployment statistics from BLS LAUS.'},
  census:{name:'U.S. Census Bureau',where:'County Atlas · every conditions tab',match:['census_acs5','census_housing','census_jobs','census_income','census_healthcare','census_education','census_families','census_infrastructure'],note:'ACS county conditions and demographics.'},
@@ -17,10 +17,10 @@ const META={
  lda:{name:'Senate LDA',where:'Congressional Records · Lobbying',match:[],onDemandLive:true,note:'Official federal LD-1/LD-2 lobbying disclosure filings searched on demand.'},
  lobbyview:{name:'LobbyView',where:'Congressional Records · Lobbying',match:['member_lobby_network','member_lobby_collection_health'],note:'Research-coded lobbying and legislator relationships.'},
  maptiler:{name:'MapTiler',where:'Geocoding utility · no public data panel',match:[],note:'Geocoding support.'},
- noaa:{name:'NOAA NCEI',where:'Future County Atlas · Infrastructure & Environment',match:[],note:'Climate-data catalog.'},
+ noaa:{name:'NOAA NCEI',where:'County Atlas · Infrastructure & Environment',match:[],onDemandLive:true,note:'Recent GHCN-Daily station observations loaded on demand for a selected county.'},
  openstates:{name:'Open States',where:'County Atlas · Representation / Congressional Atlas',match:['openstates'],note:'State legislators and legislation.'},
  regulations:{name:'Regulations.gov',where:'Government Action · Regulatory Dockets',match:[],onDemandLive:true,note:'Federal rulemaking dockets and documents searched on demand.'},
- usgs:{name:'USGS Water',where:'Future County Atlas · Infrastructure & Environment',match:[],note:'Water observations.'},
+ usgs:{name:'USGS Water',where:'County Atlas · Infrastructure & Environment',match:[],onDemandLive:true,note:'Recent daily-mean streamflow observations loaded on demand for monitoring sites associated with a selected county.'},
  cfpb:{name:'Consumer Financial Protection Bureau',where:'County Atlas · Housing',match:['cfpb_mortgage_state_24m'],note:'Rolling 24-month statewide mortgage complaint context; complaints are allegations and are not a representative sample.'},
  cms:{name:'CMS',where:'County Atlas · Health & Well-Being',match:['cms_partb_state_provider_activity'],note:'2024 statewide published Medicare Part B rendering-provider activity; not a count of all clinicians or guaranteed access.'},
  hmda:{name:'FFIEC / HMDA',where:'County Atlas · Housing',match:['hmda_state_2025'],note:'2025 statewide mortgage application outcomes from the HMDA Data Browser.'},
@@ -28,7 +28,7 @@ const META={
  sec:{name:'SEC EDGAR',where:'Future influence/company research',match:[],note:'Public company filings; not a political-donation source.'},
  usaspending:{name:'USAspending',where:'County Atlas · Federal Money',match:['usaspending_county'],note:'Federal prime-award obligations by county place of performance.'},
  epa_aqs:{name:'EPA AQS / Air Trends',where:'County Atlas · Infrastructure & Environment',match:['epa_air_quality_county_2025'],note:'Official 2025 county air-monitoring statistics from EPA AQS, with monitoring-coverage limits.'},
- fcc_broadband:{name:'FCC Broadband Data Collection',where:'Future County Atlas · Infrastructure',match:[],note:'Broadband availability release metadata.'}
+ fcc_broadband:{name:'FCC Broadband Data Collection',where:'County Atlas · Infrastructure & Environment',match:[],onDemandLive:true,note:'National Broadband Map availability release metadata loaded on demand; release metadata is not a county broadband percentage.'}
 };
 const EXTRA=[
  {id:'cdc_places',name:'CDC PLACES',category:'health',configured:true,description:'Modeled county health and well-being estimates.',match:['cdc_places_2025'],where:'County Atlas · Health & Well-Being'},
