@@ -198,7 +198,7 @@ function wireDataGovTool(){
    const response=await fetch(GATEWAY+'/api/datagov?q='+encodeURIComponent(q)+'&limit=10',{headers:{Accept:'application/json'},credentials:'omit'});
    const payload=await response.json();
    if(!response.ok)throw Error(payload?.error||'Data.gov search failed');
-   const rows=Array.isArray(payload?.data?.result?.results)?payload.data.result.results:[];
+   const rows=Array.isArray(payload?.data?.results)?payload.data.results:[];
    result.replaceChildren();
    if(!rows.length){researchMessage(result,'No Data.gov catalog matches were returned for that topic.');return;}
    const list=document.createElement('div');list.className='researchFilingList';
@@ -206,11 +206,11 @@ function wireDataGovTool(){
     const article=document.createElement('article');
     const top=document.createElement('div'),title=document.createElement('strong');
     title.textContent=String(row?.title||row?.name||'Untitled dataset').slice(0,180);top.append(title);article.append(top);
-    const org=row?.organization?.title||row?.organization?.name||'';
+    const org=row?.publisher||row?.organization?.name||row?.organization?.title||row?.dcat?.publisher?.name||'';
     if(org){const meta=document.createElement('p');meta.textContent=String(org).slice(0,160);article.append(meta);}
-    const notes=String(row?.notes||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+    const notes=String(row?.description||row?.dcat?.description||row?.notes||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
     if(notes){const desc=document.createElement('p');desc.textContent=notes.slice(0,320);article.append(desc);}
-    const url=row?.url||('https://catalog.data.gov/dataset/'+encodeURIComponent(String(row?.name||'')));
+    const url=row?.url||row?.landing_page||('https://catalog.data.gov/dataset/'+encodeURIComponent(String(row?.slug||row?.identifier||row?.name||'')));
     const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open catalog record ↗';article.append(link);
     list.append(article);
    }
