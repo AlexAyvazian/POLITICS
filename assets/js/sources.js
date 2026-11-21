@@ -7,9 +7,9 @@ const META={
  bls:{name:'Bureau of Labor Statistics',where:'County Atlas · Jobs & Economy',match:['bls_laus_county'],note:'Latest monthly county labor-force and unemployment statistics from BLS LAUS.'},
  census:{name:'U.S. Census Bureau',where:'County Atlas · every conditions tab',match:['census_acs5','census_housing','census_jobs','census_income','census_healthcare','census_education','census_families','census_infrastructure'],note:'ACS county conditions and demographics.'},
  congress:{name:'Congress.gov',where:'Congressional Records · Legislation / County Atlas · Representation / Government Action',match:['congress_members_current','member_legislation','congress_house_votes_recent'],note:'Federal member, legislation and House roll-call records.'},
- datagov:{name:'Data.gov',where:'Research adapter · no voter-facing dataset yet',match:[],note:'Federal data catalog search.'},
+ datagov:{name:'Data.gov',where:'Data Sources · Live Research Tools',match:[],onDemandLive:true,note:'Federal dataset catalog searched on demand; catalog entries identify datasets and do not by themselves establish a finding.'},
  eia:{name:'U.S. Energy Information Administration',where:'County Atlas · Infrastructure & Environment',match:['eia_state_electricity'],note:'State residential electricity-price data.'},
- fda:{name:'openFDA',where:'Research adapter · no voter-facing dataset yet',match:[],note:'Published FDA datasets; current adapter is not a healthcare-price source.'},
+ fda:{name:'openFDA',where:'Data Sources · Live Research Tools',match:[],onDemandLive:true,note:'Published FDA animal adverse-event reports searched on demand by active ingredient; reports are not incidence, causality or pricing data.'},
  fdic:{name:'FDIC BankFind Suite',where:'County Atlas · Housing',match:['fdic_county_offices'],note:'Current physical office presence for FDIC-insured banks and savings associations by county.'},
  fec:{name:'Federal Election Commission',where:'Congressional Records · Campaign Money / PAC & Networks',match:['member_finance_detail','political_money','member_finance_collection_health'],note:'Campaign finance, itemized receipts and committee-network filings.'},
  fred:{name:'Federal Reserve Economic Data',where:'Data Sources · Live Research Tools / County Atlas · Jobs & Economy context',match:[],onDemandLive:true,note:'Official FRED economic time series loaded on demand as national context.'},
@@ -186,6 +186,80 @@ function wireSecTool(){
   }catch(error){researchMessage(result,'SEC company search could not be loaded right now: '+String(error?.message||'request failed'),'researchError');}
  });
 }
+function wireDataGovTool(){
+ const tool=document.querySelector('[data-datagov-tool]');if(!tool)return;
+ const form=tool.querySelector('[data-datagov-form]'),input=tool.querySelector('[data-datagov-query]'),result=tool.querySelector('[data-datagov-result]');
+ form?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const q=String(input?.value||'').trim();
+  if(q.length<2){researchMessage(result,'Enter at least two characters for a dataset topic.');return;}
+  researchMessage(result,'Searching Data.gov…');
+  try{
+   const response=await fetch(GATEWAY+'/api/datagov?q='+encodeURIComponent(q)+'&limit=10',{headers:{Accept:'application/json'},credentials:'omit'});
+   const payload=await response.json();
+   if(!response.ok)throw Error(payload?.error||'Data.gov search failed');
+   const rows=Array.isArray(payload?.data?.result?.results)?payload.data.result.results:[];
+   result.replaceChildren();
+   if(!rows.length){researchMessage(result,'No Data.gov catalog matches were returned for that topic.');return;}
+   const list=document.createElement('div');list.className='researchFilingList';
+   for(const row of rows.slice(0,10)){
+    const article=document.createElement('article');
+    const top=document.createElement('div'),title=document.createElement('strong');
+    title.textContent=String(row?.title||row?.name||'Untitled dataset').slice(0,180);top.append(title);article.append(top);
+    const org=row?.organization?.title||row?.organization?.name||'';
+    if(org){const meta=document.createElement('p');meta.textContent=String(org).slice(0,160);article.append(meta);}
+    const notes=String(row?.notes||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+    if(notes){const desc=document.createElement('p');desc.textContent=notes.slice(0,320);article.append(desc);}
+    const url=row?.url||('https://catalog.data.gov/dataset/'+encodeURIComponent(String(row?.name||'')));
+    const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open catalog record ↗';article.append(link);
+    list.append(article);
+   }
+   result.append(list);
+   const note=document.createElement('p');note.className='researchCaveat';note.textContent='Data.gov is a catalog. A matching catalog entry tells you a dataset exists; inspect the dataset, methodology and publication date before drawing a conclusion.';result.append(note);
+  }catch(error){researchMessage(result,'Data.gov could not be loaded right now: '+String(error?.message||'request failed'),'researchError');}
+ });
+}
+function fdaDrugNames(row){
+ const drugs=Array.isArray(row?.drug)?row.drug:[];
+ const values=[];
+ for(const drug of drugs){
+  if(drug?.brand_name)values.push(String(drug.brand_name));
+  for(const item of Array.isArray(drug?.active_ingredients)?drug.active_ingredients:[])if(item?.name)values.push(String(item.name));
+ }
+ return [...new Set(values)].slice(0,5);
+}
+function wireFdaTool(){
+ const tool=document.querySelector('[data-fda-tool]');if(!tool)return;
+ const form=tool.querySelector('[data-fda-form]'),input=tool.querySelector('[data-fda-query]'),result=tool.querySelector('[data-fda-result]');
+ form?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const q=String(input?.value||'').trim();
+  if(q.length<2){researchMessage(result,'Enter at least two characters of an active ingredient.');return;}
+  researchMessage(result,'Searching openFDA animal adverse-event reports…');
+  try{
+   const response=await fetch(GATEWAY+'/api/fda?q='+encodeURIComponent(q)+'&limit=10',{headers:{Accept:'application/json'},credentials:'omit'});
+   const payload=await response.json();
+   if(!response.ok)throw Error(payload?.error||'openFDA search failed');
+   const rows=Array.isArray(payload?.data?.results)?payload.data.results:[];
+   result.replaceChildren();
+   if(!rows.length){researchMessage(result,'No published openFDA animal adverse-event reports matched that active ingredient.');return;}
+   const list=document.createElement('div');list.className='researchFilingList';
+   for(const row of rows.slice(0,10)){
+    const article=document.createElement('article'),top=document.createElement('div'),species=document.createElement('strong'),date=document.createElement('span');
+    species.textContent=String(row?.animal?.species||'Animal adverse-event report').slice(0,80);
+    date.textContent=String(row?.original_receive_date||row?.onset_date||'').slice(0,10);
+    top.append(species,date);article.append(top);
+    const names=fdaDrugNames(row);
+    if(names.length){const p=document.createElement('p');p.textContent='Reported product/ingredient: '+names.join(' · ');article.append(p);}
+    const serious=row?.serious_ae;
+    const status=document.createElement('p');status.textContent='Reported serious adverse event: '+(serious===true||String(serious).toLowerCase()==='yes'?'Yes':serious===false||String(serious).toLowerCase()==='no'?'No':'Not stated');article.append(status);
+    list.append(article);
+   }
+   result.append(list);
+   const note=document.createElement('p');note.className='researchCaveat';note.textContent='FDA states these are adverse-event reports, not proof of causation or incidence. Animal & Veterinary reports are updated quarterly and can lag FDA receipt by months.';result.append(note);
+  }catch(error){researchMessage(result,'openFDA could not be loaded right now: '+String(error?.message||'request failed'),'researchError');}
+ });
+}
 async function load(){
  const status=document.getElementById('sourceStatus');
  try{
@@ -270,4 +344,6 @@ document.querySelectorAll('[data-source-filter]').forEach(btn=>btn.addEventListe
 }));
 wireFredTool();
 wireSecTool();
+wireDataGovTool();
+wireFdaTool();
 load();
