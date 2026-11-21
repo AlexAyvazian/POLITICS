@@ -1,6 +1,7 @@
 /* POLITICS: 19 allowlisted research API adapters; Cloudflare dashboard bindings only. */
-/* PUBLIC KEYLESS DATA: These six provider endpoints require no API keys. */
+/* PUBLIC KEYLESS DATA: These provider endpoints require no API keys. */
 const KEYLESS_SOURCES={
+ airnow:['environment','AirNow current reporting-area observations from public file products',900],
  cfpb:['finance','CFPB published consumer complaints (not adjudicated wrongdoing)',3600],
  cms:['health','CMS public Medicare provider enrollment',86400],
  hmda:['housing','FFIEC / HMDA county mortgage application aggregations',86400],
@@ -17,6 +18,10 @@ function publicRoute(id,p){
  const make=(base,params)=>{const u=new URL(base);for(const [k,v] of Object.entries(params||{}))if(v!==''&&v!==undefined)u.searchParams.set(k,String(v));return u.toString();};
  let u,options={headers:{Accept:'application/json'}};
  switch(id){
+ case 'airnow':{
+  const zip=p.get('zip')||'';if(!/^\d{5}$/.test(zip))throw Error('ZIP must be five digits');
+  return {airnowZip:zip};
+ }
  case 'cfpb':{
   const zip=p.get('zip')||'';if(zip&&!/^\d{5}$/.test(zip))throw Error('ZIP must be five digits');
   const dateMin=p.get('date_min')||'',dateMax=p.get('date_max')||'';
@@ -86,7 +91,6 @@ function authenticatedPublicRoute(id,p,env){
 }
 
 const CATALOG={
- airnow:['AIRNOW_AQS_API_KEY','environment','Preliminary reporting-area air quality'],
  bea:['BEA_API_KEY','economy','County personal income'],
  bls:['BLS_API_KEY','economy','County unemployment or national CPI'],
  census:['CENSUS-API-KEY','economy','County income and poverty'],
@@ -106,7 +110,7 @@ const CATALOG={
  regulations:['REGULATIONS_API_KEY','policy','Federal rulemaking'],
  usgs:['USGS_API_KEY','environment','Water observations (not disaster costs)']
 };
-const TTL={airnow:900,lobbyview:43200,bea:86400,bls:21600,census:86400,congress:3600,datagov:21600,eia:86400,fda:86400,fdic:86400,fec:3600,fred:21600,govinfo:21600,lda:3600,maptiler:86400,noaa:86400,openstates:3600,regulations:3600,usgs:10800};
+const TTL={lobbyview:43200,bea:86400,bls:21600,census:86400,congress:3600,datagov:21600,eia:86400,fda:86400,fdic:86400,fec:3600,fred:21600,govinfo:21600,lda:3600,maptiler:86400,noaa:86400,openstates:3600,regulations:3600,usgs:10800};
 /* Match Healthcare Directory: browser CORS is limited to approved FRONTEND_ORIGIN values. */
 const CORS={};
 function allowedOrigins(env){
@@ -147,7 +151,6 @@ function target(id,p,env){
  const n=maxRows(p);let u,options={headers:{Accept:'application/json'}};
  if(!k&&!['fdic','datagov','lobbyview'].includes(id))throw Error('Missing '+CATALOG[id][0]);
  switch(id){
- case 'airnow':{const z=limited(p.get('zip'),/^\d{5}$/,5);if(!z)throw Error('Five-digit zip required');u=qs('https://www.airnowapi.org/aq/observation/zipCode/current/',{format:'application/json',zipCode:z,distance:25,API_KEY:k});break;}
  case 'bea':{
   if(!f)throw Error('Five-digit county FIPS required');
   const year=Number(p.get('year')||2024);
@@ -225,6 +228,39 @@ function target(id,p,env){
 }
 let lobbyCounter=0;
 async function getUpstream(id,route,env,fetcher){
+ if(id==='airnow'){
+  const zip=route.airnowZip;
+  const zipResponse=await fetcher('https://files.airnowtech.org/airnow/today/cityzipcodes.csv',{headers:{Accept:'text/plain'}});
+  if(!zipResponse.ok)return zipResponse;
+  const zipText=await zipResponse.text();
+  const mapping=zipText.split(/\r?\n/).map(line=>line.split('|')).find(parts=>parts[2]===zip);
+  if(!mapping)return new Response(JSON.stringify([]),{status:200,headers:{'Content-Type':'application/json'}});
+  const [area,state]=mapping;
+  const reportResponse=await fetcher('https://files.airnowtech.org/airnow/today/reportingarea.dat',{headers:{Accept:'text/plain'}});
+  if(!reportResponse.ok)return reportResponse;
+  const reportText=await reportResponse.text();
+  const observations=[];
+  for(const line of reportText.split(/\r?\n/)){
+   const parts=line.split('|');
+   if(parts.length<17||parts[5]!=='O'||parts[7]!==area||parts[8]!==state)continue;
+   const hour=String(parts[2]||'').match(/^(\d{1,2}):/);
+   observations.push({
+    DateObserved:parts[1]||parts[0]||null,
+    HourObserved:hour?Number(hour[1]):null,
+    LocalTimeZone:parts[3]||null,
+    ReportingArea:parts[7],
+    StateCode:parts[8],
+    Latitude:Number(parts[9]),
+    Longitude:Number(parts[10]),
+    ParameterName:parts[11],
+    AQI:Number(parts[12]),
+    Category:{Name:parts[13]||'Unavailable'},
+    ActionDay:parts[14]==='Yes',
+    Agency:parts[16]||null
+   });
+  }
+  return new Response(JSON.stringify(observations),{status:200,headers:{'Content-Type':'application/json'}});
+ }
  if(id!=='lobbyview')return fetcher(route.u,route.options);
  // Separate accounts; rotate among each independently configured token.
  const keys=['LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3'].map(x=>key(env,x)).filter(Boolean);
