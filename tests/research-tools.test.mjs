@@ -61,3 +61,13 @@ test('FCC result links directly to selected county Area Summary rather than impl
  assert.match(map,/type=county/);
  assert.match(map,/release metadata/i);
 });
+
+test('Jobs & Economy exposes national FRED context without relabeling it as county data',()=>{
+ const map=read('assets/js/map.js');
+ assert.match(map,/function renderFredEconomicContext/);
+ assert.match(map,/function wireFredEconomicContext/);
+ assert.match(map,/\/api\/fred\?series=/);
+ assert.match(map,/national economic context/i);
+ assert.match(map,/not a county/i);
+ assert.match(map,/tab==='economy'[\s\S]*renderFredEconomicContext/);
+});
