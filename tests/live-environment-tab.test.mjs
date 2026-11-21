@@ -78,46 +78,7 @@ test('FCC live route uses the current National Broadband Map public API host',as
  assert.equal(calls[0].options.headers.hash_value,'test-fcc');
 });
 
-test('FCC county route returns current Area Summary coverage and provider context',async()=>{
- const calls=[];
- const env={FCC_BDC_TOKEN:'test-fcc',FCC_BDC_USERNAME:'user@example.com'};
- const uuid='e9825f3a-c08d-4597-a9bf-657a19526ebd';
- const res=await handle(req('/api/fcc_broadband?county=06019'),env,{},async(url)=>{
-  const u=new URL(url);calls.push(u);
-  if(u.pathname==='/nbm/map/api/published/filing')return new Response(JSON.stringify({data:[
-   {filing_subtype:'June 30, 2026',process_uuid:uuid}
-  ]}),{status:200});
-  if(u.pathname.includes('/geography/summary/'))return new Response(JSON.stringify({data:[
-   {area_data_type:'total',geography_desc_full:'Fresno County, CA',geography_id:'06019',total_units:'387143',
-    t1_2_3_6_7_s1_r:'0.996662732',t1_2_3_6_7_s2_r:'0.996383765',t1_2_3_6_7_s3_r:'0.995025094',
-    t1_2_3_6_7_s4_r:'0.987663473',t1_2_3_6_7_s5_r:'0.982153881',t1_2_3_6_7_s6_r:'0.855970533'},
-   {area_data_type:'urban',t1_2_3_6_7_s4_r:'0.999991194'},
-   {area_data_type:'rural',t1_2_3_6_7_s4_r:'0.897237712'}
-  ]}),{status:200});
-  if(u.pathname.includes('/provider/summary/'))return new Response(JSON.stringify({data:[
-   {holding_company_name:'Comcast Corporation',res_st_pct:'0.8661'},
-   {holding_company_name:'AT&T Inc.',res_st_pct:'0.6947'}
-  ]}),{status:200});
-  return new Response('{}',{status:404});
- });
- assert.equal(res.status,200);
- assert.equal(calls.length,3);
- assert.equal(calls[0].pathname,'/nbm/map/api/published/filing');
- assert.equal(calls[1].pathname,'/nbm/map/api/geography/summary/'+uuid+'/county/06019');
- assert.equal(calls[2].pathname,'/nbm/map/api/provider/summary/'+uuid+'/county/06019/1/1');
- const body=await res.json();
- assert.equal(body.data.release.date,'2026-06-30');
- assert.equal(body.data.county.name,'Fresno County, CA');
- assert.equal(body.data.county.totalUnits,387143);
- assert.equal(body.data.county.residentialCoveragePct['100_20'],98.8);
- assert.equal(body.data.county.residentialCoveragePct['1000_100'],85.6);
- assert.equal(body.data.county.urbanResidential100_20Pct,100);
- assert.equal(body.data.county.ruralResidential100_20Pct,89.7);
- assert.equal(body.data.providers[0].name,'Comcast Corporation');
- assert.equal(body.data.providers[0].residentialCoveragePct,86.6);
-});
-
-test('Infrastructure & Environment exposes explicit live NOAA, USGS, AirNow and FCC actions',()=>{
+test('Infrastructure & Environment exposes live observations plus stored FCC county availability',()=>{
  const map=read('assets/js/map.js');
  const css=read('assets/css/map.css');
  const sources=read('assets/js/sources.js');
@@ -127,15 +88,19 @@ test('Infrastructure & Environment exposes explicit live NOAA, USGS, AirNow and 
  assert.match(map,/\/api\/noaa\?county=/);
  assert.match(map,/\/api\/usgs\?county=/);
  assert.match(map,/\/api\/airnow\?zip=/);
- assert.match(map,/\/api\/fcc_broadband/);
+ assert.match(map,/assets\/data\/county\/fcc-broadband-availability\.json/);
  assert.match(map,/tab==='infrastructure'[\s\S]*renderLiveEnvironmentTools/);
  assert.match(css,/liveEnvironmentSection/);
  assert.match(css,/liveDataActions/);
- for(const id of ['airnow','noaa','usgs','fcc_broadband']){
+ for(const id of ['airnow','noaa','usgs']){
   const block=sources.match(new RegExp(id+':\\{[^}]+\\}','s'))?.[0]||'';
   assert.match(block,/onDemandLive:true/,id+' should be shown as live on demand once configured');
   assert.match(block,/County Atlas · Infrastructure/,id+' should point to the voter-facing Infrastructure surface');
  }
+ const fcc=sources.match(/fcc_broadband:\{[^}]+\}/s)?.[0]||'';
+ assert.match(fcc,/match:\['fcc_broadband_county'\]/);
+ assert.doesNotMatch(fcc,/onDemandLive:true/);
+ assert.match(fcc,/County Atlas · Infrastructure/);
 });
 
 test('live environment copy preserves geographic and interpretive limits',()=>{
@@ -143,6 +108,6 @@ test('live environment copy preserves geographic and interpretive limits',()=>{
  assert.match(map,/station-level|monitoring-site/i);
  assert.match(map,/not a countywide|not countywide/i);
  assert.match(map,/reporting area/i);
- assert.match(map,/release metadata/i);
- assert.match(map,/does not measure.*performance|availability.*not.*performance/i);
+ assert.match(map,/provider-reported/i);
+ assert.match(map,/does not measure.*speed|availability.*not.*speed|does not measure.*performance|availability.*not.*performance/i);
 });
