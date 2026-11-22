@@ -81,18 +81,15 @@ test('member sponsorship is read from stored D1 by exact Bioguide ID only',async
  assert.equal(invalid.status,400);
 });
 
-test('member finance and lobbying reads use precise validated D1 keys and return pending safely',async()=>{
+test('member finance reader uses precise validated D1 keys and returns pending safely',async()=>{
  const finance={bioguide:'H000001',candidateId:'H1CA00001',cycle:2026,byState:[{state:'CA',total:800}]};
- const lobby={bioguide:'H000001',clientCount:1,clients:[{name:'Example Association'}]};
- const env={COUNTY_DB:fakeDb({member_finance_detail_H000001:finance,member_lobby_network_H000001:lobby})};
+ const env={COUNTY_DB:fakeDb({member_finance_detail_H000001:finance})};
  const f=await serve(req('/api/member-finance-detail?bioguide=H000001'),env);
- const l=await serve(req('/api/member-lobby-network?bioguide=H000001'),env);
  assert.equal((await f.json()).byState[0].total,800);
- assert.equal((await l.json()).clients[0].name,'Example Association');
  const missing=await serve(req('/api/member-finance-detail?bioguide=H000002'),env);
  assert.equal((await missing.json()).status,'pending');
- const bad=await serve(req('/api/member-lobby-network?bioguide=INVALID_ID'),env);
- assert.equal(bad.status,400);
+ const retired=await serve(req('/api/member-lobby-network?bioguide=H000001'),env);
+ assert.equal(retired.status,404);
 });
 
 test('one shared money graph reads transactions for any member, with distinct evidence feeds',async()=>{
