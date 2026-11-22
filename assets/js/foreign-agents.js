@@ -1,5 +1,5 @@
 import {COUNTRIES} from './foreign-world-catalog.js';
-import {CONTINENTS,continentBySlug,flagAsset} from './foreign-agents-model.mjs';
+import {CONTINENTS,continentBySlug,flagAsset} from './foreign-agents-model.mjs?v=20261122b';
 
 const $=id=>document.getElementById(id);
 const byIso=new Map(COUNTRIES.filter(c=>c.iso2).map(c=>[c.iso2,c]));
