@@ -145,6 +145,10 @@ const congressApiKey=env=>{
 const qs=(url,query)=>{const u=new URL(url);for(const [k,v] of Object.entries(query||{}))if(v!==null&&v!==undefined&&v!=='')u.searchParams.set(k,String(v));return u.toString();};
 const limited=(v,regexp,max)=>typeof v==='string'&&v.length<=max&&regexp.test(v)?v:null;
 const maxRows=(p,n=10)=>{const v=Number(p.get('limit'));return Number.isInteger(v)&&v>0&&v<=25?v:n;};
+function currentCongressNumber(now=new Date()){
+ const year=now.getUTCFullYear();
+ return Math.floor((year-1789)/2)+1;
+}
 function target(id,p,env){
  const k=id==='congress'?congressApiKey(env):key(env,CATALOG[id][0]),f=limited(p.get('county'),/^\d{5}$/,5);
  const s=limited(p.get('state'),/^[A-Za-z]{2}$/,2)?.toUpperCase()||'CA';
@@ -160,7 +164,11 @@ function target(id,p,env){
  }
  case 'bls':u='https://api.bls.gov/publicAPI/v2/timeseries/data/';options={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seriesid:[f?'LAUCN'+f+'0000000003':'CUUR0000SA0'],registrationkey:k})};break;
  case 'census':if(!f)throw Error('Five-digit county FIPS required');u=qs('https://api.census.gov/data/2024/acs/acs5',{get:'NAME,B19013_001E,B17001_001E,B17001_002E',for:'county:'+f.slice(2),in:'state:'+f.slice(0,2),key:k});break;
- case 'congress':u=qs('https://api.congress.gov/v3/bill',{api_key:k,format:'json',limit:n});break;
+ case 'congress':{
+  const congress=currentCongressNumber();
+  u=qs('https://api.congress.gov/v3/bill/'+congress,{api_key:k,format:'json',limit:n,sort:'updateDate+desc'});
+  break;
+ }
  case 'datagov':
   u=qs('https://api.gsa.gov/technology/datagov/v4/search',{q:q||'housing affordability',per_page:n,sort:'relevance'});
   options.headers['X-Api-Key']=k;break;
