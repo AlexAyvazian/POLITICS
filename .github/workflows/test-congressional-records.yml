@@ -31,6 +31,7 @@ on:
       - tests/political-panel-pending.test.mjs
       - tests/lda-search.test.mjs
       - tests/lda-records-ui.test.mjs
+      - tests/no-lobbyview-official-lda-replacement.test.mjs
       - tests/federal-money-tab.test.mjs
       - scripts/update_usaspending_county.py
       - tests/test_usaspending_county.py
@@ -50,7 +51,6 @@ on:
       - tests/epa-air-quality-tab.test.mjs
       - tests/live-environment-tab.test.mjs
       - tests/fcc-broadband-snapshot.test.mjs
-      - tests/lobbyview-token-health.test.mjs
       - tests/research-tools.test.mjs
       - assets/data/county/fdic-banking-access.json
       - .github/workflows/refresh-fdic-county-banking.yml
@@ -95,6 +95,7 @@ on:
       - tests/political-panel-pending.test.mjs
       - tests/lda-search.test.mjs
       - tests/lda-records-ui.test.mjs
+      - tests/no-lobbyview-official-lda-replacement.test.mjs
       - tests/federal-money-tab.test.mjs
       - scripts/update_usaspending_county.py
       - tests/test_usaspending_county.py
@@ -114,7 +115,6 @@ on:
       - tests/epa-air-quality-tab.test.mjs
       - tests/live-environment-tab.test.mjs
       - tests/fcc-broadband-snapshot.test.mjs
-      - tests/lobbyview-token-health.test.mjs
       - tests/research-tools.test.mjs
       - assets/data/county/fdic-banking-access.json
       - .github/workflows/refresh-fdic-county-banking.yml
@@ -179,8 +179,8 @@ jobs:
         run: node --test tests/live-environment-tab.test.mjs
       - name: Verify stored FCC county broadband snapshot architecture
         run: node --test tests/fcc-broadband-snapshot.test.mjs
-      - name: Verify research tools and LobbyView token health
-        run: node --test tests/research-tools.test.mjs tests/lobbyview-token-health.test.mjs
+      - name: Verify official LDA replacement has no LobbyView dependency
+        run: node --test tests/no-lobbyview-official-lda-replacement.test.mjs
       - name: Verify CMS Part B gateway and Health surface
         run: node --test tests/public-apis.test.mjs tests/cms-partb-tab.test.mjs
       - name: Verify CMS Part B state transform
