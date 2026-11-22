@@ -1,0 +1,89 @@
+/* Issue Stances stays inside the POLITICS shell, using the user's uploaded wallpaper art. */
+body[data-view="issues"]{
+ --issue-ink:#eaf5fa;--issue-muted:#9ab3c4;--issue-border:rgba(166,208,224,.24);
+ background:radial-gradient(ellipse at 52% -12%,rgba(42,73,109,.39),transparent 53%),linear-gradient(140deg,#030713,#081425 55%,#040811);
+ color:var(--issue-ink);min-height:100dvh;
+}
+body[data-view="issues"]::before{
+ content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+ background-image:radial-gradient(ellipse at 13% 30%,rgba(88,150,172,.13),transparent 40%),radial-gradient(ellipse at 88% 80%,rgba(100,75,145,.10),transparent 41%);
+}
+.issuesMain{position:relative;max-width:1660px;margin:auto;padding:clamp(12px,2.5vw,32px) clamp(12px,3vw,48px) 65px}
+.issuesIntro{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin:3px 0 22px}
+.issuesOverline{font:750 10px/1.3 Inter,system-ui,sans-serif;letter-spacing:.28em;color:#8cd9dc;margin:0 0 13px}
+.issuesIntro h1{font-size:clamp(40px,6.5vw,100px);font-weight:790;line-height:.95;letter-spacing:-.075em;margin:0}
+.issuesIntro h1 em{font-family:Georgia,Times,serif;font-weight:400;letter-spacing:-.075em;color:#cadbe7}
+.issuesTagline{margin:18px 0 0;color:#a8bdcf;font-size:clamp(11px,1.2vw,14px);line-height:1.5}
+.issuesArchiveTag{display:inline-block;white-space:nowrap;letter-spacing:.16em;font-size:9px;color:#9bbed0;border-bottom:1px solid #42657a;padding:9px 0}
+.issuesFilters{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 17px;padding:11px 0;border-top:1px solid rgba(156,206,223,.16);border-bottom:1px solid rgba(156,206,223,.16)}
+.issuesFilters label{min-width:0}
+.issuesFilters .issuesSearchLabel{display:flex;align-items:center;gap:10px;flex:1 1 270px;padding:0 12px;background:rgba(9,23,38,.86);border:1px solid var(--issue-border);border-radius:7px}
+.issuesSearchLabel svg{width:17px;height:17px;stroke:#86c5d4;stroke-width:1.5;fill:none}
+.issuesFilters input,.issuesFilters select{color:#e6f2f8;font:600 12px Inter,system-ui,sans-serif;background:rgba(9,23,38,.86);border:1px solid var(--issue-border);border-radius:7px;min-height:40px}
+.issuesFilters input{border:0;outline:0;width:100%;min-width:0;background:transparent}
+.issuesFilters input::placeholder{color:#7f9eb1}
+.issuesFilters select{padding:0 27px 0 11px;max-width:170px}
+.issuesFilters :is(input,select):focus-visible{outline:2px solid #8fe2e6;outline-offset:2px}
+.issuesCount{font-size:10px;color:#9dbbce;letter-spacing:.05em;white-space:nowrap;margin-left:auto}
+.issuesScene{position:relative;isolation:isolate;overflow:hidden;min-height:470px;padding:24px 34px 33px;border:1px solid rgba(130,189,207,.18);border-radius:5px;background:radial-gradient(ellipse at 50% 30%,rgba(62,91,120,.28),transparent 50%),linear-gradient(180deg,#0c1b2a,#07111f 56%,#03070e);box-shadow:0 32px 100px #0008}
+.issuesScene::before{content:"";position:absolute;inset:0;z-index:-2;pointer-events:none;opacity:.55;background-image:linear-gradient(110deg,rgba(4,10,18,.8) 0%,transparent 32%,transparent 68%,rgba(4,10,18,.8) 100%),url("../../wallpaper/HHfXAJWWgAAoyej.jpg");background-position:center;background-size:cover}
+.issuesScene::after{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 20%,transparent 19%,rgba(2,7,15,.62) 96%),linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.44))}
+.issuesWall{position:absolute;z-index:-1;top:0;bottom:0;width:27%;filter:saturate(.65);opacity:.47;pointer-events:none;background-size:cover;background-position:center}
+.issuesWall.left{left:0;transform-origin:left center;transform:perspective(500px) rotateY(23deg);background-image:linear-gradient(90deg,rgba(3,9,18,.2),#07111d85),url("../../wallpaper/Lincoln-Memorial-Painting-by-Borbay-1024x675.jpg");border-right:1px solid rgba(175,205,216,.2)}
+.issuesWall.right{right:0;transform-origin:right center;transform:perspective(500px) rotateY(-23deg);background-image:linear-gradient(270deg,rgba(3,9,18,.3),#07111d85),url("../../wallpaper/American-Eagle-Flag-Patriotic-4th-png-Graphics-113400236-1.jpg");border-left:1px solid rgba(175,205,216,.2)}
+.issuesFloor{position:absolute;z-index:-1;left:0;right:0;bottom:0;height:28%;opacity:.42;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 108px,rgba(117,156,177,.10) 109px 110px),linear-gradient(0deg,rgba(6,18,28,.9),transparent);transform:perspective(420px) rotateX(30deg);transform-origin:bottom}
+.issuesSceneHead{position:relative;display:flex;align-items:center;justify-content:space-between;color:#a6d2d9;letter-spacing:.22em;font-size:10px;font-weight:800;margin-bottom:12px;z-index:3}
+.issuesGalleryNav{display:flex;gap:7px}
+.issuesGalleryNav button{width:35px;height:32px;cursor:pointer;border-radius:50%;border:1px solid rgba(161,212,226,.38);background:rgba(2,10,19,.56);color:#e8faff;font-size:17px}
+.issuesGalleryNav button:hover,.issuesGalleryNav button:focus-visible{background:rgba(122,193,207,.24);outline-color:#9ce6e9}
+.issuesStatus{position:relative;color:#b3ccda;font-size:12px;margin:7px 0 16px;z-index:2}
+.issuesStatus:empty{display:none}
+.issuesGallery{display:flex;align-items:stretch;gap:17px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:rgba(147,196,209,.42) transparent;position:relative;z-index:2;min-height:338px;padding:17px 5px 19px;perspective:1300px}
+.issuesGallery:empty{min-height:280px}
+.issuesGalleryCard{scroll-snap-align:center;display:flex;flex-direction:column;position:relative;flex:0 0 clamp(185px,18vw,242px);height:318px;overflow:hidden;background:#0c1825;border:1px solid rgba(179,209,219,.32);border-radius:2px;color:#f4faff;text-align:left;padding:0;cursor:pointer;transform:rotateY(-3deg);box-shadow:0 16px 24px #0009,0 0 0 6px rgba(4,11,20,.31);transition:transform .4s ease,box-shadow .4s ease,border-color .4s ease}
+.issuesGalleryCard:hover,.issuesGalleryCard:focus-visible,.issuesGalleryCard[aria-pressed="true"]{transform:translateY(-7px) rotateY(0deg);border-color:#9be5e5;box-shadow:0 25px 50px #000b,0 0 0 1px rgba(155,229,229,.4);outline:none}
+.issuesCardImage{position:relative;flex:1;min-height:0;background:radial-gradient(circle at 50% 30%,rgba(102,146,165,.24),transparent 49%),linear-gradient(#162c3f,#07111d)}
+.issuesCardImage img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 21%;filter:saturate(.76)}
+.issuesCardImage:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(4,12,22,.68));pointer-events:none}
+.issuesInitials{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font:normal clamp(52px,5vw,76px) Georgia,serif;color:#b8cbd4;text-shadow:0 6px 30px #0008}
+.issuesCardIndex{position:absolute;top:10px;left:12px;z-index:2;color:#e0eef2;text-shadow:0 2px 6px #000;font-size:9px;font-weight:800;letter-spacing:.14em}
+.issuesCardInfo{min-height:86px;padding:11px 13px 12px;background:linear-gradient(155deg,#122c3b,#071520)}
+.issuesCardInfo small{font-size:9px;color:#88cbd1;letter-spacing:.12em}
+.issuesCardInfo strong{display:block;margin:5px 0 4px;font-size:clamp(13px,1.3vw,16px);font-weight:760;line-height:1.24;letter-spacing:-.025em}
+.issuesCardInfo span{font-size:10px;color:#adc5d0;line-height:1.35}
+.issuesMore{position:relative;z-index:3;display:block;margin:4px auto 0;padding:9px 18px;border:1px solid #7caebf;color:#e7faff;background:rgba(4,17,27,.8);border-radius:20px;cursor:pointer;font-size:11px}
+.issuesMore[hidden]{display:none}
+.issuesSheet{position:relative;margin:22px 0 0;min-height:205px;border-top:1px solid rgba(161,207,216,.3);padding:24px 5px 0}
+.issuesSheetEmpty{text-align:center;padding:30px 0 15px}
+.issuesSheetMark{font:17px Georgia,serif;color:#a9c3d0}
+.issuesSheetEmpty p,.issuesSheetKicker{font-size:9px;letter-spacing:.2em;color:#79bec6;margin:13px 0 7px}
+.issuesSheetEmpty h2{font:normal clamp(26px,3vw,44px) Georgia,serif;margin:0 0 10px}
+.issuesSheetEmpty>span:last-child{font-size:11px;color:#8aa5b6}
+.issuesSheetHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:22px}
+.issuesSheetHeader h2{margin:5px 0 0;font-size:clamp(28px,4vw,53px);font-weight:760;letter-spacing:-.065em}
+.issuesSheetHeader p{margin:9px 0 0;font-size:11px;color:#abc2cf}
+.issuesSheetLink{color:#9ae2e5;text-decoration:none;font-size:11px;white-space:nowrap;border-bottom:1px solid rgba(154,226,229,.5);padding-bottom:4px}
+.issuesSheetItems{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:12px}
+.issuesItem{min-width:0;padding:21px 21px 19px;border:1px solid var(--issue-border);border-top:2px solid #90cfd3;background:linear-gradient(165deg,rgba(18,40,54,.56),rgba(5,15,28,.53));border-radius:2px}
+.issuesItemTopic{display:block;color:#8cccd4;letter-spacing:.15em;font-size:10px;text-transform:uppercase;font-weight:830}
+.issuesItem p{font-size:13px;line-height:1.7;color:#e3eef4;margin:12px 0 17px}
+.issuesItem a{font-size:11px;color:#9ee5e4;text-decoration:none;border-bottom:1px solid rgba(158,229,228,.5);padding-bottom:4px}
+.issuesItemMeta{font-size:9px;color:#9ab9c5;display:block;margin:10px 0 0}
+.issuesSheetNoPositions{color:#a9bec9;font-size:12px;line-height:1.7;padding:15px 0}
+.issuesAttribution{font-size:10px;color:#90a8ba;line-height:1.55;margin:20px 0 0}
+.issuesAttribution a{color:#a3dae5}
+@media(max-width:760px){
+ .issuesIntro{display:block}
+ .issuesIntro h1{font-size:50px}
+ .issuesArchiveTag{margin-top:15px}
+ .issuesScene{padding:13px 12px 20px;min-height:420px}
+ .issuesGallery{gap:12px;min-height:330px;padding:15px 3px}
+ .issuesGalleryCard{flex-basis:195px;transform:none;height:308px}
+ .issuesGalleryCard:hover,.issuesGalleryCard:focus-visible,.issuesGalleryCard[aria-pressed="true"]{transform:translateY(-3px)}
+ .issuesSheetHeader{display:block}
+ .issuesSheetLink{display:inline-block;margin-top:12px}
+ .issuesFilters select{max-width:150px}
+ .issuesCount{width:100%;text-align:right}
+ .issuesWall{width:31%;opacity:.25}
+}
+@media(prefers-reduced-motion:reduce){.issuesGalleryCard{transition:none;transform:none}.issuesGalleryCard:hover,.issuesGalleryCard[aria-pressed="true"]{transform:none}}
