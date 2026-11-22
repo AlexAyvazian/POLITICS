@@ -62,8 +62,8 @@ body[data-view="congress"] .atlasHeaderCurrent{
 }
 body[data-view="congress"] .districtAtlas{
  position:relative;z-index:2;
- height:100dvh;min-height:540px;
- padding:72px 16px 16px;
+ height:auto;min-height:0;flex:1 1 auto;
+ padding:8px 16px 12px;
 }
 body[data-view="congress"] .atlasMapShell{
  height:100%;
@@ -226,7 +226,7 @@ body[data-view="congress"] .atlasHeaderShortcut:focus-visible{
  body[data-view="congress"] .atlasIdentity{display:none}
  body[data-view="congress"] .atlasHeaderCenter{justify-self:center;gap:10px;font-size:10px}
  body[data-view="congress"] .atlasHeaderShortcut{font-size:10px;padding:5px 8px}
- body[data-view="congress"] .districtAtlas{height:100dvh;min-height:530px;padding:67px 8px 8px}
+ body[data-view="congress"] .districtAtlas{height:calc(100dvh - 102px);min-height:530px;padding:7px 8px 8px}
  body[data-view="congress"] .atlasMapShell{padding:10px;gap:8px;border-radius:22px}
  body[data-view="congress"] .atlasLayerTabs button{padding:9px 10px;font-size:11px}
  body[data-view="congress"] .atlasFind{gap:7px}
