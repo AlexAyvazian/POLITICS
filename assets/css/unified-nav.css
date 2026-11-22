@@ -1,0 +1,130 @@
+:root{
+ --unified-nav-bg:rgba(5,10,21,.90);
+ --unified-nav-line:rgba(146,205,226,.16);
+ --unified-nav-text:#9fb9cb;
+ --unified-nav-active:#eefbff;
+ --unified-nav-accent:#8be2e8;
+}
+.unifiedTopNav{
+ position:sticky;
+ top:0;
+ z-index:120;
+ min-height:58px;
+ display:grid;
+ grid-template-columns:auto minmax(0,1fr) auto;
+ align-items:center;
+ gap:18px;
+ padding:9px clamp(12px,2vw,24px);
+ background:linear-gradient(180deg,rgba(7,14,28,.96),var(--unified-nav-bg));
+ border-bottom:1px solid var(--unified-nav-line);
+ box-shadow:0 12px 32px rgba(0,0,0,.16);
+ backdrop-filter:blur(18px) saturate(125%);
+ -webkit-backdrop-filter:blur(18px) saturate(125%);
+}
+.unifiedBrand{
+ display:inline-flex;
+ align-items:center;
+ gap:9px;
+ color:#d7edf7;
+ text-decoration:none;
+ white-space:nowrap;
+ font-size:10px;
+ font-weight:850;
+ letter-spacing:.13em;
+ text-transform:uppercase;
+}
+.unifiedBrandMark{
+ width:10px;
+ height:10px;
+ border-radius:50%;
+ flex:0 0 auto;
+ background:var(--unified-nav-accent);
+ box-shadow:0 0 15px rgba(139,226,232,.56);
+}
+.unifiedTabs{
+ min-width:0;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:5px;
+ white-space:nowrap;
+}
+.unifiedTabs a{
+ position:relative;
+ flex:0 0 auto;
+ color:var(--unified-nav-text);
+ text-decoration:none;
+ font-size:10px;
+ font-weight:720;
+ line-height:1;
+ padding:9px 11px;
+ border-radius:10px;
+ border:1px solid transparent;
+ transition:color .16s ease,background .16s ease,border-color .16s ease,transform .16s ease;
+}
+.unifiedTabs a:hover,
+.unifiedTabs a:focus-visible{
+ color:#eaf8ff;
+ background:rgba(139,226,232,.055);
+ border-color:rgba(139,226,232,.17);
+ outline:none;
+}
+.unifiedTabs a[aria-current="page"]{
+ color:var(--unified-nav-active);
+ background:linear-gradient(135deg,rgba(80,151,174,.22),rgba(28,75,96,.24));
+ border-color:rgba(139,226,232,.32);
+ box-shadow:inset 0 0 0 1px rgba(255,255,255,.018);
+}
+.unifiedTabs a[aria-current="page"]::after{
+ content:"";
+ position:absolute;
+ left:26%;
+ right:26%;
+ bottom:3px;
+ height:1px;
+ border-radius:2px;
+ background:var(--unified-nav-accent);
+ box-shadow:0 0 8px rgba(139,226,232,.55);
+}
+.unifiedNavSpacer{width:72px;height:1px}
+.countyAtlasContextBar{
+ width:min(1440px,calc(100% - 28px));
+ margin:8px auto 0;
+ min-height:30px;
+ display:flex;
+ justify-content:flex-end;
+ align-items:center;
+ gap:10px;
+ color:#7f9caf;
+ font-size:9px;
+}
+.countyAtlasContextBar:empty{display:none}
+.countyAtlasContextBar .crumb{
+ margin-right:auto;
+}
+@media(max-width:1100px){
+ .unifiedTopNav{grid-template-columns:auto minmax(0,1fr);gap:12px}
+ .unifiedNavSpacer{display:none}
+ .unifiedTabs{justify-content:flex-start}
+}
+@media(max-width:900px){
+ .unifiedTopNav{
+  position:sticky;
+  grid-template-columns:1fr;
+  gap:7px;
+  min-height:auto;
+  padding:9px 10px 8px;
+ }
+ .unifiedBrand{padding-left:3px}
+ .unifiedTabs{
+  justify-content:flex-start;
+  overflow-x:auto;
+  overflow-y:hidden;
+  max-width:100%;
+  padding:0 2px 2px;
+  scrollbar-width:thin;
+  -webkit-overflow-scrolling:touch;
+ }
+ .unifiedTabs a{padding:8px 10px}
+ .countyAtlasContextBar{width:min(100% - 18px,1440px);margin-top:6px}
+}
