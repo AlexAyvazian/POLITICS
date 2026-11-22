@@ -48,7 +48,6 @@ function classify(provider,datasets,health){
  if(provider.onDemandLive&&provider.configured)return {status:'live',label:'Live on demand',linked:[],issue:null};
  const linked=datasets.filter(row=>keys.some(key=>matchesDataset(row,key)));
  const issue=health.find(row=>keys.includes(row.source)||keys.some(key=>row.source.startsWith(key)))||
-  health.find(row=>provider.id==='lobbyview'&&row.source==='member_lobby_collection_health');
  if(issue&&issue.failed>0&&issue.updated===0)return {status:'issue',label:'Needs attention',linked,issue};
  if(linked.some(row=>row.records>0||row.snapshots>1))return {status:'live',label:'Live',linked,issue};
  return {status:'connected',label:provider.configured?'Connected':'Not configured',linked,issue};
