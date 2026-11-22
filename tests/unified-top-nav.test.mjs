@@ -74,6 +74,10 @@ test('County and Congressional Atlas maps occupy space immediately below shared 
  assert.match(css,/body\[data-view="map"\] #view-map \.app\s*\{[^}]*padding:8px/s,'county atlas must eliminate previous 72px top offset');
  assert.match(css,/body\[data-view="congress"\] \.districtAtlas\s*\{[^}]*height:auto/s,'Congressional Atlas must flex below navigation');
  assert.match(css,/body\[data-view="congress"\] \.districtAtlas\s*\{[^}]*padding:8px/s,'Congressional Atlas must eliminate previous 72px top offset');
+ const countyCss=read('assets/css/map.css');
+ const congressCss=read('assets/css/congressional-chrome.css');
+ assert.doesNotMatch(countyCss,/#view-map \\.app\\{[^}]*padding:72px/,'obsolete county floating header gap returned');
+ assert.doesNotMatch(congressCss,/body\\[data-view="congress"\\] \\.districtAtlas\\{[^}]*padding:72px/,'obsolete congressional floating header gap returned');
 });
 
 test('Congressional Records has one immediate primary title, not an oversized duplicate hero',()=>{
