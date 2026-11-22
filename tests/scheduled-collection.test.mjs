@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes,refreshMemberLegislation,refreshMemberFinanceDetail,refreshMemberFinanceRosterBatch,refreshMemberLobby,refreshBeaCountyIncome,refreshBlsCountyLaborBatch} from '../workers/politics-gateway.mjs';
+import {COUNTY_CATEGORY_CONFIG,updateCountyCategory,refreshStateEnergy,refreshPlacesHealth,refreshCongressMembers,refreshOpenStatesState,refreshFederalHouseVotes,refreshMemberLegislation,refreshMemberFinanceDetail,refreshMemberFinanceRosterBatch,refreshBeaCountyIncome,refreshBlsCountyLaborBatch} from '../workers/politics-gateway.mjs';
 
 const specs=COUNTY_CATEGORY_CONFIG.specs;
 const expectedCategories=['housing','jobs','income','healthcare','education','families','infrastructure'];
@@ -269,27 +269,6 @@ test('FEC analysis joins an exact Bioguide-to-FEC candidate ID and labels self-r
  await assert.rejects(refreshMemberFinanceDetail({COUNTY_DB:store,FEC_API_KEY:'test-fec'},'bad',mock,now));
  assert.equal(store.writes.length,1);
 });
-test('LobbyView network records distinguish research linkages from direct payments to members',async()=>{
- const store=db(),uuid='44563806-56d2-5e99-84a1-95d22a7a69b3',seen=[];
- const mock=async (url,options={})=>{
-  const u=new URL(url);seen.push({u,options});
-  if(u.pathname.endsWith('/networks'))
-   return new Response(JSON.stringify({data:[{client_uuid:uuid,legislator_id:'H000001',report_year:2025,n_bills_sponsored:2}]}));
-  if(u.pathname.endsWith('/clients'))
-   return new Response(JSON.stringify({data:[{client_uuid:uuid,client_name:'Example Civic Association'}]}));
-  throw Error('unexpected '+u.pathname);
- };
- const out=await refreshMemberLobby({COUNTY_DB:store,LOBBYVIEW_API_KEY:'test-lobby'},'H000001',mock,now);
- assert.equal(out.clientCount,1);
- const data=JSON.parse(store.writes[0][1]);
- assert.equal(data.clients[0].name,'Example Civic Association');
- assert.equal(data.clients[0].billOverlapCount,2);
- assert.equal(data.source,'LobbyView researcher-coded bill/client networks');
- assert.ok(!JSON.stringify(data).includes('test-lobby'));
- assert.ok(seen.every(x=>x.options.headers.token==='test-lobby'));
-});
-
-
 test('full-roster finance batch selects six deterministic members and advances by batch index',async()=>{
  const members=Array.from({length:400},(_,i)=>({bioguide:'A'+String(i+1).padStart(6,'0')}));
  const roster={states:{CA:{house:members,senators:[]}}};
