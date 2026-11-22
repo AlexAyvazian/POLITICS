@@ -105,14 +105,13 @@ const CATALOG={
  fred:['FEDERAL_RESERVE_API_KEY','economy','Economic indicators'],
  govinfo:['GOVINFO_API_KEY','policy','Federal publications'],
  lda:['LDA_API_KEY','influence','Federal lobbying filings'],
- lobbyview:['LOBBYVIEW_API_KEY','influence','Lobbying research and legislator data'],
  maptiler:['MAPTILER_API_KEY','geography','Geocoding'],
  noaa:['NOAA_API_KEY','environment','Recent county GHCN-Daily station observations'],
  openstates:['OPENSTATES_API_KEY','policy','State legislation'],
  regulations:['REGULATIONS_API_KEY','policy','Federal rulemaking'],
  usgs:['USGS_API_KEY','environment','Latest continuous streamflow observations by county']
 };
-const TTL={lobbyview:43200,bea:86400,bls:21600,census:86400,congress:3600,datagov:21600,eia:86400,fda:86400,fdic:86400,fec:3600,fred:21600,govinfo:21600,lda:3600,maptiler:86400,noaa:86400,openstates:3600,regulations:3600,usgs:10800};
+const TTL={bea:86400,bls:21600,census:86400,congress:3600,datagov:21600,eia:86400,fda:86400,fdic:86400,fec:3600,fred:21600,govinfo:21600,lda:3600,maptiler:86400,noaa:86400,openstates:3600,regulations:3600,usgs:10800};
 /* Match Healthcare Directory: browser CORS is limited to approved FRONTEND_ORIGIN values. */
 const CORS={};
 function allowedOrigins(env){
@@ -134,21 +133,6 @@ function withOriginCors(response,request,env){
 }
 const json=(data,status=200,ttl=0)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json',...CORS,'Cache-Control':ttl?'public, max-age=60, s-maxage='+ttl:'no-store'}});
 const key=(env,name)=>typeof env[name]==='string'&&env[name].trim()?env[name].trim():null;
-function lobbyViewTokenActive(value,nowMs=Date.now()){
- const raw=String(value||'').trim();if(!raw)return false;
- const jwt=raw.split(':')[0],parts=jwt.split('.');
- if(parts.length!==3)return true;
- try{
-  const segment=parts[1].replace(/-/g,'+').replace(/_/g,'/');
-  const payload=JSON.parse(atob(segment+'='.repeat((4-segment.length%4)%4)));
-  const exp=Number(payload?.exp);
-  return !Number.isFinite(exp)||exp*1000>nowMs+60000;
- }catch(_){return true;}
-}
-function activeLobbyViewTokens(env,nowMs=Date.now()){
- return ['LOBBYVIEW_API_KEY','LOBBYVIEW_API_KEY_2','LOBBYVIEW_API_KEY_3']
-  .map(name=>key(env,name)).filter(value=>lobbyViewTokenActive(value,nowMs));
-}
 /* api.data.gov 40-character keys work across participating federal agencies.
  * Use the already validated FEC key if an older Congress binding is malformed.
  * Never expose the fallback credential to callers. */
@@ -166,7 +150,7 @@ function target(id,p,env){
  const s=limited(p.get('state'),/^[A-Za-z]{2}$/,2)?.toUpperCase()||'CA';
  const q=limited(p.get('q')||'',/^[\p{L}\p{N}\s,.'()\-]{0,70}$/u,70)||'';
  const n=maxRows(p);let u,options={headers:{Accept:'application/json'}};
- if(!k&&!['fdic','lobbyview'].includes(id))throw Error('Missing '+CATALOG[id][0]);
+ if(!k&&id!=='fdic')throw Error('Missing '+CATALOG[id][0]);
  switch(id){
  case 'bea':{
   if(!f)throw Error('Five-digit county FIPS required');
@@ -215,7 +199,6 @@ function target(id,p,env){
   u=qs('https://lda.gov/api/v1/filings/',{page_size:n,filing_year:year,[field]:q,ordering:'-dt_posted'});
   options.headers.Authorization='Token '+k;break;
  }
- case 'lobbyview':u=qs('https://rest-api.lobbyview.org/api/legislators',{page:1});break;
  case 'maptiler':if(!q)throw Error('Location q required');u=qs('https://api.maptiler.com/geocoding/'+encodeURIComponent(q)+'.json',{key:k,limit:Math.min(n,5)});break;
  case 'noaa':{
   if(f){
@@ -302,18 +285,7 @@ async function getUpstream(id,route,env,fetcher){
   }
   return new Response(JSON.stringify(observations),{status:200,headers:{'Content-Type':'application/json'}});
  }
- if(id!=='lobbyview')return fetcher(route.u,route.options);
- // Separate accounts; rotate among each independently configured token.
- const keys=activeLobbyViewTokens(env);
- if(!keys.length)throw Error('No LobbyView key');
- const index=lobbyCounter++%keys.length;
- let answer;
- for(let i=0;i<keys.length;i++){
-  const token=keys[(index+i)%keys.length];
-  answer=await fetcher(route.u,{...route.options,headers:{...route.options.headers,token}});
-  if(![401,403,429].includes(answer.status))return answer;
- }
- return answer;
+ return fetcher(route.u,route.options);
 }
 function clean(obj,depth=0){
  if(depth>=6)return null;
@@ -1051,41 +1023,6 @@ async function refreshMemberFinanceDetail(env,bioguide,fetchImpl=fetch,now=new D
  await politicalSnapshotWrite(db,'member_finance_detail_'+bioguide,doc,now,sections);
  return {bioguide,candidateId:id,sections};
 }
-/* LobbyView networks are research-constructed client/bill overlap records.
- * They are not evidence that clients paid lawmakers or contacted their offices.
- * A verified client_uuid must match before a client name can be presented. */
-async function refreshMemberLobby(env,bioguide,fetchImpl=fetch,now=new Date()){
- if(!/^[A-Z][0-9]{6}$/.test(String(bioguide||'')))throw Error('Invalid Bioguide ID');
- const db=env?.COUNTY_DB;
- if(!db)throw Error('LobbyView D1 binding missing');
- const route={u:'https://rest-api.lobbyview.org/api/networks?legislator_id=eq.'+bioguide+'&page=1',options:{headers:{Accept:'application/json'}}};
- const resp=await getUpstream('lobbyview',route,env,fetchImpl);
- if(!resp.ok)throw Error('LobbyView networks HTTP '+resp.status);
- const body=await resp.json();
- const rows=Array.isArray(body)?body:Array.isArray(body?.data)?body.data:Array.isArray(body?.results)?body.results:null;
- if(!rows)throw Error('LobbyView network response schema not recognized');
- const connections=rows.filter(x=>x?.legislator_id===bioguide&&[2025,2026].includes(Number(x.report_year))&&
-  /^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(String(x.client_uuid||'')));
- const unique=[...new Map(connections.map(x=>[x.client_uuid,x])).values()];
- const clients=[];
- for(const link of unique.slice(0,2)){
-  const url='https://rest-api.lobbyview.org/api/clients?client_uuid=eq.'+encodeURIComponent(link.client_uuid);
-  try{
-   const r=await getUpstream('lobbyview',{u:url,options:{headers:{Accept:'application/json'}}},env,fetchImpl);
-   if(!r.ok)continue;
-   const payload=await r.json();
-   const list=Array.isArray(payload)?payload:Array.isArray(payload?.data)?payload.data:Array.isArray(payload?.results)?payload.results:[];
-   const item=list.find(x=>x.client_uuid===link.client_uuid&&typeof x.client_name==='string');
-   if(item)clients.push({clientUuid:link.client_uuid,name:safeBillText(item.client_name,120),
-    reportYear:Number(link.report_year),billOverlapCount:safePositiveNumber(link.n_bills_sponsored)});
-  }catch(_){}
- }
- const record={source:'LobbyView researcher-coded bill/client networks',bioguide,retrievedAt:now.toISOString(),
-  sourceUrl:'https://www.lobbyview.org/data-download/api/',clientCount:unique.length,clients,
-  coverage:'Only available 2025–2026 network records in the first returned page; network matches are research-coded bill/client overlaps, not donations, payments or confirmed lobbying meetings.'};
- await politicalSnapshotWrite(db,'member_lobby_network_'+bioguide,record,now,record.clientCount);
- return {bioguide,clientCount:unique.length,identifiedClients:clients.length};
-}
 async function refreshMemberFinanceRosterBatch(env,batchIndex,batchSize=6,fetchImpl=fetch,now=new Date()){
  const db=env?.COUNTY_DB;
  if(!db)throw Error('D1 not configured');
@@ -1116,35 +1053,6 @@ async function refreshMemberFinanceRosterBatch(env,batchIndex,batchSize=6,fetchI
   updated:selected.length-failed.length,failed:failed.length,examples:issues,
   complete:start+selected.length>=ids.length};
  await politicalSnapshotWrite(db,'member_finance_collection_health',summary,now,summary.updated);
- return summary;
-}
-
-async function refreshMemberExtraBatch(env,kind,slot,fetchImpl=fetch,now=new Date()){
- const db=env?.COUNTY_DB;
- if(!db)throw Error('D1 not configured');
- const r=await db.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?').bind('congress_members_current').first();
- if(!r)return {status:'roster_pending'};
- const roster=JSON.parse(r.snapshot_json);
- const ids=[...new Set(Object.values(roster.states||{}).flatMap(s=>[...(s.house||[]),...(s.senators||[])])
-  .map(m=>m.bioguide).filter(id=>/^[A-Z][0-9]{6}$/.test(String(id||''))))].sort();
- if(ids.length<400)return {status:'incomplete_roster'};
- const finance=kind==='finance',count=finance?5:2;
- if(!finance&&!activeLobbyViewTokens(env,now.getTime()).length){
-  const summary={source:'LobbyView member network collector',asOf:now.toISOString(),status:'token_refresh_required',
-   attempted:0,updated:0,failed:0,examples:['LobbyView API token refresh required; cached network records are retained.']};
-  await politicalSnapshotWrite(db,'member_lobby_collection_health',summary,now,0);
-  return summary;
- }
- const days=Math.floor(now.getTime()/86400000);
- const start=((days*36+slot-12)*count)%ids.length;
- const selected=Array.from({length:count},(_,i)=>ids[(start+i)%ids.length]);
- const jobs=selected.map(id=>(finance?refreshMemberFinanceDetail:refreshMemberLobby)(env,id,fetchImpl,now));
- const results=await Promise.allSettled(jobs);
- const issues=[...new Set(results.filter(x=>x.status==='rejected').map(x=>String(x.reason?.message||'unknown failure').slice(0,130)))].slice(0,6);
- const ok=results.filter(x=>x.status==='fulfilled').length;
- const summary={source:finance?'FEC member aggregate collector':'LobbyView member network collector',
-  asOf:now.toISOString(),attempted:count,updated:ok,failed:count-ok,examples:issues};
- await politicalSnapshotWrite(db,finance?'member_finance_collection_health':'member_lobby_collection_health',summary,now,ok);
  return summary;
 }
 
@@ -1183,11 +1091,11 @@ async function handleCore(request,env,ctx={},fetcher=fetch){
  if(path==='/'||path==='/health')return json({service:'POLITICS Research API',status:'operational',providers:Object.keys(CATALOG).length+Object.keys(KEYLESS_SOURCES).length+Object.keys(ACCESS_REQUIRED).length,catalog:'/api/catalog'},200,300);
  if(path==='/api/county-snapshot')return getSnapshot(env);
  if(path==='/api/district-geometry')return fetchDistrictGeometry(u,request,ctx,fetcher);
- if(path==='/api/catalog')return json({providers:[...Object.entries(CATALOG).map(([id,[binding,category,description]])=>({id,category,description,configured:id==='lobbyview'?activeLobbyViewTokens(env).length:!!key(env,binding),access:'cloudflare-variable'})),...Object.entries(KEYLESS_SOURCES).map(([id,[category,description]])=>({id,category,description,configured:true,access:'keyless-public'})),...Object.entries(ACCESS_REQUIRED).map(([id,[category,description,keyName,userName]])=>({id,category,description,configured:!!key(env,keyName)&&!!key(env,userName),access:'requires-provider-credentials'}))]},200,600);
+ if(path==='/api/catalog')return json({providers:[...Object.entries(CATALOG).map(([id,[binding,category,description]])=>({id,category,description,configured:!!key(env,binding),access:'cloudflare-variable'})),...Object.entries(KEYLESS_SOURCES).map(([id,[category,description]])=>({id,category,description,configured:true,access:'keyless-public'})),...Object.entries(ACCESS_REQUIRED).map(([id,[category,description,keyName,userName]])=>({id,category,description,configured:!!key(env,keyName)&&!!key(env,userName),access:'requires-provider-credentials'}))]},200,600);
  const id=path.startsWith('/api/')?path.slice(5):'';
  if(!Object.hasOwn(CATALOG,id)&&!Object.hasOwn(KEYLESS_SOURCES,id)&&!Object.hasOwn(ACCESS_REQUIRED,id))return json({error:'Unknown endpoint'},404);
  let route;
- try{route=Object.hasOwn(KEYLESS_SOURCES,id)?publicRoute(id,u.searchParams):Object.hasOwn(ACCESS_REQUIRED,id)?authenticatedPublicRoute(id,u.searchParams,env):target(id,u.searchParams,env);}catch(e){return json({provider:id,error:e.message},/Missing|No LobbyView/.test(e.message)?503:400);}
+ try{route=Object.hasOwn(KEYLESS_SOURCES,id)?publicRoute(id,u.searchParams):Object.hasOwn(ACCESS_REQUIRED,id)?authenticatedPublicRoute(id,u.searchParams,env):target(id,u.searchParams,env);}catch(e){return json({provider:id,error:e.message},/Missing/.test(e.message)?503:400);}
  const cache=globalThis.caches?.default;
  if(cache){try{const hit=await cache.match(request);if(hit)return hit;}catch{}}
  let upstream;
@@ -1222,7 +1130,7 @@ export default {
    const index=Math.floor((slot-12)/2);
    const state=BILL_COMMONS_STATES[(days*18+index)%BILL_COMMONS_STATES.length];
    ctx.waitUntil(slot%2===0?refreshOpenStatesState(env,state):refreshBillCommonsState(env,state));
-   // Member-level FEC, lobbying and sponsorship fetches run in the isolated
+   // Member-level FEC and sponsorship fetches run in the isolated
    // politics-member-ingest Worker. Keep this scheduled job focused on states.
    return;
   }
@@ -1237,4 +1145,4 @@ export default {
 };
 
 // Named exports for the scheduled-collection regression suite.
-export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshBeaCountyIncome, refreshBlsCountyLaborBatch, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes, refreshMemberLegislation, refreshMemberLegislationBatch, refreshMemberFinanceDetail, refreshMemberFinanceRosterBatch, refreshMemberLobby, refreshMemberExtraBatch };
+export { COUNTY_CATEGORY_CONFIG, updateCountyCategory, refreshBeaCountyIncome, refreshBlsCountyLaborBatch, refreshStateEnergy, refreshPlacesHealth, refreshCongressMembers, refreshBillCommonsState, refreshOpenStatesState, refreshFederalHouseVotes, refreshMemberLegislation, refreshMemberLegislationBatch, refreshMemberFinanceDetail, refreshMemberFinanceRosterBatch };
