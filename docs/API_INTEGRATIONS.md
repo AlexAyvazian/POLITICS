@@ -5,7 +5,7 @@ Cloudflare Worker: `crimson-mud-d254` (the **second** connected Cloudflare accou
 ## Coverage
 27 allowlisted source adapters across credential-backed, keyless-public, and authenticated-provider routes. The environment/infrastructure set includes AirNow, NOAA NCEI, USGS Water, EPA AQS, and FCC National Broadband Map. These are **distinct data sources** and not universal county-wide databases. The existing map and its geometry are unchanged.
 
-Runtime bindings are managed by Cloudflare and referenced by their exact configured names, including the literal `CENSUS-API-KEY` (bracket lookup) and `LOBBYVIEW_API_KEY` / `LOBBYVIEW_API_KEY_2` / `LOBBYVIEW_API_KEY_3`. AirNow no longer depends on a credential: the live ZIP lookup uses AirNow's official public file products. No key values are committed to GitHub.
+Runtime bindings are managed by Cloudflare and referenced by their exact configured names, including the literal `CENSUS-API-KEY` (bracket lookup). AirNow no longer depends on a credential: the live ZIP lookup uses AirNow's official public file products. No key values are committed to GitHub.
 
 ## Routes
 `GET /api/catalog`: list sources and whether their runtime bindings exist.
@@ -25,8 +25,6 @@ Examples:
 
 Source-health and adapter diagnostics are internal infrastructure rather than a public-facing page. The County Atlas also exposes stored policy datasets through voter-question tabs; it never sends provider credentials to the browser. The browser calls the Cloudflare Worker. The Worker holds upstream keys and caches successful responses in Cloudflare's edge cache when available.
 
-## LobbyView rotation
-**Three separate accounts**, represented by `LOBBYVIEW_API_KEY`, `_2`, and `_3`. Calls rotate between the three credentials; HTTP 429/401/403 triggers fallback to the next one. LobbyView publicly documents **100 requests per user per 24 hours**. If these are three separate eligible users, 300/day could be available in aggregate, subject to provider terms and actual enforcement. Do not assume three accounts operated by a single person automatically change a per-user limit. This basic Worker rotation **does not enforce a distributed daily quota** and caching is therefore important.
 
 ## Operational and research integrity
 - Cloudflare variables remain dashboard-managed; `wrangler.jsonc` uses `keep_vars: true`.
@@ -38,4 +36,4 @@ Source-health and adapter diagnostics are internal infrastructure rather than a 
 - Worker deployment must be verified separately from a GitHub commit.
 
 ## Testing
-Run `npm test` with Node 18+. Gateway tests verify allowlisting, request construction, source classification, and 3-key LobbyView rotation with mocked upstream responses. Live deployment checks are still required. NOAA, USGS and AirNow were verified against the deployed Worker. FCC release metadata is verified through the gateway; the nationwide county availability snapshot is refreshed by GitHub Actions from the FCC Area Comparison feed and validates at least 3,100 county-equivalent rows before replacing the saved file.
+Run `npm test` with Node 18+. Gateway tests verify allowlisting, request construction, and source classification with mocked upstream responses. Live deployment checks are still required. NOAA, USGS and AirNow were verified against the deployed Worker. FCC release metadata is verified through the gateway; the nationwide county availability snapshot is refreshed by GitHub Actions from the FCC Area Comparison feed and validates at least 3,100 county-equivalent rows before replacing the saved file.
