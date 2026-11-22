@@ -14,7 +14,7 @@ on:
       - tests/foreign-agents.test.mjs
       - tests/test_fara_agents.py
       - scripts/update_fara_agents.py
-      - assets/source/foreign-agent-flags.zip
+      - assets/source/foreign-agents-assets.zip
       - scripts/install_foreign_agent_flags.py
       - tests/test_fara_world.py
       - tests/test_fara_filing_explanations.py
@@ -93,7 +93,7 @@ jobs:
       - name: Publish only verified daily FARA country snapshots
         shell: bash
         run: |
-          git add assets/data/foreign-influence/ assets/data/foreign-agents/ assets/img/foreign-agents/flags/
+          git add assets/data/foreign-influence/ assets/data/foreign-agents/ assets/img/foreign-agents/
           if git diff --cached --quiet; then
             echo "No new FARA registry data"
             exit 0
