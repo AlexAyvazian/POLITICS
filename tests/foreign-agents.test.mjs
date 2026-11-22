@@ -78,3 +78,20 @@ test('country directory uses the uploaded vector flag set rather than emoji flag
  assert.match(model,/assets\/img\/foreign-agents\/flags\//);
  assert.doesNotMatch(js,/flagEmoji|String\.fromCodePoint/);
 });
+
+test('continent web assets are valid nontrivial WebP images',()=>{
+ for(const continent of CONTINENTS){
+  const asset=readFileSync(new URL('../'+continent.asset,import.meta.url));
+  assert.ok(asset.length>20000,continent.slug+' image is suspiciously small');
+  assert.equal(asset.subarray(0,4).toString('ascii'),'RIFF',continent.slug+' must be a WebP RIFF file');
+  assert.equal(asset.subarray(8,12).toString('ascii'),'WEBP',continent.slug+' must contain the WEBP signature');
+ }
+});
+
+test('country flags themselves are the unboxed clickable controls',()=>{
+ const css=read('assets/css/foreign-agents.css');
+ assert.match(css,/\.countryButton\s*\{[^}]*border:\s*0[^}]*background:\s*none[^}]*box-shadow:\s*none/s);
+ assert.match(css,/\.countryButton:hover\s+\.flag\s+img[\s\S]*drop-shadow/s);
+ assert.match(css,/\.countryButton:focus-visible\s+\.flag\s+img[\s\S]*drop-shadow/s);
+ assert.doesNotMatch(css,/\.countryButton\s*\{[^}]*border-radius:/s);
+});
