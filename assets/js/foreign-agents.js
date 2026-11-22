@@ -1,5 +1,5 @@
 import {COUNTRIES} from './foreign-world-catalog.js';
-import {CONTINENTS,continentBySlug,flagEmoji} from './foreign-agents-model.mjs';
+import {CONTINENTS,continentBySlug,flagAsset} from './foreign-agents-model.mjs';
 
 const $=id=>document.getElementById(id);
 const byIso=new Map(COUNTRIES.filter(c=>c.iso2).map(c=>[c.iso2,c]));
@@ -57,7 +57,8 @@ function showContinent(slug,updateHash=true){
   const stats=countryRecord(country.iso2);
   const button=make('button','countryButton');button.type='button';
   button.setAttribute('aria-label','Open '+country.name+' foreign-agent directory');
-  const flag=make('span','flag',flagEmoji(country.iso2));flag.setAttribute('aria-hidden','true');
+  const flag=make('span','flag');flag.setAttribute('aria-hidden','true');
+  const flagImg=document.createElement('img');flagImg.src=flagAsset(country.iso2);flagImg.alt='';flagImg.loading='lazy';flag.append(flagImg);
   const text=make('span');text.append(make('strong','',country.name),make('small','',stats.activeAgents?number(stats.activeAgents)+' active':'DOJ FARA'));
   const count=make('span','count',stats.agents?number(stats.agents)+' people':'');
   button.append(flag,text,count);
@@ -101,7 +102,8 @@ function renderAgents(){
 async function showCountry(iso,updateHash=true){
  const country=byIso.get(iso);if(!country||!currentContinent)return;
  currentCountry=country;
- $('agentCountryFlag').textContent=flagEmoji(iso);
+ const flagRoot=$('agentCountryFlag');flagRoot.replaceChildren();
+ const flagImg=document.createElement('img');flagImg.src=flagAsset(iso);flagImg.alt='';flagRoot.append(flagImg);
  $('agentStageTitle').textContent=country.name;
  $('agentStageMeta').textContent='Loading official DOJ FARA Short Form records…';
  $('agentSearch').value='';
