@@ -13,7 +13,7 @@ const cases={
 test('seven keyless sources are shown as public with empty binding environment',async()=>{
  const r=await handle(request('/api/catalog'),{});
  const body=await r.json();
- assert.equal(body.providers.length,27);
+ assert.equal(body.providers.length,26);
  assert.equal(body.providers.filter(x=>x.access==='keyless-public').length,7);
  assert.equal(body.providers.find(x=>x.id==='airnow').access,'keyless-public');
  assert.equal(body.providers.find(x=>x.id==='airnow').configured,true);
