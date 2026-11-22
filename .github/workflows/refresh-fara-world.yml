@@ -44,7 +44,7 @@ permissions:
 
 concurrency:
   group: fara-world-daily
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   verify:
