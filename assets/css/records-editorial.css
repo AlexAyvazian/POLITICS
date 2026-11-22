@@ -381,7 +381,7 @@ body[data-view="records"] .recordsProfile{
 .recordsSponsorBill a{color:#a2e5e4;font-size:11px;text-underline-offset:3px}
 @media(max-width:760px){.recordsSponsorColumns{grid-template-columns:1fr;gap:17px}}
 
-/* FEC and LobbyView evidence: compact editorial comparisons, not endless cards. */
+/* FEC and official lobbying evidence: compact editorial comparisons, not endless cards. */
 .recordsFinanceDetail{border-top:1px solid rgba(143,201,213,.23);margin:24px 0 0;padding:22px 0 0}
 .recordsFinanceDetail>h4{font-size:clamp(19px,2.5vw,29px);letter-spacing:-.04em;margin:0 0 5px}
 .recordsInsightGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:25px 40px;margin:23px 0}
@@ -650,7 +650,7 @@ body[data-view="records"] .recordsProfile{
  .recordsProfilePortrait{min-height:220px;height:auto}
 }
 
-/* Official Senate LDA search, kept separate from LobbyView research links. */
+/* Official Senate LDA search and Congress.gov bill-overlap evidence. */
 .recordsLdaPanel{grid-column:1/-1}
 .recordsLdaSearchForm{display:grid;grid-template-columns:minmax(150px,.7fr) minmax(260px,1.8fr) minmax(110px,.45fr) auto;gap:10px;align-items:end;margin:18px 0}
 .recordsLdaSearchForm label{display:grid;gap:6px}
