@@ -86,9 +86,9 @@ test('profile has data-first FEC and lobbying evidence, with no unverified relat
  for(const id of ['financeDetailViz','lobbyVisualization','lobbyLinks'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(js,/function evidenceBars/);
  assert.match(js,/async function loadFinanceDetail/);
- assert.match(js,/async function loadLobby/);
+ assert.match(js,/async function loadOfficialLobbyingOverlap/);
  assert.match(js,/\/api\/member-finance-detail/);
- assert.match(js,/\/api\/member-lobby-network/);
+ assert.match(js,/\/api\/lda\?/);
  assert.match(css,/recordsInsightGrid/);
  assert.ok(html.indexOf('id="financeLinks"')>html.indexOf('id="profilePanelCampaign"'));
  assert.ok(html.indexOf('id="lobbyLinks"')>html.indexOf('id="profilePanelLobbying"'));
@@ -215,7 +215,7 @@ test('PAC sectors display separate filing-year amounts and pending donor/lobby v
  assert.match(js,/recordsPacYears/);
  assert.match(js,/sector\.byYear/);
  assert.match(js,/Browse individual receipts at the FEC/);
- assert.match(js,/View LobbyView data sources/);
+ assert.match(js,/U\.S\. Senate LDA database/);
 });
 
 
