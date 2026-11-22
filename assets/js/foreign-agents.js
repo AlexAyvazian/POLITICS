@@ -37,7 +37,7 @@ function renderContinents(){
   const button=make('button','continentButton');button.type='button';
   button.style.setProperty('--continent-glow',continent.glow);
   button.setAttribute('aria-label','Open '+continent.name+' country directory');
-  const img=document.createElement('img');img.className='continentMap';img.src=continent.asset;img.alt='';
+  const img=document.createElement('img');img.className='continentMap';img.src=continent.asset+'?v=20261122e';img.alt='';
   const name=make('span','continentName',continent.name);
   const count=make('span','continentCount',summary?number(continentAgentCount(continent))+' indexed country relationships':'');
   button.append(img,name,count);
