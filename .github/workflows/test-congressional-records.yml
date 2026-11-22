@@ -19,8 +19,6 @@ on:
       - workers/politics-gateway.mjs
       - tests/gateway.test.mjs
       - tests/government-action.test.mjs
-      - assets/css/government-action.css
-      - assets/js/government-action.js
       - government-action.html
       - workers/records-refresh.mjs
       - wrangler.records.jsonc
@@ -164,7 +162,7 @@ jobs:
           node-version: "22"
       - name: Verify state-first directory, exact member profiles, and voting joins
         run: node --test tests/congressional-records*.test.mjs
-      - name: Verify Government Action source separation
+      - name: Verify retired Government Action navigation and preserved federal gateway
         run: node --test tests/government-action.test.mjs tests/gateway.test.mjs
       - name: Verify unified top-level navigation shell
         run: node --test tests/unified-top-nav.test.mjs
