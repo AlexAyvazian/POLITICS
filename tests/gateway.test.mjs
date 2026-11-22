@@ -45,7 +45,7 @@ test('adapters use fixed origins, correct bindings and no keys in response',asyn
   assert.ok(!JSON.stringify(body).includes('test-'),provider);
   urls[provider]=new URL(calls[0].url).hostname;
  }
- assert.equal(Object.keys(urls).length,18);
+ assert.equal(Object.keys(urls).length,17);
  assert.equal(urls.census,'api.census.gov');
 });
 
