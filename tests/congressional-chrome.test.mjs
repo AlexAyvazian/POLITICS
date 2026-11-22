@@ -3,16 +3,15 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
-test('Congressional Atlas uses County-like floating pill navigation and two-row inset toolbar',()=>{
+test('Congressional Atlas uses the shared POLITICS navigation and keeps its two-row inset toolbar',()=>{
  const html=read('congressional.html');
  const css=read('assets/css/congressional-chrome.css');
- assert.match(html,/class="atlasHeaderCenter"/);
- assert.match(html,/class="atlasHeaderShortcut"/);
- assert.match(html,/class="atlasHeaderRight"/);
+ assert.match(html,/class="unifiedTopNav"/);
+ assert.match(html,/class="unifiedTabs"/);
+ assert.match(html,/href="congressional\.html" aria-current="page">Congressional Atlas<\/a>/);
+ assert.match(html,/assets\/css\/unified-nav\.css/);
  assert.match(html,/class="atlasFind atlasToolbarFields"/);
  assert.match(html,/assets\/css\/congressional-chrome\.css/);
- assert.match(css,/body\[data-view="congress"\] \.atlasHeader\s*\{/);
- assert.match(css,/border-radius:999px/);
  assert.match(css,/body\[data-view="congress"\] \.atlasMapShell\s*\{/);
  assert.match(css,/border-radius:28px/);
  assert.match(css,/body\[data-view="congress"\] \.atlasViewport\s*\{/);
