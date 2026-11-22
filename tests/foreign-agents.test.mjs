@@ -54,12 +54,12 @@ test('continent click drills into flag/name countries and country click drills i
 test('uploaded continent assets are wired directly into the selectors',()=>{
  const assets=CONTINENTS.map(x=>x.asset);
  assert.deepEqual(assets,[
-  'assets/img/foreign-agents/north-america.webp',
-  'assets/img/foreign-agents/south-america.webp',
-  'assets/img/foreign-agents/europe.webp',
-  'assets/img/foreign-agents/asia.webp',
-  'assets/img/foreign-agents/africa.webp',
-  'assets/img/foreign-agents/oceania.webp'
+  'assets/img/foreign-agents/north-america.png',
+  'assets/img/foreign-agents/south-america.png',
+  'assets/img/foreign-agents/europe.png',
+  'assets/img/foreign-agents/asia.png',
+  'assets/img/foreign-agents/africa.png',
+  'assets/img/foreign-agents/oceania.png'
  ]);
 });
 
@@ -79,12 +79,12 @@ test('country directory uses the uploaded vector flag set rather than emoji flag
  assert.doesNotMatch(js,/flagEmoji|String\.fromCodePoint/);
 });
 
-test('continent web assets are valid nontrivial WebP images',()=>{
+test('continent assets are valid nontrivial PNG images',()=>{
+ const pngSignature=Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]);
  for(const continent of CONTINENTS){
   const asset=readFileSync(new URL('../'+continent.asset,import.meta.url));
-  assert.ok(asset.length>20000,continent.slug+' image is suspiciously small');
-  assert.equal(asset.subarray(0,4).toString('ascii'),'RIFF',continent.slug+' must be a WebP RIFF file');
-  assert.equal(asset.subarray(8,12).toString('ascii'),'WEBP',continent.slug+' must contain the WEBP signature');
+  assert.ok(asset.length>4000,continent.slug+' image is suspiciously small');
+  assert.deepEqual(asset.subarray(0,8),pngSignature,continent.slug+' must be a valid PNG');
  }
 });
 
