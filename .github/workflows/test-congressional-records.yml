@@ -3,6 +3,12 @@ name: Test Congressional Records directory
 on:
   pull_request:
     paths:
+      - index.html
+      - congressional.html
+      - foreign-influence.html
+      - foreign-agents.html
+      - assets/css/unified-nav.css
+      - tests/unified-top-nav.test.mjs
       - records.html
       - assets/js/records.js
       - assets/js/records-model.js
@@ -67,6 +73,13 @@ on:
       - ".github/workflows/test-congressional-records.yml"
   push:
     paths:
+      - index.html
+      - congressional.html
+      - foreign-influence.html
+      - foreign-agents.html
+      - government-action.html
+      - assets/css/unified-nav.css
+      - tests/unified-top-nav.test.mjs
       - records.html
       - assets/js/records.js
       - assets/js/records-model.js
@@ -153,6 +166,8 @@ jobs:
         run: node --test tests/congressional-records*.test.mjs
       - name: Verify Government Action source separation
         run: node --test tests/government-action.test.mjs tests/gateway.test.mjs
+      - name: Verify unified top-level navigation shell
+        run: node --test tests/unified-top-nav.test.mjs
       - name: Verify records refresh scheduling and member collection
         run: node --test tests/records-refresh.test.mjs tests/scheduled-collection.test.mjs tests/lda-search.test.mjs tests/lda-records-ui.test.mjs
       - name: Verify public data health and County Atlas transparency tabs
