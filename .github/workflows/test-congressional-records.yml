@@ -80,6 +80,7 @@ on:
       - assets/js/state-silhouettes.js
       - assets/js/records-address-model.js
       - workers/politics-gateway.mjs
+      - tests/gateway.test.mjs
       - workers/records-refresh.mjs
       - wrangler.records.jsonc
       - tests/records-refresh.test.mjs
