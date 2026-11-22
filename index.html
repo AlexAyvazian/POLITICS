@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="assets/css/map.css?v=2026112004">
   <link rel="stylesheet" href="assets/css/politics.css">
   <link rel="stylesheet" href="assets/css/healthcare-atmosphere.css">
-  <link rel="stylesheet" href="assets/css/unified-nav.css?v=20261122">
+  <link rel="stylesheet" href="assets/css/unified-nav.css?v=20261122b">
 </head>
 <body data-view="map">
 <header class="unifiedTopNav">
@@ -20,23 +20,23 @@
    <a href="records.html">Congressional Records</a>
    <a href="foreign-influence.html">Foreign Influence</a>
    <a href="foreign-agents.html">Foreign Agents</a>
-   <a href="government-action.html">Government Action</a>
+
   </nav>
   <div class="unifiedNavSpacer" aria-hidden="true"></div>
  </header>
-  <div class="countyAtlasContextBar">
-   <div class="crumb" id="crumb" hidden>
-    <span id="crumbText"></span>
-    <button id="crumbClear" type="button" aria-label="Return to U.S. map" title="Clear selection">×</button>
-   </div>
-   <div class="navStats" id="navStats"></div>
-  </div>
   <section class="view" id="view-map" aria-label="United States map">
     <div class="orb one" aria-hidden="true"></div><div class="orb two" aria-hidden="true"></div><div class="orb three" aria-hidden="true"></div><div class="orb four" aria-hidden="true"></div><div class="orb five" aria-hidden="true"></div><div class="orb six" aria-hidden="true"></div><div class="orb seven" aria-hidden="true"></div>
     <div class="cursorGlow" id="cursorGlow"></div>
     <div class="tooltip" id="tooltip"></div>
     <div class="app">
       <main class="mapPanel glass">
+      <div class="countyAtlasContextBar">
+      <div class="crumb" id="crumb" hidden>
+      <span id="crumbText"></span>
+      <button id="crumbClear" type="button" aria-label="Return to U.S. map" title="Clear selection">×</button>
+      </div>
+      <div class="navStats" id="navStats"></div>
+      </div>
         <div class="mapToolbar">
           <label class="sr-only" for="mapSearch">Search states and counties</label>
           <input id="mapSearch" placeholder="Jump to a state or county…" autocomplete="off">
