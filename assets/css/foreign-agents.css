@@ -14,10 +14,8 @@
 .foreignAgents .continentStage{padding:8px 0 12px}
 .foreignAgents .continentGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:34px 42px;align-items:center}
 .foreignAgents .continentButton{appearance:none;display:grid;place-items:center;gap:8px;width:100%;min-width:0;padding:0;background:none;border:0;box-shadow:none;color:#eaf7ff;cursor:pointer;position:relative}
-.foreignAgents .continentButton::before{content:"";position:absolute;inset:8% 9% 16%;border-radius:50%;background:radial-gradient(circle, color-mix(in srgb,var(--continent-glow) 14%,transparent),transparent 68%);opacity:0;transition:opacity .18s ease;pointer-events:none}
-.foreignAgents .continentMap{display:block;max-width:100%;width:auto;height:min(25vw,300px);object-fit:contain;filter:drop-shadow(0 0 1px rgba(238,250,255,.32));transition:filter .18s ease,transform .18s ease,opacity .18s ease;position:relative;z-index:1}
-.foreignAgents .continentButton:hover .continentMap,.foreignAgents .continentButton:focus-visible .continentMap{transform:translateY(-3px) scale(1.018);filter:drop-shadow(0 0 1.5px rgba(255,255,255,.95)) drop-shadow(0 0 13px var(--continent-glow)) brightness(1.08)}
-.foreignAgents .continentButton:hover::before,.foreignAgents .continentButton:focus-visible::before{opacity:1}
+.foreignAgents .continentMap{display:block;max-width:100%;width:auto;height:min(25vw,300px);object-fit:contain;filter:drop-shadow(0 0 1px rgba(238,250,255,.2));transition:filter .18s ease,transform .18s ease,opacity .18s ease;position:relative;z-index:1}
+.foreignAgents .continentButton:hover .continentMap,.foreignAgents .continentButton:focus-visible .continentMap{transform:translateY(-3px) scale(1.018);filter:drop-shadow(0 0 1.5px rgba(255,255,255,.95)) drop-shadow(0 0 8px var(--continent-glow)) brightness(1.06)}
 .foreignAgents .continentButton:focus-visible{outline:none}
 .foreignAgents .continentName{font-size:13px;font-weight:850;letter-spacing:.02em;text-shadow:0 2px 14px rgba(0,0,0,.6)}
 .foreignAgents .continentCount{font-size:9px;color:#7898ad;min-height:13px}
@@ -25,10 +23,14 @@
 .foreignAgents .stageToolbar>div{flex:1 1 280px}
 .foreignAgents .backButton{border:1px solid rgba(156,235,221,.25);background:rgba(7,18,34,.54);color:#dff7ff;border-radius:999px;padding:8px 12px;font:inherit;font-size:10px;font-weight:800;cursor:pointer}
 .foreignAgents .backButton:hover,.foreignAgents .backButton:focus-visible{border-color:rgba(156,235,221,.58);background:rgba(156,235,221,.08);outline:none}
-.foreignAgents .countryGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:9px}
-.foreignAgents .countryButton{appearance:none;border:1px solid rgba(153,201,229,.14);background:rgba(7,17,32,.43);border-radius:14px;color:#eaf7ff;padding:10px 12px;display:grid;grid-template-columns:34px 1fr auto;gap:9px;align-items:center;text-align:left;cursor:pointer;min-height:58px}
-.foreignAgents .countryButton:hover,.foreignAgents .countryButton:focus-visible{border-color:rgba(180,231,255,.48);background:rgba(35,69,100,.35);box-shadow:0 0 20px rgba(105,190,235,.08);outline:none}
-.foreignAgents .countryButton .flag{display:grid;place-items:center;width:34px;height:26px;line-height:1}.foreignAgents .countryButton .flag img{display:block;max-width:34px;max-height:26px;width:auto;height:auto;filter:drop-shadow(0 1px 4px rgba(0,0,0,.35))}.foreignAgents .countryButton strong{font-size:11px}.foreignAgents .countryButton small{display:block;color:#7898ad;font-size:8px;margin-top:2px}.foreignAgents .countryButton .count{font-size:9px;color:#9cebdd;white-space:nowrap}
+.foreignAgents .countryGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:18px 14px;align-items:start}
+.foreignAgents .countryButton{appearance:none;border:0;background:none;box-shadow:none;color:#eaf7ff;padding:7px 4px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:7px;text-align:center;cursor:pointer;min-height:96px}
+.foreignAgents .countryButton:hover,.foreignAgents .countryButton:focus-visible{background:none;box-shadow:none;outline:none}
+.foreignAgents .countryButton .flag{display:grid;place-items:center;width:64px;height:44px;line-height:1;transition:transform .16s ease,filter .16s ease}
+.foreignAgents .countryButton .flag img{display:block;max-width:64px;max-height:44px;width:auto;height:auto;filter:drop-shadow(0 1px 4px rgba(0,0,0,.35));transition:filter .16s ease,transform .16s ease}
+.foreignAgents .countryButton:hover .flag img,.foreignAgents .countryButton:focus-visible .flag img{transform:translateY(-2px) scale(1.045);filter:drop-shadow(0 0 1px rgba(255,255,255,.95)) drop-shadow(0 0 8px rgba(145,218,255,.62))}
+.foreignAgents .countryButton strong{font-size:11px;transition:color .16s ease}.foreignAgents .countryButton:hover strong,.foreignAgents .countryButton:focus-visible strong{color:#fff}
+.foreignAgents .countryButton small{display:block;color:#7898ad;font-size:8px;margin-top:2px}.foreignAgents .countryButton .count{font-size:9px;color:#9cebdd;white-space:nowrap}
 .foreignAgents .agentStage{padding:18px;border-radius:20px}.foreignAgents .agentToolbar{align-items:center}
 .foreignAgents .agentCountryHeading{display:flex!important;align-items:center;gap:12px}.foreignAgents .countryFlag{display:grid;place-items:center;width:58px;height:42px;line-height:1}.foreignAgents .countryFlag img{display:block;max-width:58px;max-height:42px;width:auto;height:auto;filter:drop-shadow(0 2px 7px rgba(0,0,0,.42))}
 .foreignAgents .agentSearch{display:grid;gap:5px;flex:0 1 270px}.foreignAgents .agentSearch span{font-size:8px;color:#7898ad;text-transform:uppercase;letter-spacing:.08em}
