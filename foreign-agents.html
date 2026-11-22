@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#050814">
+ <meta name="description" content="Browse individual FARA Short Form registrants by continent and country using official U.S. Department of Justice records.">
+ <title>Foreign Agents · POLITICS</title>
+ <link rel="stylesheet" href="assets/css/foreign-healthcare-shell.css">
+ <link rel="stylesheet" href="assets/css/foreign-agents.css">
+</head>
+<body class="worldView foreignAgents">
+ <div class="orb one" aria-hidden="true"></div><div class="orb two" aria-hidden="true"></div><div class="orb three" aria-hidden="true"></div>
+ <div class="orb four" aria-hidden="true"></div><div class="orb five" aria-hidden="true"></div><div class="orb six" aria-hidden="true"></div><div class="orb seven" aria-hidden="true"></div>
+ <div class="cursorGlow" id="cursorGlow" aria-hidden="true"></div>
+
+ <div class="agentsApp">
+  <header class="header glass">
+   <div class="titleBlock">
+    <span class="eyebrow">POLITICS · DOJ FARA</span>
+    <h1>Foreign Agents</h1>
+    <p class="sub">Browse people who filed FARA Short Form registration statements, grouped by the foreign-principal country relationships attached to their primary registration.</p>
+   </div>
+   <div class="stats" aria-label="Foreign Agents coverage">
+    <div class="stat"><b id="statAgents">—</b><span>individual Short Form records</span></div>
+    <div class="stat"><b id="statCountries">—</b><span>countries with indexed people</span></div>
+   </div>
+   <nav class="directorySwitch" aria-label="POLITICS sections">
+    <a href="index.html#map">County Atlas</a>
+    <a href="congressional.html">Congressional Atlas</a>
+    <a href="records.html">Records</a>
+    <a href="foreign-influence.html">Foreign Influence</a>
+    <a href="foreign-agents.html" aria-current="page">Foreign Agents</a>
+    <a href="government-action.html">Government Action</a>
+   </nav>
+  </header>
+
+  <main class="agentsMain">
+   <section class="continentStage" id="continentStage" aria-labelledby="continentTitle">
+    <div class="stageHeading">
+     <span class="agentsKicker">CHOOSE A REGION</span>
+     <h2 id="continentTitle">Browse registered foreign agents by continent</h2>
+     <p>Click a continent map to open its country and flag directory.</p>
+    </div>
+    <div class="continentGrid" id="continentGrid"></div>
+   </section>
+
+   <section class="countryStage" id="countryStage" hidden aria-labelledby="countryStageTitle">
+    <div class="stageToolbar">
+     <button class="backButton" id="backToContinents" type="button">← Continents</button>
+     <div>
+      <span class="agentsKicker" id="countryStageKicker">REGION</span>
+      <h2 id="countryStageTitle">Countries</h2>
+      <p id="countryStageMeta">Choose a country to see individual Short Form registrants.</p>
+     </div>
+    </div>
+    <div class="countryGrid" id="countryGrid"></div>
+   </section>
+
+   <section class="agentStage glass" id="agentStage" hidden aria-labelledby="agentStageTitle">
+    <div class="stageToolbar agentToolbar">
+     <button class="backButton" id="backToCountries" type="button">← Countries</button>
+     <div class="agentCountryHeading">
+      <span class="countryFlag" id="agentCountryFlag" aria-hidden="true"></span>
+      <div>
+       <span class="agentsKicker">INDIVIDUAL SHORT FORM REGISTRANTS</span>
+       <h2 id="agentStageTitle">Country</h2>
+       <p id="agentStageMeta">Official U.S. Department of Justice FARA records.</p>
+      </div>
+     </div>
+     <label class="agentSearch"><span>Search names or registrants</span><input id="agentSearch" type="search" placeholder="Name, firm, registration #…" autocomplete="off"></label>
+    </div>
+    <div class="agentDirectory" id="agentDirectory" aria-live="polite"></div>
+    <p class="agentSourceNote" id="agentSourceNote">Country grouping follows foreign-principal records attached to the person’s primary FARA registration number. Open the individual DOJ Short Form to confirm the principal(s) that person serves.</p>
+   </section>
+  </main>
+
+  <footer class="agentsFooter">
+   Official source: <a href="https://efile.fara.gov/ords/fara/f?p=107:21::::::" target="_blank" rel="noopener noreferrer">U.S. Department of Justice FARA bulk data</a>.
+  </footer>
+ </div>
+ <script type="module" src="assets/js/foreign-agents.js"></script>
+</body>
+</html>
