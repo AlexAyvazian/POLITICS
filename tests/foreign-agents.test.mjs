@@ -54,12 +54,12 @@ test('continent click drills into flag/name countries and country click drills i
 test('uploaded continent assets are wired directly into the selectors',()=>{
  const assets=CONTINENTS.map(x=>x.asset);
  assert.deepEqual(assets,[
-  'assets/img/foreign-agents/north-america.webp',
-  'assets/img/foreign-agents/south-america.webp',
-  'assets/img/foreign-agents/europe.webp',
-  'assets/img/foreign-agents/asia.webp',
-  'assets/img/foreign-agents/africa.webp',
-  'assets/img/foreign-agents/oceania.webp'
+  'assets/img/foreign-agents/north-america.png',
+  'assets/img/foreign-agents/south-america.png',
+  'assets/img/foreign-agents/europe.png',
+  'assets/img/foreign-agents/asia.png',
+  'assets/img/foreign-agents/africa.png',
+  'assets/img/foreign-agents/oceania.png'
  ]);
 });
 
