@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {CONTINENTS,continentForCountry,flagEmoji} from '../assets/js/foreign-agents-model.mjs';
+import {CONTINENTS,continentForCountry,flagAsset} from '../assets/js/foreign-agents-model.mjs';
 
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
@@ -43,23 +43,23 @@ test('continent click drills into flag/name countries and country click drills i
  const js=read('assets/js/foreign-agents.js');
  assert.match(js,/function showContinent/);
  assert.match(js,/function showCountry/);
- assert.match(js,/flagEmoji/);
+ assert.match(js,/flagAsset/);
  assert.match(js,/countryGrid/);
  assert.match(js,/agentDirectory/);
  assert.match(js,/assets\/data\/foreign-agents\/countries\//);
  assert.match(js,/history\.replaceState/);
- assert.equal(flagEmoji('US'),'🇺🇸');
+ assert.equal(flagAsset('US'),'assets/img/foreign-agents/flags/us.svg');
 });
 
 test('uploaded continent assets are wired directly into the selectors',()=>{
  const assets=CONTINENTS.map(x=>x.asset);
  assert.deepEqual(assets,[
-  'assets/img/foreign-agents/north-america.png',
-  'assets/img/foreign-agents/south-america.png',
-  'assets/img/foreign-agents/europe.png',
-  'assets/img/foreign-agents/asia.png',
-  'assets/img/foreign-agents/africa.png',
-  'assets/img/foreign-agents/oceania.png'
+  'assets/img/foreign-agents/north-america.webp',
+  'assets/img/foreign-agents/south-america.webp',
+  'assets/img/foreign-agents/europe.webp',
+  'assets/img/foreign-agents/asia.webp',
+  'assets/img/foreign-agents/africa.webp',
+  'assets/img/foreign-agents/oceania.webp'
  ]);
 });
 
@@ -68,4 +68,13 @@ test('all public top-level navigation includes Foreign Agents',()=>{
   const html=read(page);
   assert.match(html,/href="foreign-agents\.html"/,page+' should link Foreign Agents');
  }
+});
+
+test('country directory uses the uploaded vector flag set rather than emoji flags',()=>{
+ const js=read('assets/js/foreign-agents.js');
+ const model=read('assets/js/foreign-agents-model.mjs');
+ assert.match(js,/flagAsset\(country\.iso2\)/);
+ assert.match(js,/flagAsset\(iso\)/);
+ assert.match(model,/assets\/img\/foreign-agents\/flags\//);
+ assert.doesNotMatch(js,/flagEmoji|String\.fromCodePoint/);
 });
