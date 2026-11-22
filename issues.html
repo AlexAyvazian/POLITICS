@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#050814">
+ <meta name="description" content="Explore documented positions on key issues, with direct links to the underlying evidence.">
+ <title>Issue Stances · POLITICS</title>
+ <link rel="stylesheet" href="assets/css/atlas.css">
+ <link rel="stylesheet" href="assets/css/unified-nav.css?v=20261122c">
+ <link rel="stylesheet" href="assets/css/issue-stances.css?v=20261122a">
+</head>
+<body data-view="issues">
+ <header class="unifiedTopNav">
+  <a class="unifiedBrand" href="index.html#map"><span class="unifiedBrandMark" aria-hidden="true"></span><span>POLITICS</span></a>
+  <nav class="unifiedTabs" aria-label="POLITICS sections">
+   <a href="index.html#map">County Atlas</a>
+   <a href="congressional.html">Congressional Atlas</a>
+   <a href="records.html">Congressional Records</a>
+   <a href="foreign-influence.html">Foreign Influence</a>
+   <a href="foreign-agents.html">Foreign Agents</a>
+   <a href="issues.html" aria-current="page">Issue Stances</a>
+  </nav>
+  <div class="unifiedNavSpacer" aria-hidden="true"></div>
+ </header>
+
+ <main class="issuesMain">
+  <div class="issuesBackdrop" aria-hidden="true"></div>
+  <section class="issuesIntro" aria-labelledby="issuesTitle">
+   <div>
+    <p class="issuesOverline">THE POLITICAL ISSUE ARCHIVE</p>
+    <h1 id="issuesTitle">Issue <em>Stances.</em></h1>
+    <p class="issuesTagline">What politicians say they stand for. One issue sheet, with the evidence beside it.</p>
+   </div>
+   <span class="issuesArchiveTag">PUBLIC RECORDS · SOURCE LINKED</span>
+  </section>
+
+  <div class="issuesFilters" role="search" aria-label="Find a politician">
+   <label class="issuesSearchLabel" for="issueSearch"><span class="sr-only">Find a politician by name or office</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.2"></circle><path d="m16 16 5 5"></path></svg><input id="issueSearch" type="search" placeholder="Find a politician…" autocomplete="off"></label>
+   <label for="issueState"><span class="sr-only">Filter by state</span><select id="issueState"><option value="">All states</option></select></label>
+   <label for="issueParty"><span class="sr-only">Filter by party</span><select id="issueParty"><option value="">All parties</option></select></label>
+   <span id="issueCount" class="issuesCount" aria-live="polite"></span>
+  </div>
+
+  <section class="issuesScene" aria-label="Browse politician portraits and their issue sheets">
+   <div class="issuesWall left" aria-hidden="true"></div><div class="issuesWall right" aria-hidden="true"></div>
+   <div class="issuesFloor" aria-hidden="true"></div>
+   <div class="issuesSceneHead">
+    <span>THE COLLECTION</span>
+    <div class="issuesGalleryNav">
+     <button id="issuesPrevious" type="button" aria-label="Scroll portraits left">←</button>
+     <button id="issuesNext" type="button" aria-label="Scroll portraits right">→</button>
+    </div>
+   </div>
+   <p id="issueStatus" class="issuesStatus" role="status">Loading public candidate records…</p>
+   <div id="issueGallery" class="issuesGallery" role="list" aria-label="Politician issue sheets"></div>
+   <button type="button" id="issuesMore" class="issuesMore" hidden>Show more profiles</button>
+  </section>
+
+  <section id="issueSheet" class="issuesSheet" aria-label="Selected politician's issue sheet" aria-live="polite">
+   <div class="issuesSheetEmpty"><span class="issuesSheetMark">I / S</span><p>SELECT A PORTRAIT</p><h2>Open an issue sheet</h2><span>Positions and supporting sources appear here.</span></div>
+  </section>
+  <p class="issuesAttribution">Issue positions and cited source records: <a href="https://www.voterist.com/ai" target="_blank" rel="noopener noreferrer">Voterist public candidate API</a>. Coverage reflects published positions and available researched previews.</p>
+ </main>
+ <script type="module" src="assets/js/issue-stances.js?v=20261122a"></script>
+</body>
+</html>
