@@ -1,8 +1,8 @@
-/* Scheduled member-level Congress.gov, FEC and LobbyView data ingestion.
+/* Scheduled member-level Congress.gov and FEC data ingestion.
  * Finance detail walks the complete congressional roster once per 12-hour
  * cycle. Secondary source families keep their own quarter-hour slots.
  */
-import {refreshMemberLegislationBatch,refreshMemberFinanceRosterBatch,refreshMemberExtraBatch} from './politics-gateway.mjs';
+import {refreshMemberLegislationBatch,refreshMemberFinanceRosterBatch} from './politics-gateway.mjs';
 import {refreshFecMoneyNetwork} from './fec-money-network.mjs';
 
 export function recordsRefreshPlan(now=new Date()){
@@ -25,14 +25,12 @@ export function recordsRefreshScheduled(event,env,ctx){
  if(plan.kind==='finance'){
   job=refreshMemberFinanceRosterBatch(env,plan.batchIndex,plan.batchSize,fetch,now);
  }else{
-  const group=plan.secondaryIndex%3;
-  const slot=12+(Math.floor(plan.secondaryIndex/3)%36);
-  job=group===0?refreshFecMoneyNetwork(env,fetch,now):
-   group===1?refreshMemberLegislationBatch(env,slot,fetch,now):
-   refreshMemberExtraBatch(env,'lobby',slot,fetch,now);
+  const group=plan.secondaryIndex%2;
+  const slot=12+(Math.floor(plan.secondaryIndex/2)%36);
+  job=group===0?refreshFecMoneyNetwork(env,fetch,now):refreshMemberLegislationBatch(env,slot,fetch,now);
  }
  ctx.waitUntil(job.catch(e=>{
-  const label=plan.kind==='finance'?'finance-full-roster':['money-network','legislation','lobby'][plan.secondaryIndex%3];
+  const label=plan.kind==='finance'?'finance-full-roster':['money-network','legislation'][plan.secondaryIndex%2];
   console.warn('Records collection '+label+' failed: '+String(e?.message||e).slice(0,200));
  }));
 }
