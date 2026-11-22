@@ -63,7 +63,7 @@ test('unified nav stays one-row on desktop and horizontally reachable on narrow 
 
 test('retired Government Action route is absent from every public navigation',()=>{
  for(const page of pages){
-  assert.doesNotMatch(read(page),/href="government-action\\.html"/,page+' must not show the retired section');
+  assert.doesNotMatch(read(page),/href="government-action\.html"/,page+' must not show the retired section');
  }
 });
 
@@ -71,14 +71,14 @@ test('County and Congressional Atlas maps occupy space immediately below shared 
  const css=read('assets/css/unified-nav.css');
  const county=read('index.html');
  assert.ok(county.indexOf('class="countyAtlasContextBar"')>county.indexOf('class="mapPanel glass"'),'county stats should be inside the panel, not in a gap above it');
- assert.match(css,/body\\[data-view="map"\\] #view-map \\.app\\s*\\{[^}]*padding:8px/s,'county atlas must eliminate previous 72px top offset');
- assert.match(css,/body\\[data-view="congress"\\] \\.districtAtlas\\s*\\{[^}]*padding:8px/s,'Congressional Atlas must eliminate previous 72px top offset');
- assert.match(css,/body\\[data-view="congress"\\] \\.districtAtlas\\s*\\{[^}]*height:auto/s,'Congressional Atlas must flex below navigation');
+ assert.match(css,/body\[data-view="map"\] #view-map \.app\s*\{[^}]*padding:8px/s,'county atlas must eliminate previous 72px top offset');
+ assert.match(css,/body\[data-view="congress"\] \.districtAtlas\s*\{[^}]*height:auto/s,'Congressional Atlas must flex below navigation');
+ assert.match(css,/body\[data-view="congress"\] \.districtAtlas\s*\{[^}]*padding:8px/s,'Congressional Atlas must eliminate previous 72px top offset');
 });
 
 test('Congressional Records has one immediate primary title, not an oversized duplicate hero',()=>{
  const html=read('records.html');
  assert.doesNotMatch(html,/class="recordsIntro"/);
- assert.match(html,/<h1 id="stateDirectoryTitle">Choose your state<\\/h1>/);
- assert.equal((html.match(/<h1\\b/g)||[]).length,1);
+ assert.match(html,/<h1 id="stateDirectoryTitle">Choose your state<\/h1>/);
+ assert.equal((html.match(/<h1\b/g)||[]).length,1);
 });
