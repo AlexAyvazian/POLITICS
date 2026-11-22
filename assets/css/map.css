@@ -66,8 +66,8 @@
 #view-map .modeBadge{display:inline-flex;gap:8px;align-items:center;padding:9px 12px;border-radius:999px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#bbf7d0;font-size:12px;font-weight:800}
 #view-map .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);text-align:center;padding:30px}
 /* ---- Atlas layout adaptations for the Map-only view ---- */
-#view-map .app{display:block;padding:72px 16px 16px;min-height:100vh}
-#view-map .mapPanel{min-height:0;height:calc(100vh - 88px);display:flex;flex-direction:column;padding:14px}
+#view-map .app{display:flex;padding:8px 16px 12px;min-height:0}
+#view-map .mapPanel{min-height:0;height:auto;display:flex;flex-direction:column;padding:14px}
 #view-map .mapToolbar{margin-bottom:10px;position:relative}
 #view-map .mapToolbar input{flex:1 1 280px;min-width:200px}
 #view-map .mapToolbar select{flex:0 0 auto}
@@ -102,7 +102,7 @@
 #view-map .results .listItem:hover,#view-map .results .listItem.kb{background:rgba(125,211,252,.1);border-color:rgba(125,211,252,.4)}
 #view-map .toolbarSpacer{flex:1}
 #view-map .loading{z-index:5}
-@media(max-width:980px){#view-map .app{padding:68px 8px 8px}#view-map .mapPanel{height:calc(100vh - 80px);padding:10px}
+@media(max-width:980px){#view-map .app{padding:7px 8px 8px}#view-map .mapPanel{height:auto;padding:10px}
   #view-map .selectedCard{top:auto;bottom:8px;right:8px;left:8px;width:auto;max-height:55%}#view-map .legend{display:none}}
 
 /* County Atlas voter-question tabs */
