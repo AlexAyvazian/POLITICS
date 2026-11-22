@@ -1,0 +1,46 @@
+/* POLITICS Foreign Agents — same atmospheric shell as Foreign Influence.
+ * Continent artwork is intentionally unboxed: the map itself is the control. */
+.foreignAgents{min-height:100vh;color:#eef7ff}
+.foreignAgents .agentsApp{width:min(1500px,calc(100% - 28px));margin:14px auto 30px;position:relative;z-index:2}
+.foreignAgents .header{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;padding:17px 19px}
+.foreignAgents .header .titleBlock{flex:1 1 390px}.foreignAgents .eyebrow{font-size:10px;letter-spacing:.14em;display:block;margin-bottom:5px}
+.foreignAgents .header h1{font-size:clamp(25px,2.5vw,36px);margin:0}.foreignAgents .header .sub{max-width:680px;font-size:11px;line-height:1.55;margin:6px 0 0;color:#9eb7c9}
+.foreignAgents .header .stats{display:flex;gap:8px}.foreignAgents .header .stat{min-width:112px}.foreignAgents .directorySwitch{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.foreignAgents .directorySwitch a{font-size:10px;padding:7px 10px}
+.foreignAgents .agentsMain{margin-top:22px}
+.foreignAgents .stageHeading{text-align:center;max-width:760px;margin:0 auto 18px}.foreignAgents .stageHeading h2,.foreignAgents .stageToolbar h2{margin:4px 0 5px;font-size:clamp(22px,2.4vw,34px);letter-spacing:-.035em}
+.foreignAgents .stageHeading p,.foreignAgents .stageToolbar p{margin:0;color:#8faabd;font-size:11px}
+.foreignAgents .agentsKicker{font-size:9px;letter-spacing:.16em;font-weight:900;color:#8be2e8}
+.foreignAgents .continentStage{padding:8px 0 12px}
+.foreignAgents .continentGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:34px 42px;align-items:center}
+.foreignAgents .continentButton{appearance:none;display:grid;place-items:center;gap:8px;width:100%;min-width:0;padding:0;background:none;border:0;box-shadow:none;color:#eaf7ff;cursor:pointer;position:relative}
+.foreignAgents .continentButton::before{content:"";position:absolute;inset:8% 9% 16%;border-radius:50%;background:radial-gradient(circle, color-mix(in srgb,var(--continent-glow) 14%,transparent),transparent 68%);opacity:0;transition:opacity .18s ease;pointer-events:none}
+.foreignAgents .continentMap{display:block;max-width:100%;width:auto;height:min(25vw,300px);object-fit:contain;filter:drop-shadow(0 0 1px rgba(238,250,255,.32));transition:filter .18s ease,transform .18s ease,opacity .18s ease;position:relative;z-index:1}
+.foreignAgents .continentButton:hover .continentMap,.foreignAgents .continentButton:focus-visible .continentMap{transform:translateY(-3px) scale(1.018);filter:drop-shadow(0 0 1.5px rgba(255,255,255,.95)) drop-shadow(0 0 13px var(--continent-glow)) brightness(1.08)}
+.foreignAgents .continentButton:hover::before,.foreignAgents .continentButton:focus-visible::before{opacity:1}
+.foreignAgents .continentButton:focus-visible{outline:none}
+.foreignAgents .continentName{font-size:13px;font-weight:850;letter-spacing:.02em;text-shadow:0 2px 14px rgba(0,0,0,.6)}
+.foreignAgents .continentCount{font-size:9px;color:#7898ad;min-height:13px}
+.foreignAgents .stageToolbar{display:flex;align-items:flex-end;gap:16px;margin:0 0 18px;flex-wrap:wrap}
+.foreignAgents .stageToolbar>div{flex:1 1 280px}
+.foreignAgents .backButton{border:1px solid rgba(156,235,221,.25);background:rgba(7,18,34,.54);color:#dff7ff;border-radius:999px;padding:8px 12px;font:inherit;font-size:10px;font-weight:800;cursor:pointer}
+.foreignAgents .backButton:hover,.foreignAgents .backButton:focus-visible{border-color:rgba(156,235,221,.58);background:rgba(156,235,221,.08);outline:none}
+.foreignAgents .countryGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:9px}
+.foreignAgents .countryButton{appearance:none;border:1px solid rgba(153,201,229,.14);background:rgba(7,17,32,.43);border-radius:14px;color:#eaf7ff;padding:10px 12px;display:grid;grid-template-columns:34px 1fr auto;gap:9px;align-items:center;text-align:left;cursor:pointer;min-height:58px}
+.foreignAgents .countryButton:hover,.foreignAgents .countryButton:focus-visible{border-color:rgba(180,231,255,.48);background:rgba(35,69,100,.35);box-shadow:0 0 20px rgba(105,190,235,.08);outline:none}
+.foreignAgents .countryButton .flag{font-size:25px;line-height:1}.foreignAgents .countryButton strong{font-size:11px}.foreignAgents .countryButton small{display:block;color:#7898ad;font-size:8px;margin-top:2px}.foreignAgents .countryButton .count{font-size:9px;color:#9cebdd;white-space:nowrap}
+.foreignAgents .agentStage{padding:18px;border-radius:20px}.foreignAgents .agentToolbar{align-items:center}
+.foreignAgents .agentCountryHeading{display:flex!important;align-items:center;gap:12px}.foreignAgents .countryFlag{font-size:38px;line-height:1}
+.foreignAgents .agentSearch{display:grid;gap:5px;flex:0 1 270px}.foreignAgents .agentSearch span{font-size:8px;color:#7898ad;text-transform:uppercase;letter-spacing:.08em}
+.foreignAgents .agentSearch input{width:100%;box-sizing:border-box;border:1px solid rgba(153,201,229,.16);border-radius:11px;padding:9px 10px;background:rgba(3,12,23,.72);color:#f3fbff;font:inherit;font-size:10px}
+.foreignAgents .agentDirectory{display:grid;gap:8px}
+.foreignAgents .agentRow{display:grid;grid-template-columns:minmax(180px,1.1fr) minmax(190px,1fr) minmax(120px,.65fr) auto;gap:12px;align-items:center;border:1px solid rgba(153,201,229,.11);border-radius:13px;padding:11px 12px;background:rgba(4,13,25,.48)}
+.foreignAgents .agentRow strong{font-size:12px}.foreignAgents .agentRow span,.foreignAgents .agentRow small{font-size:9px;color:#89a7ba;line-height:1.4}.foreignAgents .agentRow .agentIdentity{display:grid;gap:3px}.foreignAgents .agentStatus{justify-self:start;border-radius:999px;padding:4px 7px;font-size:8px!important;font-weight:850;text-transform:uppercase;letter-spacing:.06em}
+.foreignAgents .agentStatus.active{color:#baf7d0;background:rgba(50,188,101,.1);border:1px solid rgba(88,220,132,.25)}.foreignAgents .agentStatus.terminated{color:#d5dce4;background:rgba(173,185,199,.08);border:1px solid rgba(173,185,199,.18)}
+.foreignAgents .agentRow a{color:#9cebdd;text-decoration:none;font-size:9px;font-weight:800}.foreignAgents .agentRow a:hover{text-decoration:underline}
+.foreignAgents .agentSourceNote{margin:14px 2px 0;color:#7898ad;font-size:9px;line-height:1.55}
+.foreignAgents .emptyState{padding:28px 18px;text-align:center;color:#88a5b8;font-size:11px;border:1px dashed rgba(153,201,229,.14);border-radius:14px}
+.foreignAgents .agentsFooter{text-align:center;color:#67879d;font-size:9px;margin-top:20px}.foreignAgents .agentsFooter a{color:#8ebed5;text-decoration:none}
+@media(max-width:1000px){.foreignAgents .continentGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:30px}.foreignAgents .continentMap{height:min(38vw,300px)}.foreignAgents .agentRow{grid-template-columns:1fr 1fr}.foreignAgents .agentRow a{justify-self:start}}
+@media(max-width:650px){.foreignAgents .agentsApp{width:min(100% - 16px,1500px);margin-top:8px}.foreignAgents .continentGrid{grid-template-columns:1fr;gap:26px}.foreignAgents .continentMap{height:min(67vw,300px)}.foreignAgents .countryGrid{grid-template-columns:1fr 1fr}.foreignAgents .agentStage{padding:12px}.foreignAgents .agentRow{grid-template-columns:1fr}.foreignAgents .header .stats{width:100%}.foreignAgents .header .stat{flex:1}.foreignAgents .directorySwitch{justify-content:flex-start}}
+@media(max-width:430px){.foreignAgents .countryGrid{grid-template-columns:1fr}}
