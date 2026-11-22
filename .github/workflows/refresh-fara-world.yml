@@ -14,7 +14,6 @@ on:
       - tests/foreign-agents.test.mjs
       - tests/test_fara_agents.py
       - scripts/update_fara_agents.py
-      - assets/source/foreign-agents-assets.zip
       - scripts/install_foreign_agent_flags.py
       - tests/test_fara_world.py
       - tests/test_fara_filing_explanations.py
