@@ -821,43 +821,72 @@ async function loadFinanceDetail(m){
  source.target='_blank';source.rel='noopener noreferrer';source.textContent='View source FEC financial reports ↗';
  root.append(source);
 }
-async function loadLobby(m){
+async function loadOfficialLobbyingOverlap(m,data=state.sponsorData){
  const root=$('lobbyVisualization');if(!root)return;
- root.textContent='Checking LobbyView research records…';
- let data=null;
- try{
-  const r=await fetch(readerBase+'/api/member-lobby-network?bioguide='+encodeURIComponent(m.bioguide),
-   {headers:{Accept:'application/json'},credentials:'omit'});
-  if(r.ok)data=await r.json();
- }catch(_){}
- if(state.member?.bioguide!==m.bioguide)return;
- root.replaceChildren();
- if(data?.bioguide!==m.bioguide||!Array.isArray(data.clients)){
-  const p=document.createElement('p');p.className='recordsEvidenceNote';
-  p.textContent='LobbyView data is not yet available for this member. This is a collection gap, not evidence of no lobbying.';
-  root.append(p);
-  const link=document.createElement('a');link.href='https://www.lobbyview.org/data-download/api/';
-  link.target='_blank';link.rel='noopener noreferrer';link.textContent='View LobbyView data sources ↗';root.append(link);
+ root.textContent='Matching sponsored bills against official Senate LDA filings…';
+ if(data?.bioguide!==m.bioguide||!Array.isArray(data?.sponsored)){
+  root.innerHTML='<p class="recordsEvidenceNote">Congress.gov sponsorship data is not available yet, so an official LDA bill-overlap check cannot be built for this member.</p>';
   return;
  }
+ const bills=data.sponsored.map(bill=>({bill,label:ldaBillLabel(bill)})).filter(x=>x.label).slice(0,5);
+ if(!bills.length){
+  root.innerHTML='<p class="recordsEvidenceNote">No sponsored bill identifiers are available in the current Congress.gov sample for an automatic LDA bill-overlap check.</p>';
+  return;
+ }
+ const matches=[];
+ for(const item of bills){
+  if(state.member?.bioguide!==m.bioguide)return;
+  try{
+   const params=new URLSearchParams({mode:'issue',q:item.label,year:'2026',limit:'12'});
+   const response=await fetch(gatewayBase+'/api/lda?'+params.toString(),{headers:{Accept:'application/json'},credentials:'omit'});
+   if(!response.ok)continue;
+   const payload=await response.json();
+   const rows=Array.isArray(payload?.data?.results)?payload.data.results:[];
+   for(const filing of rows){
+    const client=String(filing?.client?.name||'').trim();
+    const registrant=String(filing?.registrant?.name||'').trim();
+    if(!client&&!registrant)continue;
+    matches.push({
+     bill:item.label,
+     client:client||'Client not reported',
+     registrant:registrant||'Registrant not reported',
+     filingUrl:typeof filing?.filing_document_url==='string'&&/^https:\/\/lda\.gov\/filings\/public\/filing\//.test(filing.filing_document_url)?filing.filing_document_url:null
+    });
+   }
+  }catch(_){}
+ }
+ if(state.member?.bioguide!==m.bioguide)return;
+ root.replaceChildren();
+ const grouped=new Map();
+ for(const row of matches){
+  const key=row.client+'|'+row.registrant;
+  if(!grouped.has(key))grouped.set(key,{client:row.client,registrant:row.registrant,bills:new Set(),filingUrl:row.filingUrl});
+  const group=grouped.get(key);group.bills.add(row.bill);if(!group.filingUrl&&row.filingUrl)group.filingUrl=row.filingUrl;
+ }
+ const ranked=[...grouped.values()].sort((a,b)=>b.bills.size-a.bills.size||a.client.localeCompare(b.client));
  const count=document.createElement('strong');count.className='recordsLobbyCount';
- count.textContent=String(data.clientCount??'Unreported')+' research-coded client connections captured';
+ count.textContent=ranked.length+' reported client/registrant overlap'+(ranked.length===1?'':'s')+' across '+bills.length+' sponsored bill search'+(bills.length===1?'':'es');
  root.append(count);
  const note=document.createElement('p');note.className='recordsEvidenceNote';
- note.textContent='Source: LobbyView · '+formatDate(data.retrievedAt)+
-  '. The count covers only available network records from the first collected page in 2025–2026; no direct contact, payment or motive is implied.';
+ note.textContent='Sources: Congress.gov sponsorship records + official U.S. Senate LDA filings. Bill overlap means an LDA filing mentioned legislation sponsored by this member; it does not prove direct contact with the member or office.';
  root.append(note);
- for(const link of data.clients){
-  const article=document.createElement('article');article.className='recordsLobbyRow';
-  const name=document.createElement('strong');name.textContent=link.name;
-  const desc=document.createElement('span');
-  desc.textContent=String(link.reportYear)+' research network'+
-   (Number.isFinite(link.billOverlapCount)?' · '+link.billOverlapCount+' overlapping sponsored bills':'');
-  article.append(name,desc);root.append(article);
+ if(!ranked.length){
+  const p=document.createElement('p');p.className='recordsEvidenceNote';
+  p.textContent='No official LDA filing matches were returned for the sponsored bills checked. This is not evidence that no lobbying occurred under other bills, issues, terms, or filing periods.';
+  root.append(p);return;
  }
- const source=document.createElement('a');source.href='https://www.lobbyview.org/data-download/api/';
- source.target='_blank';source.rel='noopener noreferrer';source.textContent='LobbyView data and methodology ↗';
- root.append(source);
+ for(const row of ranked.slice(0,12)){
+  const article=document.createElement('article');article.className='recordsLobbyRow';
+  const name=document.createElement('strong');name.textContent=row.client;
+  const desc=document.createElement('span');
+  desc.textContent='Registrant: '+row.registrant+' · '+row.bills.size+' sponsored bill overlap'+(row.bills.size===1?'':'s')+' · '+[...row.bills].join(', ');
+  article.append(name,desc);
+  if(row.filingUrl){
+   const link=document.createElement('a');link.href=row.filingUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Official LDA filing ↗';article.append(link);
+  }
+  root.append(article);
+ }
+ const source=document.createElement('a');source.href='https://lda.gov/';source.target='_blank';source.rel='noopener noreferrer';source.textContent='U.S. Senate LDA database ↗';root.append(source);
 }
 
 function renderTravel(m,report=null){
@@ -1151,6 +1180,7 @@ async function loadSponsored(m){
  }
  root.append(grid);
  renderLdaBillSearches(m,data);
+ loadOfficialLobbyingOverlap(m,data);
 }
 
 function renderMeasures(){
@@ -1262,7 +1292,7 @@ function select(id){
  const ldaResults=$('ldaSearchResults');if(ldaResults)ldaResults.innerHTML='<p class="recordsEvidenceNote">Search the official LDA database above, or use a sponsored-bill shortcut when Congress.gov data is available.</p>';
  for(const [key,name] of [['all','voteFilterAll'],['yes','voteFilterYea'],['no','voteFilterNay'],['absent','voteFilterAbsent']])
   $(name).setAttribute('aria-pressed',String(key==='all'));
- loadTravel(m);loadFinance(m);loadPacFunding(m);loadSponsored(m);loadFinanceDetail(m);loadLobby(m);loadMoneyNetwork(m);
+ loadTravel(m);loadFinance(m);loadPacFunding(m);loadSponsored(m);loadFinanceDetail(m);loadMoneyNetwork(m);
  try{history.replaceState(null,'','#state='+encodeURIComponent(m.state)+'&member='+encodeURIComponent(id));}catch{}
  $('memberProfile').scrollIntoView?.({behavior:'smooth',block:'start'});
  loadVotes(m);
