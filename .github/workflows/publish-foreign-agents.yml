@@ -1,0 +1,60 @@
+name: Publish Foreign Agents directory
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - foreign-agents.html
+      - assets/css/foreign-agents.css
+      - assets/js/foreign-agents.js
+      - assets/js/foreign-agents-model.mjs
+      - assets/img/foreign-agents/*.webp
+      - scripts/update_fara_agents.py
+      - scripts/install_foreign_agent_flags.py
+      - tests/foreign-agents.test.mjs
+      - tests/test_fara_agents.py
+      - .github/workflows/publish-foreign-agents.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: foreign-agents-publish
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify Foreign Agents data and interaction contracts
+        run: |
+          python -m unittest tests.test_fara_agents -v
+          node --test tests/foreign-agents.test.mjs
+      - name: Install verified vector country flags
+        run: python scripts/install_foreign_agent_flags.py
+      - name: Build official DOJ individual-agent directory
+        run: python scripts/update_fara_agents.py
+      - name: Publish Foreign Agents data and flags
+        shell: bash
+        run: |
+          git add assets/data/foreign-agents/ assets/img/foreign-agents/flags/
+          if git diff --cached --quiet; then
+            echo "Foreign Agents assets unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh DOJ FARA individual Foreign Agents directory"
+          git pull --rebase origin main
+          git push origin HEAD:main
