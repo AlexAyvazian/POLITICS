@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
-const pages=['index.html','congressional.html','records.html','foreign-influence.html','foreign-agents.html','government-action.html'];
+const pages=['index.html','congressional.html','records.html','foreign-influence.html','foreign-agents.html'];
 
 test('every top-level POLITICS page uses the same unified navigation shell',()=>{
  for(const page of pages){
@@ -14,14 +14,13 @@ test('every top-level POLITICS page uses the same unified navigation shell',()=>
  }
 });
 
-test('unified navigation exposes the same six destinations in the same order',()=>{
+test('unified navigation exposes the same five destinations in the same order',()=>{
  const expected=[
   ['index.html#map','County Atlas'],
   ['congressional.html','Congressional Atlas'],
   ['records.html','Congressional Records'],
   ['foreign-influence.html','Foreign Influence'],
-  ['foreign-agents.html','Foreign Agents'],
-  ['government-action.html','Government Action']
+  ['foreign-agents.html','Foreign Agents']
  ];
  for(const page of pages){
   const html=read(page);
@@ -43,8 +42,7 @@ test('only the current top-level destination is marked active on each page',()=>
   'congressional.html':'Congressional Atlas',
   'records.html':'Congressional Records',
   'foreign-influence.html':'Foreign Influence',
-  'foreign-agents.html':'Foreign Agents',
-  'government-action.html':'Government Action'
+  'foreign-agents.html':'Foreign Agents'
  };
  for(const page of pages){
   const html=read(page);
@@ -61,4 +59,26 @@ test('unified nav stays one-row on desktop and horizontally reachable on narrow 
  assert.match(css,/\.unifiedTabs\s*\{[^}]*display:\s*flex[^}]*white-space:\s*nowrap/s);
  assert.match(css,/@media\s*\(max-width:\s*900px\)[\s\S]*\.unifiedTabs\s*\{[^}]*overflow-x:\s*auto/s);
  assert.doesNotMatch(css,/\.unifiedTabs\s*\{[^}]*flex-wrap:\s*wrap/s);
+});
+
+test('retired Government Action route is absent from every public navigation',()=>{
+ for(const page of pages){
+  assert.doesNotMatch(read(page),/href="government-action\\.html"/,page+' must not show the retired section');
+ }
+});
+
+test('County and Congressional Atlas maps occupy space immediately below shared navigation',()=>{
+ const css=read('assets/css/unified-nav.css');
+ const county=read('index.html');
+ assert.ok(county.indexOf('class="countyAtlasContextBar"')>county.indexOf('class="mapPanel glass"'),'county stats should be inside the panel, not in a gap above it');
+ assert.match(css,/body\\[data-view="map"\\] #view-map \\.app\\s*\\{[^}]*padding:8px/s,'county atlas must eliminate previous 72px top offset');
+ assert.match(css,/body\\[data-view="congress"\\] \\.districtAtlas\\s*\\{[^}]*padding:8px/s,'Congressional Atlas must eliminate previous 72px top offset');
+ assert.match(css,/body\\[data-view="congress"\\] \\.districtAtlas\\s*\\{[^}]*height:auto/s,'Congressional Atlas must flex below navigation');
+});
+
+test('Congressional Records has one immediate primary title, not an oversized duplicate hero',()=>{
+ const html=read('records.html');
+ assert.doesNotMatch(html,/class="recordsIntro"/);
+ assert.match(html,/<h1 id="stateDirectoryTitle">Choose your state<\\/h1>/);
+ assert.equal((html.match(/<h1\\b/g)||[]).length,1);
 });
