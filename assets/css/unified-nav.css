@@ -128,3 +128,58 @@
  .unifiedTabs a{padding:8px 10px}
  .countyAtlasContextBar{width:min(100% - 18px,1440px);margin-top:6px}
 }
+
+/* Map layouts now follow the shared header in normal document flow.
+   Remove the obsolete 72px inset reserved for the retired floating headers. */
+body[data-view="map"]{
+ display:flex;
+ flex-direction:column;
+ height:100dvh;
+ min-height:0;
+}
+body[data-view="map"] #view-map{
+ flex:1 1 auto;
+ display:flex;
+ min-height:0;
+}
+body[data-view="map"] #view-map .app{
+ flex:1 1 auto;
+ display:flex;
+ min-height:0;
+ padding:8px 16px 12px;
+}
+body[data-view="map"] #view-map .mapPanel{
+ flex:1 1 auto;
+ height:auto;
+ min-height:0;
+}
+body[data-view="map"] .countyAtlasContextBar{
+ width:100%;
+ min-height:20px;
+ margin:0 0 7px;
+ padding:0 4px;
+}
+body[data-view="congress"]{
+ display:flex;
+ flex-direction:column;
+ height:100dvh;
+ min-height:0;
+}
+body[data-view="congress"] .districtAtlas{
+ flex:1 1 auto;
+ height:auto;
+ min-height:0;
+ padding:8px 16px 12px;
+}
+@media(max-width:900px){
+ body[data-view="map"] #view-map .app{padding:7px 8px 8px}
+ body[data-view="congress"] .districtAtlas{padding:7px 8px 8px}
+}
+@media(max-width:760px){
+ body[data-view="congress"]{height:auto;min-height:100dvh;overflow:auto}
+ body[data-view="congress"] .districtAtlas{
+  flex:none;
+  height:calc(100dvh - 102px);
+  min-height:530px;
+ }
+}
