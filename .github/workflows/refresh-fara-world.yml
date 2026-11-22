@@ -7,14 +7,6 @@ on:
   pull_request:
     paths:
       - scripts/update_fara_world.py
-      - assets/css/foreign-agents.css
-      - assets/js/foreign-agents-model.mjs
-      - assets/js/foreign-agents.js
-      - foreign-agents.html
-      - tests/foreign-agents.test.mjs
-      - tests/test_fara_agents.py
-      - scripts/update_fara_agents.py
-      - scripts/install_foreign_agent_flags.py
       - tests/test_fara_world.py
       - tests/test_fara_filing_explanations.py
       - scripts/update_fara_explanations.py
@@ -25,7 +17,6 @@ on:
     branches: [main]
     paths:
       - scripts/update_fara_world.py
-      - assets/img/foreign-agents/**
       - assets/css/foreign-agents.css
       - assets/js/foreign-agents-model.mjs
       - assets/js/foreign-agents.js
@@ -64,10 +55,6 @@ jobs:
         run: python -m unittest discover -s tests -p test_fara_filing_explanations.py -v
       - name: Verify FARA frontend only presents verified dollar figures
         run: node --test tests/foreign-influence.test.mjs
-      - name: Verify FARA individual-agent transform and continent directory
-        run: |
-          python -m unittest tests.test_fara_agents -v
-          node --test tests/foreign-agents.test.mjs
 
   publish:
     if: github.event_name != 'pull_request'
@@ -81,10 +68,6 @@ jobs:
           python-version: "3.12"
       - name: Fetch official DOJ daily bulk registries and index linked filings
         run: python scripts/update_fara_world.py
-      - name: Install uploaded vector country flags
-        run: python scripts/install_foreign_agent_flags.py
-      - name: Build daily individual FARA Short Form directory
-        run: python scripts/update_fara_agents.py
       - name: Install machine-readable PDF text extractor
         run: python -m pip install 'pypdf>=5,<7'
       - name: Explain next batch of official DOJ supplemental statements
@@ -92,7 +75,7 @@ jobs:
       - name: Publish only verified daily FARA country snapshots
         shell: bash
         run: |
-          git add assets/data/foreign-influence/ assets/data/foreign-agents/ assets/img/foreign-agents/
+          git add assets/data/foreign-influence/
           if git diff --cached --quiet; then
             echo "No new FARA registry data"
             exit 0
