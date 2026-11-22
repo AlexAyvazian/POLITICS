@@ -19,7 +19,6 @@ async function snapshotHealthRows(db,aggregate=false){
    SELECT CASE
     WHEN source LIKE 'member_legislation_%' THEN 'member_legislation'
     WHEN source LIKE 'member_finance_detail_%' THEN 'member_finance_detail'
-    WHEN source LIKE 'member_lobby_network_%' THEN 'member_lobby_network'
     WHEN source LIKE 'openstates_%' THEN 'openstates'
     WHEN source LIKE 'billcommons_%' THEN 'billcommons'
     ELSE source END AS source,
@@ -134,16 +133,15 @@ export async function serve(request,env){
   }
  }
 
- // Member-specific FEC and LobbyView research summaries are collected by the
+ // Member-specific FEC research summaries are collected by the
  // scheduled gateway and read by verified Bioguide ID. Never fetch upstream here.
- if(path==='/api/member-finance-detail'||path==='/api/member-lobby-network'){
+ if(path==='/api/member-finance-detail'){
   const bioguide=new URL(request.url).searchParams.get('bioguide')||'';
   if(!/^[A-Z][0-9]{6}$/.test(bioguide))return json({error:'Invalid member identifier'},400,request);
   if(!env?.COUNTY_DB)return json({status:'not_configured',count:0},503,request);
-  const prefix=path==='/api/member-finance-detail'?'member_finance_detail_':'member_lobby_network_';
   try{
    const row=await env.COUNTY_DB.prepare('SELECT snapshot_json FROM county_snapshots WHERE source=?')
-    .bind(prefix+bioguide).first();
+    .bind('member_finance_detail_'+bioguide).first();
    return json(row?JSON.parse(row.snapshot_json):{status:'pending',bioguide,count:0},200,request,row?1800:60);
   }catch(_){return json({status:'storage_error',count:0},503,request);}
  }
