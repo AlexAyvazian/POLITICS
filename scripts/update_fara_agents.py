@@ -14,9 +14,14 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from update_fara_world import (
-    fetch_dataset,catalog_countries,country_index,normalize_country,pick,text,normalize
-)
+try:
+    from scripts.update_fara_world import (
+        fetch_dataset,catalog_countries,country_index,normalize_country,pick,text,normalize
+    )
+except ImportError:
+    from update_fara_world import (
+        fetch_dataset,catalog_countries,country_index,normalize_country,pick,text,normalize
+    )
 
 ROOT=Path(__file__).resolve().parents[1]
 OUTPUT=ROOT/'assets/data/foreign-agents'
