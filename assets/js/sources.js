@@ -15,7 +15,6 @@ const META={
  fred:{name:'Federal Reserve Economic Data',where:'Data Sources · Live Research Tools / County Atlas · Jobs & Economy context',match:[],onDemandLive:true,note:'Official FRED economic time series loaded on demand as national context.'},
  govinfo:{name:'GovInfo',where:'Government Action · Official Publications',match:[],onDemandLive:true,note:'Official federal publications and documents searched on demand.'},
  lda:{name:'Senate LDA',where:'Congressional Records · Lobbying',match:[],onDemandLive:true,note:'Official federal LD-1/LD-2 lobbying disclosure filings searched on demand.'},
- lobbyview:{name:'LobbyView',where:'Congressional Records · Lobbying',match:['member_lobby_network','member_lobby_collection_health'],note:'Research-coded lobbying and legislator relationships.'},
  maptiler:{name:'MapTiler',where:'Geocoding utility · no public data panel',match:[],note:'Geocoding support.'},
  noaa:{name:'NOAA NCEI',where:'County Atlas · Infrastructure & Environment',match:[],onDemandLive:true,note:'Recent GHCN-Daily station observations loaded on demand for a selected county.'},
  openstates:{name:'Open States',where:'County Atlas · Representation / Congressional Atlas',match:['openstates'],note:'State legislators and legislation.'},
