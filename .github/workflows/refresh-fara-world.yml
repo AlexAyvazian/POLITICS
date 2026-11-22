@@ -14,6 +14,8 @@ on:
       - tests/foreign-agents.test.mjs
       - tests/test_fara_agents.py
       - scripts/update_fara_agents.py
+      - assets/source/foreign-agent-flags.zip
+      - scripts/install_foreign_agent_flags.py
       - tests/test_fara_world.py
       - tests/test_fara_filing_explanations.py
       - scripts/update_fara_explanations.py
@@ -80,6 +82,8 @@ jobs:
           python-version: "3.12"
       - name: Fetch official DOJ daily bulk registries and index linked filings
         run: python scripts/update_fara_world.py
+      - name: Install uploaded vector country flags
+        run: python scripts/install_foreign_agent_flags.py
       - name: Build daily individual FARA Short Form directory
         run: python scripts/update_fara_agents.py
       - name: Install machine-readable PDF text extractor
@@ -89,7 +93,7 @@ jobs:
       - name: Publish only verified daily FARA country snapshots
         shell: bash
         run: |
-          git add assets/data/foreign-influence/ assets/data/foreign-agents/
+          git add assets/data/foreign-influence/ assets/data/foreign-agents/ assets/img/foreign-agents/flags/
           if git diff --cached --quiet; then
             echo "No new FARA registry data"
             exit 0
