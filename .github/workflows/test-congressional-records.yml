@@ -44,6 +44,7 @@ on:
       - .github/workflows/refresh-housing-finance.yml
       - assets/data/state/housing-finance.json
       - tests/cms-partb-tab.test.mjs
+      - tests/public-apis.test.mjs
       - assets/data/county/epa-air-quality-2025.json
       - .github/workflows/refresh-epa-county-air-quality.yml
       - scripts/update_epa_county_air_quality.py
@@ -109,6 +110,7 @@ on:
       - .github/workflows/refresh-housing-finance.yml
       - assets/data/state/housing-finance.json
       - tests/cms-partb-tab.test.mjs
+      - tests/public-apis.test.mjs
       - assets/data/county/epa-air-quality-2025.json
       - .github/workflows/refresh-epa-county-air-quality.yml
       - scripts/update_epa_county_air_quality.py
