@@ -1,6 +1,8 @@
 name: Publish Foreign Agents directory
 
 on:
+  schedule:
+    - cron: "52 11 * * *"
   workflow_dispatch:
   push:
     branches: [main]
