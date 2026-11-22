@@ -9,19 +9,28 @@
   <link rel="stylesheet" href="assets/css/map.css?v=2026112004">
   <link rel="stylesheet" href="assets/css/politics.css">
   <link rel="stylesheet" href="assets/css/healthcare-atmosphere.css">
+  <link rel="stylesheet" href="assets/css/unified-nav.css?v=20261122">
 </head>
 <body data-view="map">
-  <nav class="atlasNav" aria-label="Map navigation">
-    <div class="navBrand"><i aria-hidden="true"></i><span>POLITICS · Geographic Explorer</span></div>
-    <div class="navCenter">United States County Atlas <a href="congressional.html" style="color:#9cebdd;text-decoration:none;font-size:11px;margin-left:17px;border:1px solid rgba(156,235,221,.3);border-radius:999px;padding:6px 10px" aria-label="Open separate Congressional Atlas">Congressional Atlas</a> <a href="records.html" style="color:#9cebdd;text-decoration:none;font-size:11px;margin-left:8px;border:1px solid rgba(156,235,221,.3);border-radius:999px;padding:6px 10px" aria-label="Open Congressional Records directory">Congressional Records</a> <a href="foreign-influence.html" style="color:#c9e7ff;text-decoration:none;font-size:11px;margin-left:8px;border:1px solid rgba(156,235,221,.3);border-radius:999px;padding:6px 10px" aria-label="Open Foreign Influence world map">Foreign Influence</a> <a href="foreign-agents.html" style="color:#c9e7ff;text-decoration:none;font-size:11px;margin-left:8px;border:1px solid rgba(156,235,221,.3);border-radius:999px;padding:6px 10px" aria-label="Open Foreign Agents directory">Foreign Agents</a> <a href="government-action.html" style="color:#c9e7ff;text-decoration:none;font-size:11px;margin-left:8px;border:1px solid rgba(156,235,221,.3);border-radius:999px;padding:6px 10px">Government Action</a></div>
-    <div class="navRight">
-      <div class="crumb" id="crumb" hidden>
-        <span id="crumbText"></span>
-        <button id="crumbClear" type="button" aria-label="Return to U.S. map" title="Clear selection">×</button>
-      </div>
-      <div class="navStats" id="navStats"></div>
-    </div>
+<header class="unifiedTopNav">
+  <a class="unifiedBrand" href="index.html#map"><span class="unifiedBrandMark" aria-hidden="true"></span><span>POLITICS</span></a>
+  <nav class="unifiedTabs" aria-label="POLITICS sections">
+   <a href="index.html#map" aria-current="page">County Atlas</a>
+   <a href="congressional.html">Congressional Atlas</a>
+   <a href="records.html">Congressional Records</a>
+   <a href="foreign-influence.html">Foreign Influence</a>
+   <a href="foreign-agents.html">Foreign Agents</a>
+   <a href="government-action.html">Government Action</a>
   </nav>
+  <div class="unifiedNavSpacer" aria-hidden="true"></div>
+ </header>
+  <div class="countyAtlasContextBar">
+   <div class="crumb" id="crumb" hidden>
+    <span id="crumbText"></span>
+    <button id="crumbClear" type="button" aria-label="Return to U.S. map" title="Clear selection">×</button>
+   </div>
+   <div class="navStats" id="navStats"></div>
+  </div>
   <section class="view" id="view-map" aria-label="United States map">
     <div class="orb one" aria-hidden="true"></div><div class="orb two" aria-hidden="true"></div><div class="orb three" aria-hidden="true"></div><div class="orb four" aria-hidden="true"></div><div class="orb five" aria-hidden="true"></div><div class="orb six" aria-hidden="true"></div><div class="orb seven" aria-hidden="true"></div>
     <div class="cursorGlow" id="cursorGlow"></div>
