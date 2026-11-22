@@ -27,7 +27,7 @@ test('worker uses dedicated full-roster finance batches and keeps secondary coll
  assert.match(s,/refreshMemberFinanceRosterBatch/);
  assert.match(s,/refreshFecMoneyNetwork/);
  assert.match(s,/refreshMemberLegislationBatch/);
- assert.match(s,/refreshMemberExtraBatch/);
  assert.match(s,/scheduled:recordsRefreshScheduled/);
- assert.doesNotMatch(read('workers/politics-gateway.mjs'),/ctx\.waitUntil\(refreshMemberExtraBatch/);
+ assert.match(s,/secondaryIndex%2/);
+ assert.doesNotMatch(s,/LobbyView|lobbyview|refreshMemberExtraBatch/);
 });
