@@ -4,10 +4,10 @@
  <meta charset="utf-8">
  <meta name="viewport" content="width=device-width,initial-scale=1">
  <meta name="theme-color" content="#050814">
- <meta name="description" content="Search federal rules, regulatory documents, official publications and current legislation from primary government sources.">
+ <meta name="description" content="Track recent federal rules, proposed rules, presidential actions and congressional activity from official government sources.">
  <title>Government Action · POLITICS</title>
  <link rel="stylesheet" href="assets/css/atlas.css">
- <link rel="stylesheet" href="assets/css/government-action.css">
+ <link rel="stylesheet" href="assets/css/government-action.css?v=20261122a">
 </head>
 <body data-view="government-action">
  <header class="governmentNav">
@@ -25,36 +25,54 @@
 
  <main class="governmentMain">
   <section class="governmentHero">
-   <p class="governmentEyebrow">WHAT THE FEDERAL GOVERNMENT IS ACTUALLY DOING</p>
-   <h1>Government Action</h1>
-   <p>Search primary federal records without jumping between agency websites. Rules and notices, regulatory documents, official Government Publishing Office publications, and congressional legislation are kept in separate views so they are not mistaken for the same kind of government action.</p>
+   <p class="governmentEyebrow">WHAT CHANGED — NOT WHERE IT WAS PUBLISHED</p>
+   <h1>What changed in the federal government?</h1>
+   <p>This is a current action feed built from primary federal records. Instead of making you browse separate government databases, POLITICS identifies the action, its status, who took it, when it happened, and what the official record says it does.</p>
+
    <form id="governmentSearch" class="governmentSearch">
-    <label for="governmentQuery"><span>Search the selected source</span><input id="governmentQuery" type="search" maxlength="70" placeholder="immigration, Medicare, tariffs, voting rights…" autocomplete="off"></label>
-    <button type="submit">Search records</button>
+    <label for="governmentQuery">
+     <span>Find actions by topic, agency or bill</span>
+     <input id="governmentQuery" type="search" maxlength="70" placeholder="immigration, Medicare, tariffs, voting rights…" autocomplete="off">
+    </label>
+    <button type="submit">Search actions</button>
    </form>
   </section>
 
-  <div class="governmentTabs" role="tablist" aria-label="Government action source">
-   <button id="governmentTabRegister" type="button" role="tab" aria-selected="true" data-government-tab="register">Rules &amp; Notices</button>
-   <button id="governmentTabRegulations" type="button" role="tab" aria-selected="false" data-government-tab="regulations">Regulatory Dockets</button>
-   <button id="governmentTabGovInfo" type="button" role="tab" aria-selected="false" data-government-tab="govinfo">Official Publications</button>
-   <button id="governmentTabCongress" type="button" role="tab" aria-selected="false" data-government-tab="congress">Federal Legislation</button>
-  </div>
-
-  <section class="governmentContext" id="governmentContext">
-   <div><span id="governmentSourceKicker">FEDERAL REGISTER</span><h2 id="governmentTitle">Rules, proposed rules and notices</h2></div>
-   <p id="governmentExplanation">The Federal Register is the official daily publication for rules, proposed rules, notices, and presidential documents published by federal agencies.</p>
+  <section class="governmentSnapshot" aria-label="Current government action snapshot">
+   <div><b id="actionCount">—</b><span>actions shown</span></div>
+   <div><b id="finalCount">—</b><span>final rules</span></div>
+   <div><b id="proposedCount">—</b><span>proposed rules</span></div>
+   <div><b id="legislationCount">—</b><span>legislative actions</span></div>
   </section>
 
-  <div id="governmentStatus" class="governmentStatus" role="status">Loading the latest federal records…</div>
+  <div class="governmentFilters" role="tablist" aria-label="Filter government actions">
+   <button type="button" role="tab" aria-selected="true" data-action-filter="all">All Actions</button>
+   <button type="button" role="tab" aria-selected="false" data-action-filter="final">Final / Effective</button>
+   <button type="button" role="tab" aria-selected="false" data-action-filter="proposed">Proposed / In Progress</button>
+   <button type="button" role="tab" aria-selected="false" data-action-filter="presidential">Presidential</button>
+   <button type="button" role="tab" aria-selected="false" data-action-filter="legislation">Legislation</button>
+  </div>
+
+  <div class="governmentFeedHeader">
+   <div>
+    <p class="governmentEyebrow">LATEST OFFICIAL ACTIONS</p>
+    <h2 id="governmentFeedTitle">All recent actions</h2>
+   </div>
+   <p id="governmentStatus" class="governmentStatus" role="status">Loading current federal actions…</p>
+  </div>
+
   <section id="governmentResults" class="governmentResults" aria-live="polite"></section>
 
   <section class="governmentMethod">
-   <h2>What these records do—and do not mean</h2>
-   <p>A <strong>proposed rule</strong> is not the same thing as a final rule. A document posted to <strong>Regulations.gov</strong> may be a proposed rule, final rule, supporting material, or another docket document. <strong>GovInfo</strong> is an official publication repository, not an interpretation of policy. A bill listed by <strong>Congress.gov</strong> is legislation introduced in Congress; appearing here does not mean it passed or became law.</p>
-   <p>POLITICS labels the source on every record and links back to the official government record whenever a stable link is available.</p>
+   <h2>How to read this page</h2>
+   <div class="governmentMethodGrid">
+    <p><strong>Final rule</strong><span>An agency has issued a final regulatory action. The official record controls the effective date and legal details.</span></p>
+    <p><strong>Proposed rule</strong><span>An agency is proposing a change. It is not final policy yet.</span></p>
+    <p><strong>Presidential action</strong><span>A presidential document published through the Federal Register.</span></p>
+    <p><strong>Legislative action</strong><span>The latest recorded action on a current-Congress bill or resolution. It is not necessarily enacted law.</span></p>
+   </div>
   </section>
  </main>
- <script src="assets/js/government-action.js?v=2026112011"></script>
+ <script src="assets/js/government-action.js?v=20261122a"></script>
 </body>
 </html>
