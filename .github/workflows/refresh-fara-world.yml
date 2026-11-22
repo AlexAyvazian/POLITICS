@@ -24,6 +24,14 @@ on:
     branches: [main]
     paths:
       - scripts/update_fara_world.py
+      - assets/img/foreign-agents/**
+      - assets/css/foreign-agents.css
+      - assets/js/foreign-agents-model.mjs
+      - assets/js/foreign-agents.js
+      - foreign-agents.html
+      - tests/foreign-agents.test.mjs
+      - tests/test_fara_agents.py
+      - scripts/update_fara_agents.py
       - scripts/update_fara_explanations.py
       - tests/test_fara_world.py
       - tests/test_fara_filing_explanations.py
