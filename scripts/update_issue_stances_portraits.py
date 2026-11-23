@@ -36,7 +36,7 @@ STATES = dict(zip(
 STATES = {key: value.replace("-", " ") for key, value in STATES.items()}
 POLITICIAN = re.compile(r"\b(politic(?:ian|al)|governor|senator|legislator|representative|congress(?:man|woman|person)?|mayor|attorney general|secretary of state|state assembly|state house|lieutenant governor)\b", re.I)
 WEB_IMAGE = re.compile(r"^https://[^\s<>\"']{8,650}$", re.I)
-WIKI_IMAGE = re.compile(r"^https://upload\.wikimedia\.org/wikipedia/commons/", re.I)
+WIKI_IMAGE = re.compile(r"^https://(?:upload|thumb)\.wikimedia\.org/wikipedia/commons/", re.I)
 
 
 def fetch(url: str, cap: int = 5_000_000):
@@ -265,7 +265,7 @@ def wiki_batch(titles):
         "action": "query", "format": "json", "formatversion": "2",
         "redirects": "1", "prop": "pageimages|pageterms|extracts|pageprops",
         "piprop": "thumbnail", "pithumbsize": "480", "wbptterms": "description",
-        "exlimit": "max", "exintro": "1", "explaintext": "1", "exsentences": "4",
+        "exlimit": "max", "exintro": "1", "explaintext": "1", "exsentences": "8",
         "titles": "|".join(titles)
     })
     result = json.loads(fetch(url, 1_800_000))
@@ -307,7 +307,11 @@ def wikipedia_photos(people):
             print("Wikipedia batch failed", i, str(exc)[:190])
         time.sleep(.20)
     candidates = {}
-    entities = {}
+    # A state-and-office verified candidate whose introductory biography focuses
+    # mainly on his earlier UK career.
+    reviewed = {("steve-hilton", "CA", "steve-hilton"): "Q3498953"}
+    entities = {p["slug"]: reviewed[(p["slug"], p["state"], p["nameKey"])] for p in people
+                if (p["slug"], p["state"], p["nameKey"]) in reviewed}
     for person in people:
         matches = [page for page in pages if match_wikipedia_page(person, page)]
         ids = {p.get("pageprops", {}).get("wikibase_item") for p in matches}
