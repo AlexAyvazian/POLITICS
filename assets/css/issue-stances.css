@@ -14,11 +14,11 @@ body[data-view="issues"] .unifiedTopNav{position:relative;z-index:120}
 .issueTitleBlock h1{font-size:clamp(36px,4.9vw,73px);font-weight:790;letter-spacing:-.078em;line-height:.98;margin:0;text-shadow:0 3px 34px #03080fc9}
 .issueTitleBlock h1 em{font:italic 400 1em Georgia,Times,serif;letter-spacing:-.075em;color:#c4d4de}
 .issueTitleBlock>p:not(.issueEyebrow){max-width:330px;color:#b7cbd7;font-size:12px;line-height:1.7;margin:16px 0}
-.issueTitleActions{pointer-events:auto;display:flex;align-items:center;gap:14px;margin:14px 0}
-.issueTitleActions button{background:rgba(4,18,30,.87);color:#e9fbff;border:1px solid rgba(144,208,219,.5);border-radius:3px;font:650 11px Inter,system-ui,sans-serif;letter-spacing:.04em;padding:13px 19px;cursor:pointer;box-shadow:0 6px 26px #0008}
+.issueTitleActions{pointer-events:auto;display:flex;flex-direction:column;align-items:flex-start;gap:11px;margin:14px 0}
+.issueTitleActions button{display:inline-flex;white-space:nowrap;align-items:center;gap:17px;background:rgba(4,18,30,.87);color:#e9fbff;border:1px solid rgba(144,208,219,.5);border-radius:3px;font:650 11px Inter,system-ui,sans-serif;letter-spacing:.04em;padding:13px 19px;cursor:pointer;box-shadow:0 6px 26px #0008}
 .issueTitleActions button:hover,.issueTitleActions button:focus-visible{background:rgba(29,59,72,.93);border-color:#a3d9de}
-.issueTitleActions button span{font-size:17px;margin-left:14px}
-#issueCount{color:#c2d5de;font-size:10px;letter-spacing:.1em}
+.issueTitleActions button span{font-size:19px;line-height:1;margin-left:0}
+#issueCount{color:#c2d5de;font-size:10px;line-height:1.4;letter-spacing:.12em}
 .issueSearchPanel{position:absolute;z-index:31;left:clamp(15px,3.1vw,54px);top:clamp(174px,27vh,272px);width:min(410px,calc(100vw - 30px));max-height:min(62vh,550px);display:flex;flex-direction:column;gap:10px;padding:19px;background:rgba(3,13,23,.97);backdrop-filter:blur(16px);border:1px solid #4b8193;box-shadow:0 18px 90px #000c}
 .issueSearchPanel[hidden]{display:none}
 .issuePanelHeading{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--issueLine);font:700 10px Inter,system-ui,sans-serif;letter-spacing:.2em;color:#a7dae1}
