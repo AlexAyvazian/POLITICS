@@ -98,3 +98,16 @@ body[data-view="issues"] :is(button,a,input,select):focus-visible{outline:2px so
  .issueCredits{flex-wrap:wrap;gap:5px 11px}
 }
 @media(prefers-reduced-motion:reduce){.issueExperience *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* Party wings: one politician per side at the same corridor depth. */
+.issueWings{
+ position:absolute;z-index:8;top:clamp(20px,3vh,38px);left:50%;
+ transform:translateX(-50%);width:clamp(300px,34vw,510px);
+ display:flex;align-items:center;justify-content:space-between;
+ color:#afd2dc;text-shadow:0 2px 12px #000;
+ letter-spacing:.2em;font-size:10px;font-weight:800;
+ pointer-events:none;
+}
+.issueWings span{padding:7px 0;border-bottom:1px solid rgba(165,208,224,.46)}
+@media(max-width:950px){.issueWings{top:clamp(10px,2vh,24px);right:15px;left:auto;transform:none;width:auto;display:grid;justify-items:end;gap:4px;font-size:8px}}
+@media(max-width:640px){.issueWings{top:auto;bottom:138px;right:13px;font-size:7px;opacity:.82}.issueWings span{padding:3px 0}}
