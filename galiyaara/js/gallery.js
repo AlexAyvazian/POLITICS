@@ -266,8 +266,10 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
       const material = new THREE.MeshBasicMaterial({
-        map: tex, color: 0xc6dce6, transparent: true, opacity: 0.80,
-        side: THREE.DoubleSide, depthWrite: false, toneMapped: false
+        // Opaque wall surface is drawn BEFORE the foreground portrait frames.
+        // Transparent wallpaper panels were visually covering left-side art.
+        map: tex, color: 0xaabfca, transparent: false, opacity: 1,
+        side: THREE.DoubleSide, depthWrite: true, toneMapped: false
       });
       for (const side of [-1, 1]) {
         for (let j = 0; j < wallPanelCount; j++) {
