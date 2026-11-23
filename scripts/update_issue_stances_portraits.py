@@ -21,6 +21,7 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "assets/data/issue-stances/portraits.json"
+PHOTO_DIR = ROOT / "assets/img/issue-portraits"
 VOTERIST = "https://www.voterist.com/api/public/candidates"
 OPENSTATES = "https://data.openstates.org/people/current/{state}.csv"
 WIKIPEDIA = "https://en.wikipedia.org/w/api.php"
@@ -211,6 +212,61 @@ def wikipedia_photos(people):
     return candidates
 
 
+def cache_photos(photos):
+    """Download identity-matched public portraits once, for local WebGL loading.
+
+    Browser WebGL texture loading requires image CORS; official state pages may
+    not set a usable Access-Control-Allow-Origin header. Locally serving a
+    bounded thumbnail is both faster and avoids per-visitor upstream requests.
+    Original photo URLs and source credits stay in portraits.json.
+    """
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+    saved = 0
+    failed = 0
+    reused = 0
+    for slug, record in photos.items():
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,150}", slug):
+            continue
+        dest = PHOTO_DIR / (slug + ".webp")
+        local_path = "assets/img/issue-portraits/" + slug + ".webp"
+        if dest.exists() and dest.stat().st_size > 1000:
+            record["localUrl"] = local_path
+            reused += 1
+            continue
+        urls = [record.get("url"), record.get("backupUrl")]
+        for url in urls:
+            if not isinstance(url, str) or not WEB_IMAGE.match(url):
+                continue
+            try:
+                headers = {"User-Agent": UA, "Accept": "image/avif,image/webp,image/jpeg,image/png,image/*"}
+                request = Request(url, headers=headers)
+                with urlopen(request, timeout=16) as response:
+                    content_type = response.headers.get("Content-Type", "").lower()
+                    if not content_type.startswith("image/"):
+                        raise ValueError("Source did not return an image")
+                    raw = response.read(5_500_001)
+                if len(raw) > 5_500_000:
+                    raise ValueError("Photo exceeds cache image limit")
+                image = Image.open(io.BytesIO(raw))
+                image = ImageOps.exif_transpose(image)
+                image.thumbnail((440, 580), Image.Resampling.LANCZOS)
+                image = image.convert("RGB")
+                tmp = dest.with_suffix(".pending.webp")
+                image.save(tmp, "WEBP", quality=82, method=4)
+                tmp.replace(dest)
+                record["localUrl"] = local_path
+                saved += 1
+                break
+            except (OSError, ValueError, UnidentifiedImageError, Exception) as error:
+                print("Photo cache source unavailable:", slug, str(error)[:120])
+        else:
+            failed += 1
+    print("Local portrait cache: saved", saved, "reused", reused, "unavailable", failed)
+    return saved + reused
+
+
 def main():
     people = get_directory()
     states = sorted({person["state"] for person in people})
@@ -228,6 +284,7 @@ def main():
           "combined =", len(photos))
     if not photos:
         raise SystemExit("No source-verified portrait matches; retaining old file")
+    cache_photos(photos)
     doc = {"source": "POLITICS cached official state portraits and Wikipedia verified identity matches",
            "candidateCount": len(people),
            "photoCount": len(photos),
