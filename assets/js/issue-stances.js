@@ -225,7 +225,12 @@ function renderIssueSheet(person,record){
  }else if(!person.policyLinks?.length){
   content.append(tag('p','issueSheetEmpty','No documented issue positions are available for this politician in the public record.'));
  }
- for(const policy of person.policyLinks||[])content.append(link(policy.label,policy.url,'issueSheetLink'));
+ for(const policy of person.policyLinks||[]){
+  const section=tag('section','issueStance');
+  if(policy.statement)section.append(tag('blockquote','',policy.statement));
+  section.append(link(policy.label,policy.url,'issueSheetLink'));
+  content.append(section);
+ }
  if(person.campaign)content.append(link('Official campaign website',person.campaign,'issueSheetLink'));
  if(person.source)content.append(link('View source record',person.source,'issueSheetLink'));
  if(person.issueSlug)content.append(link('Open issue profile',VOTERIST+'/candidate/'+encodeURIComponent(person.issueSlug),'issueSheetLink'));
