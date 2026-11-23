@@ -10,7 +10,7 @@ test('wheel/trackpad moves forward or backward with bounded, proportional moveme
  assert.equal(wheelCorridorMetres(-100,0),-2.4);
  assert.equal(wheelCorridorMetres(5000,0),7);
  assert.equal(wheelCorridorMetres(-5000,0),-7);
- assert.equal(wheelCorridorMetres(3,1),2.4);
+ assert.ok(Math.abs(wheelCorridorMetres(3,1)-2.4)<1e-9);
  assert.equal(wheelCorridorMetres(1,2),7);
  assert.equal(wheelCorridorMetres(0,0),0);
  assert.equal(wheelCorridorMetres(NaN,0),0);
