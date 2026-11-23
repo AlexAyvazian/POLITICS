@@ -53,6 +53,38 @@ class PortraitIdentityTests(unittest.TestCase):
         self.assertNotIn("john", output)
         self.assertEqual(output["jane"]["url"], "https://legislature.ca.gov/jane.jpg")
 
+    def test_archived_images_require_unique_exact_state_name_and_party(self):
+        import io
+        import zipfile
+
+        rows = [
+            ("people-main/data/ca/retired/jane.yml",
+             "id: ocd-person/jane\nname: Jane Candidate\nimage: https://ca.gov/jane.jpg\nparty:\n- name: Democratic\n"),
+            ("people-main/data/ca/executive/john.yml",
+             "id: ocd-person/john\nname: John Candidate\nimage: https://ca.gov/john.jpg\nparty:\n- name: Republican\n"),
+            ("people-main/data/ny/retired/duplicate.yml",
+             "id: ocd-person/other\nname: Jane Candidate\nimage: https://ny.gov/other.jpg\nparty:\n- name: Democratic\n"),
+            ("people-main/data/ca/retired/mixed.yml",
+             "id: ocd-person/mixed\nname: May Candidate\nimage: https://ca.gov/may.jpg\nparty:\n- name: Republican\n")
+        ]
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as archive:
+            for filename, body in rows:
+                archive.writestr(filename, body)
+        people = [
+            {"slug": "jane-ca", "nameKey": "jane-candidate", "state": "CA", "party": "dem"},
+            {"slug": "jane-ny", "nameKey": "jane-candidate", "state": "NY", "party": "dem"},
+            {"slug": "john-ca", "nameKey": "john-candidate", "state": "CA", "party": "rep"},
+            {"slug": "may-ca", "nameKey": "may-candidate", "state": "CA", "party": "dem"}
+        ]
+        with patch.object(photos, "urlopen", return_value=io.BytesIO(output.getvalue())):
+            found = photos.archived_official_photos(people)
+        self.assertEqual(found["jane-ca"]["url"], "https://ca.gov/jane.jpg")
+        self.assertEqual(found["jane-ny"]["url"], "https://ny.gov/other.jpg")
+        self.assertIn("john-ca", found)
+        self.assertNotIn("may-ca", found)
+
+
 
 if __name__ == "__main__":
     unittest.main()
