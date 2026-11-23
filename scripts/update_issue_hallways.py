@@ -167,18 +167,16 @@ def declarations(today):
             if not target.startswith(f"https://en.wikipedia.org/wiki/{year}_") or not name.endswith(" election"): continue
             if "presidential election in" in name or "special" in name.lower() and today.year == year: continue
             state = next((c for c,s in STATES.items() if re.search(r"\b"+s+r"\b",name)), "")
-            office = name[len(str(year))+1:-len(" election")]
-            if "Senate" in office and "United States" in office: office="U.S. Senate"
-            elif "mayoral" in office:
-                city = office.replace(" mayoral","").strip(",")
-                city_states = {"Anchorage":"AK","Chicago":"IL","Colorado Springs":"CO","Denver":"CO",
-                               "Houston":"TX","Indianapolis":"IN","Jacksonville":"FL","Kansas City":"MO",
-                               "Madison":"WI","Nashville":"TN","Orlando":"FL","Philadelphia":"PA","Tampa":"FL"}
-                state = city_states.get(city, state)
-                office = "Mayor of "+city
-            elif state:
-                office=office.replace(STATES[state]+" ","").replace("lieutenant gubernatorial","Lieutenant Governor").replace("gubernatorial","Governor")
-            else: continue
+            if not state or state=="DC": continue
+            race_title=name[len(str(year))+1:-len(" election")]
+            if race_title==STATES[state]+" gubernatorial":
+                office="Governor"
+            elif "United States Senate" in race_title:
+                office="U.S. Senate"
+            elif "United States House of Representatives" in race_title:
+                office="U.S. House"
+            else:
+                continue
             specs[target]=(target,year,state,office)
         # Federal Senate special elections put the state after the word election.
         for href in html.fromstring(raw).xpath('//a/@href'):
@@ -232,12 +230,22 @@ def policy_links(record):
     return policies
 
 
+CANDIDATE_OFFICES = {
+    "governor":"Governor", "u.s. senate":"U.S. Senate", "us senate":"U.S. Senate",
+    "united states senate":"U.S. Senate", "u.s. house":"U.S. House",
+    "u.s. house of representatives":"U.S. House", "united states house of representatives":"U.S. House",
+    "u.s. representative":"U.S. House", "united states representative":"U.S. House",
+}
+
+
 def candidates(today, voters):
     result = []
     for v in voters:
         if (v.get("electionDate") or "") < str(today) or v.get("management",{}).get("lifecycleStatus") not in (None,"active"):
             continue
-        result.append(row("v-"+v["slug"],v["name"],v["office"],state_from(v),v.get("party"),
+        office = CANDIDATE_OFFICES.get((v.get("office") or "").strip().lower().removeprefix("candidate for "))
+        if not office or (office=="Governor" and state_from(v) not in set(STATES)-{"DC"}): continue
+        result.append(row("v-"+v["slug"],v["name"],"Candidate for "+office,state_from(v),v.get("party"),
                           "https://www.voterist.com/candidate/"+v["slug"], issueSlug=v["slug"], year=int(v["electionDate"][:4])))
     cycle = today.year + today.year%2
     fec = {}
@@ -253,10 +261,10 @@ def candidates(today, voters):
                 key=f[0]
                 fec.pop(key,None)
                 election=int(f[3])
-                if f[8]!="C" or election < today.year or november_election(election)<today or f[5] not in ("S","H","P"): continue
+                if f[8]!="C" or election < today.year or november_election(election)<today or f[5] not in ("S","H"): continue
                 last,comma,first=f[1].partition(",")
                 name=((first.strip()+" "+last) if comma else last).title()
-                office={"S":"U.S. Senate","H":"U.S. House","P":"President"}[f[5]]
+                office={"S":"U.S. Senate","H":"U.S. House"}[f[5]]
                 fec[key]=row("fec-"+key.lower(),name,"Candidate for "+office,f[4],{"DEM":"Democratic","REP":"Republican"}.get(f[2],f[2]),
                              "https://www.fec.gov/data/candidate/"+key+"/",year=election)
     seen={(norm(r["name"]),r["state"],norm(r["office"]),r["year"]) for r in result}
@@ -320,6 +328,9 @@ def main():
     (ROOT/"assets/img/hallway-portraits").mkdir(exist_ok=True)
     with ThreadPoolExecutor(max_workers=6) as pool:
         list(pool.map(cache_portrait, serving+upcoming))
+    allowed = {"Candidate for "+office for office in CANDIDATE_OFFICES.values()}
+    if any(r["office"] not in allowed for r in upcoming):
+        raise ValueError("Unsupported office in upcoming hallway")
     OUT.write_text(json.dumps(dict(asOf=str(today),serving=serving,upcoming=upcoming),ensure_ascii=False,separators=(",",":"))+"\n")
     print(len(serving),"officeholders and members-elect;",len(upcoming),"upcoming candidacies")
 
