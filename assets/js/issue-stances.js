@@ -6,6 +6,7 @@
  */
 import {createGallery} from '../../galiyaara/js/gallery.js?v=20261123h';
 import {WALLPAPER_IMAGES} from './issue-stances-wallpapers.js';
+import {arrangeCorridor} from './issue-stances-layout.js';
 import {normalizeDirectory,normalizeIssueSheet,filterCandidates,safeImageUrl} from './issue-stances-model.js';
 
 const $=id=>document.getElementById(id);
@@ -13,7 +14,6 @@ const GATEWAY='https://crimson-mud-d254.alxayvazian.workers.dev';
 const VOTERIST='https://www.voterist.com';
 const READER='https://politics-daily-snapshot.alxayvazian.workers.dev';
 const FALLBACK='assets/img/issue-portrait-unavailable.svg';
-const MAX_CORRIDOR=56;
 let directory=[],corridor=[],gallery=null,selectedSlug='',selectionCounter=0,resultLimit=45;
 const details=new Map();
 let congressPhotos=new Map();
@@ -207,7 +207,7 @@ function closeSheet(){
 }
 function buildCorridor(people){
  if(gallery){gallery.dispose();gallery=null;}
- corridor=people.slice(0,MAX_CORRIDOR);
+ corridor=arrangeCorridor(people);
  const photos=makePhotographs(corridor);
  if(!photos.length){setStatus('No profiles are available for these filters.');return;}
  try{
@@ -235,9 +235,9 @@ function selectCandidate(person){
  if(i<0){
   // Retain the original room/camera implementation: rebuild only its data,
   // rather than drawing a substitute corridor or losing search results.
-  const others=sortCandidates(directory.filter(p=>p.slug!==person.slug)).slice(0,MAX_CORRIDOR-1);
+  const others=directory.filter(p=>p.slug!==person.slug);
   buildCorridor([person,...others]);
-  i=0;
+  i=corridor.findIndex(p=>p.slug===person.slug);
  }
  setFinder(false);
  if(gallery)gallery.jumpTo(i);
