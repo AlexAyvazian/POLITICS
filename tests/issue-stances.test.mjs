@@ -19,11 +19,13 @@ test('Issue Stances is a sixth shared-nav section and does not replace other fiv
 test('Issue Stances contains only portrait identity and sourced issue-sheet content',()=>{
  const html=read('issues.html'),js=read('assets/js/issue-stances.js'),css=read('assets/css/issue-stances.css');
  assert.match(html,/class="unifiedTopNav"/);
- assert.match(html,/id="issueGallery"/);
+ assert.match(html,/<canvas[^>]+id="stage"/);
+ assert.doesNotMatch(html,/id="issueGallery"/);
  assert.match(html,/id="issueSheet"/);
  assert.match(html,/id="issueSearch"/);
  assert.match(html,/id="issueState"/);
- assert.match(css,/wallpaper\//,'wallpaper assets should be used within the issue gallery');
+ assert.match(js,/WALLPAPER_IMAGES/,'actual 3D corridor receives user wallpapers');
+ assert.match(css,/#stage/);
  for(const forbidden of [/Quick Record/i,/Top donor sectors/i,/Fundraising summary/i,/Political score/i,/Leadership PAC/i]){
   assert.doesNotMatch(html,forbidden);
   assert.doesNotMatch(js,forbidden);
@@ -100,13 +102,15 @@ test('Worker proxies only allowlisted read-only Voterist public paths, with no A
  assert.equal(called.length,1);
 });
 
-test('existing user wallpaper collection is used without inventing missing image paths',()=>{
- const page=read('assets/css/issue-stances.css');
+test('updated .jpeg wallpaper files are present and no old .jpg path is assumed',()=>{
+ const manifest=read('assets/js/issue-stances-wallpapers.js');
  for(const jpg of [
-  'wallpaper/American-Eagle-Flag-Patriotic-4th-png-Graphics-113400236-1.jpg',
-  'wallpaper/Lincoln-Memorial-Painting-by-Borbay-1024x675.jpg'
- ]) {
+  'wallpaper/American-Eagle-Flag-Patriotic-4th-png-Graphics-113400236-1.jpeg',
+  'wallpaper/Lincoln-Memorial-Painting-by-Borbay-1024x675.jpeg',
+  'wallpaper/White House.jpeg',
+  'wallpaper/Statue of Liberty.jpeg'
+ ]){
   assert.ok(existsSync(new URL('../'+jpg,import.meta.url)),'Image must exist: '+jpg);
+  assert.ok(manifest.includes(jpg),'Image must appear in manifest: '+jpg);
  }
- assert.match(page,/Lincoln-Memorial-Painting-by-Borbay-1024x675\.jpg/);
 });
