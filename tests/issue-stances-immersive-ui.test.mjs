@@ -36,7 +36,7 @@ test('Roman gallery uses round smooth white marble, no dull gray stone arches',(
  assert.match(rome,/0xf[0-9a-f]{5}/i);
  assert.match(rome,/radialSegments|CylinderGeometry\(0\.2/);
  assert.match(rome,/flutedShaftGeometry/);
- assert.match(corridor,/TorusGeometry\(HALF_W/);
+ assert.match(corridor,/TorusGeometry\(archRadius/);
  assert.match(corridor,/0xf[0-9a-f]{5}/i);
  assert.doesNotMatch(rome,/color:\s*0x8b857d/);
  assert.doesNotMatch(rome,/color:\s*0xc8c0af/);
