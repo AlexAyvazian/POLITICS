@@ -168,7 +168,7 @@ function buildStars(sprite) {
  * @param {Array} photos  entries from photos.json
  * @param {{onFocus:Function, onPass:Function, onReady:Function}} hooks
  */
-export function createGallery(canvas, photos, hooks = {}) {
+export function createGallery(canvas, photos, hooks = {}, options = {}) {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // Any touch device (phone or tablet) gets the lighter path: a 2x-DPR tablet
   // asking for a 2048x2732 render is how you get eight frames a second.
@@ -237,8 +237,8 @@ export function createGallery(canvas, photos, hooks = {}) {
   plaster.wrapS = plaster.wrapT = THREE.RepeatWrapping;
   plaster.repeat.set(LENGTH / 5, 1.4);
 
-  const stone = new THREE.MeshStandardMaterial({ color: 0x736a5c, roughness: 0.9, metalness: 0.02 });
-  const wallMat = new THREE.MeshStandardMaterial({ map: plaster, color: 0x9a8d7c, roughness: 0.95, metalness: 0.0 });
+  const stone = new THREE.MeshStandardMaterial({ color: 0x425364, roughness: 0.9, metalness: 0.02 });
+  const wallMat = new THREE.MeshStandardMaterial({ map: plaster, color: 0x50677a, roughness: 0.95, metalness: 0.0 });
 
   const midZ = -LENGTH / 2 + 10;
   for (const s of [-1, 1]) {
@@ -247,6 +247,33 @@ export function createGallery(canvas, photos, hooks = {}) {
     wall.position.set(s * HALF_W, 3.7, midZ);
     scene.add(wall);
   }
+
+  // POLITICS adaptation: the uploaded U.S. history/landscape images are
+  // wall-mounted atmospheric panels INSIDE the original 3D corridor.
+  // The uploaded assets never stand in for an unidentified politician photo.
+  const wallpaperImages = Array.isArray(options.wallpapers)
+    ? options.wallpapers.filter(path => typeof path === 'string' && /^wallpaper\\/.test(path) === false && /^wallpaper\//.test(path)).slice(0, 32)
+    : [];
+  const wallpaperLoader = new THREE.TextureLoader();
+  wallpaperImages.forEach((path, i) => {
+    const side = i % 2 ? 1 : -1;
+    const z = -(START + (Math.floor(i / 2) * SEG * 2.55));
+    if (Math.abs(z) > LENGTH - 16) return;
+    wallpaperLoader.load(encodeURI(path), (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      const panel = new THREE.Mesh(
+        new THREE.PlaneGeometry(SEG * 2.2, 6.55),
+        new THREE.MeshBasicMaterial({
+          map: tex, color: 0x8eb3c6, transparent: true, opacity: 0.39,
+          side: THREE.DoubleSide, depthWrite: false, toneMapped: false
+        })
+      );
+      panel.position.set(side * (HALF_W - 0.014), 3.45, z);
+      panel.rotation.y = side * -Math.PI / 2;
+      scene.add(panel);
+    }, undefined, () => { /* missing art must not block corridor */ });
+  });
 
   // Same plaster canvas, re-tiled: as a roughness map it gives the flagstones
   // wet and dry patches instead of one flat sheet of blue.
@@ -258,7 +285,7 @@ export function createGallery(canvas, photos, hooks = {}) {
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(HALF_W * 2, LENGTH),
     new THREE.MeshStandardMaterial({
-      color: 0x36373d, roughness: 0.62, metalness: 0.4, roughnessMap: wet,
+      color: 0x172538, roughness: 0.62, metalness: 0.4, roughnessMap: wet,
     })
   );
   floor.rotation.x = -Math.PI / 2;
