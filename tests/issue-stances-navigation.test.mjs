@@ -58,8 +58,8 @@ test('buttons move the camera instead of selecting the next or previous portrait
  assert.match(code,/issueWalkForward/);
  assert.match(code,/issueWalkBack/);
  assert.match(code,/issueAutoWalk/);
- assert.match(code,/gallery\.walkBy\(/);
- assert.match(code,/gallery\.setStick\(/);
+ assert.match(code,/gallery\?\.walkBy\(/);
+ assert.match(code,/gallery\?\.setStick\(/);
  assert.match(code,/gallery\.setAutoWalk\(/);
  assert.doesNotMatch(code,/\['issuePrevious','prev'\]/);
  assert.doesNotMatch(code,/\['issueNext','next'\]/);
