@@ -464,9 +464,15 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     loader.load(a.photo[level], (tex) => { a.loading = false; apply(a, tex, level); },
       undefined, () => {
         a.loading = false;
+        if (!a.failedPortraitUrls) a.failedPortraitUrls = new Set();
+        a.failedPortraitUrls.add(a.photo[level]);
+        const alternatives = Array.isArray(a.photo.alternates) ? a.photo.alternates : [];
         const fallback = options.fallbackPortraitUrl;
-        if (fallback && a.photo[level] !== fallback) {
-          a.photo[level] = fallback;
+        const next = [...alternatives, fallback].find(
+          url => typeof url === 'string' && !a.failedPortraitUrls.has(url)
+        );
+        if (next) {
+          a.photo[level] = next;
           want(a, level);
         }
       });
