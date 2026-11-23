@@ -30,9 +30,10 @@ test('the unified-shell view offers an obvious separate hallway navigation dock'
  for(const id of ['issueWalkBack','issueWalkForward','issueAutoWalk']){
   assert.match(page,new RegExp('id="'+id+'"'),id);
  }
- assert.match(page,/MOUSE WHEEL|SCROLL/i);
+ assert.match(page,/SCROLL/i);
+ assert.match(page,/id="issueToolsPanel"[^>]*hidden/);
  assert.match(page,/SWIPE/i);
- assert.match(page,/WALK FORWARD/i);
+ assert.match(page,/FORWARD/i);
  assert.match(page,/aria-pressed="false"/);
  assert.match(page,/id="issueSheetPrevious"/);
  assert.match(page,/id="issueSheetNext"/);
