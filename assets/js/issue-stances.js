@@ -398,7 +398,10 @@ async function start(){
  setStatus('Opening the gallery…');
  try{
   const [data]=await Promise.all([json('assets/data/issue-stances/hallways.json'),loadVerifiedPortraitIndex()]);
-  directory=sortCandidates(data[hall].map(p=>p.issueSlug&&!p.portrait?{...augmentPortrait({...p,slug:p.issueSlug}),slug:p.slug}:p));
+  const allowedOffices=new Set(hall==='upcoming'
+   ? ['Candidate for U.S. Senate','Candidate for U.S. House','Candidate for Governor']
+   : ['Senator','Representative','Delegate','Resident Commissioner','Governor','Senator-elect','Representative-elect']);
+  directory=sortCandidates(data[hall].filter(person=>allowedOffices.has(person.office)).map(p=>p.issueSlug&&!p.portrait?{...augmentPortrait({...p,slug:p.issueSlug}),slug:p.slug}:p));
   if(!directory.length){setStatus('No candidate records were returned by the public directory.');return;}
   buildCorridor(directory);
   fillFilters();
