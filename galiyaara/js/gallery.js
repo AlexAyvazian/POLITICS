@@ -241,7 +241,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   plaster.wrapS = plaster.wrapT = THREE.RepeatWrapping;
   plaster.repeat.set(LENGTH / 5, 1.4);
 
-  const stone = new THREE.MeshStandardMaterial({ color: 0xb9ae9b, roughness: 0.88, metalness: 0.008 });
+  const stone = new THREE.MeshStandardMaterial({ color: 0xfcfcf9, roughness: 0.55, metalness: 0, emissive: 0x989895, emissiveIntensity: 0.27, toneMapped: false });
   const wallMat = new THREE.MeshStandardMaterial({ map: plaster, color: 0x50677a, roughness: 0.95, metalness: 0.0 });
 
   const midZ = -LENGTH / 2 + 10;
@@ -314,11 +314,11 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     archSpacing, length: LENGTH
   });
   const arch = new THREE.InstancedMesh(
-    new THREE.TorusGeometry(HALF_W, 0.13, 8, 32, Math.PI), stone, arches.length
+    new THREE.TorusGeometry(HALF_W, 0.097, 16, 96, Math.PI), stone, arches.length
   );
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
-  const archScale = new THREE.Vector3(1, 0.48, 1);
+  const archScale = new THREE.Vector3(1, 0.66, 1);
   for (let i = 0; i < arches.length; i++) {
     // The stone arc springs directly out of the paired Corinthian abaci.
     arch.setMatrixAt(i,m.compose(
