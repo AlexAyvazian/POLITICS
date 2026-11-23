@@ -37,6 +37,7 @@ test('all 477 candidates fit in the existing 3D corridor without truncation or d
  assert.doesNotMatch(js,/MAX_CORRIDOR\s*=\s*56/);
  assert.doesNotMatch(js,/people\.slice\(0,\s*MAX_CORRIDOR\)/);
  assert.match(js,/arrangeCorridor\(people\)/);
+ assert.match(js,/side:p\.side,\s*bay:p\.bay/,'3D photo adapter must retain the side and bay from party layout');
 });
 
 test('portrait spacing and architecture are driven by bays, with overhead arches only',()=>{
