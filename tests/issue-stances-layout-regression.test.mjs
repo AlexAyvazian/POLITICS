@@ -50,6 +50,7 @@ test('portrait spacing and architecture are driven by bays, with overhead arches
  assert.match(gallery,/options\.wallpapers/);
  assert.match(gallery,/wallpaperLoader/);
  assert.match(gallery,/group\.visible/,'distant frames should be culled for long corridors');
+ assert.match(gallery,/map: tex, color: 0xaabfca, transparent: false/,'opaque wallpaper must not visually cover the portrait frames');
 });
 
 test('Voterist issue sheet remains sourced and the shared POLITICS navigation is untouched',()=>{
