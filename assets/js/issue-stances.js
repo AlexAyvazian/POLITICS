@@ -261,6 +261,14 @@ function buildCorridor(people){
   gallery.setMode('roam');
   $('issueFallback').hidden=true;
   $('issueCount').textContent=corridor.length+' IN THE CORRIDOR · '+directory.length+' IN THE DIRECTORY';
+  // Inspectable layout diagnostics used by automated browser checks.
+  $('issueCount').dataset.layout=JSON.stringify({
+   democrats:corridor.filter(p=>p.wing==='democratic').length,
+   republicans:corridor.filter(p=>p.wing==='republican').length,
+   other:corridor.filter(p=>p.wing==='other').length,
+   firstLeft:corridor.find(p=>p.side===-1)?.name||'',
+   firstRight:corridor.find(p=>p.side===1)?.name||''
+  });
   setStatus('');
  }catch(err){
   console.error('WebGL corridor unavailable',err);
