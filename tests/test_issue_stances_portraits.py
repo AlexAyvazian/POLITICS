@@ -53,6 +53,29 @@ class PortraitIdentityTests(unittest.TestCase):
         self.assertNotIn("john", output)
         self.assertEqual(output["jane"]["url"], "https://legislature.ca.gov/jane.jpg")
 
+    def test_congressional_bioguide_photos_require_exact_name_state_and_party(self):
+        import json
+        roster = {
+            "states": {
+                "CA": {"house": [
+                    {"name": "Jane Candidate", "party": "Democrat", "bioguide": "C001234"}
+                ], "senators": []},
+                "NY": {"house": [
+                    {"name": "Jane Candidate", "party": "Republican", "bioguide": "C005678"}
+                ], "senators": []}
+            }
+        }
+        people = [
+            {"slug": "jane-dem-ca", "nameKey": "jane-candidate", "state": "CA", "party": "dem"},
+            {"slug": "jane-dem-ny", "nameKey": "jane-candidate", "state": "NY", "party": "dem"},
+            {"slug": "jane-rep-ny", "nameKey": "jane-candidate", "state": "NY", "party": "rep"}
+        ]
+        with patch.object(photos, "fetch", return_value=json.dumps(roster)):
+            matched = photos.federal_member_photos(people)
+        self.assertEqual(matched["jane-dem-ca"]["url"].split("/")[-1], "C001234.jpg")
+        self.assertNotIn("jane-dem-ny", matched)
+        self.assertEqual(matched["jane-rep-ny"]["url"].split("/")[-1], "C005678.jpg")
+
     def test_archived_images_require_unique_exact_state_name_and_party(self):
         import io
         import zipfile
