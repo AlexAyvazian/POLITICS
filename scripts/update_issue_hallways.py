@@ -102,7 +102,7 @@ def officials(today):
     for tr in party_page.xpath('//table[contains(@class,"wikitable")]//tr'):
         cells = [c.text_content().strip() for c in tr.xpath('./td|./th')]
         if len(cells) >= 5:
-            parties[(cells[0].split(" (")[0], norm(cells[2]))] = next((x for x in cells[3:5] if x in ("Democratic","Republican","Independent")), "")
+            parties[(cells[0].split(" (")[0], norm(re.sub(r"\[[^\]]*\]", "", cells[2])))] = next((x for x in cells[3:5] if x in ("Democratic","Republican","Independent")), "")
     governors = {}
     for item in gov.xpath('//li[@class="current-governors__item"]'):
         state_name = item.xpath('string(.//small[@class="state"])').strip()
@@ -139,8 +139,14 @@ def declared_race(spec):
         party = next((p for p in ("Democratic","Republican","Independent","Libertarian","Green") if any(h.startswith(p) for h in headings)), "")
         for li in section.xpath('./ul/li'):
             name = re.split(r",|\[",li.text_content())[0].strip()
+            affiliation = re.search(r"\s*\((Democratic|Republican|Independent|Libertarian|Green|write-in|no party affiliation; write-in)\)$", name, re.I)
+            listed_party = party
+            if affiliation:
+                name = name[:affiliation.start()].strip()
+                if affiliation[1].lower() in ("democratic","republican","independent","libertarian","green"):
+                    listed_party = affiliation[1].title()
             if not 1 < len(name.split()) <= 7 or not li.xpath('.//sup') or len(name)>68: continue
-            record = row(norm(f"{url.rsplit('/',1)[-1]}-{name}"),name,"Candidate for "+office,state,party,
+            record = row(norm(f"{url.rsplit('/',1)[-1]}-{name}"),name,"Candidate for "+office,state,listed_party,
                          url+"#"+section.get("aria-labelledby"),year=year)
             if norm(name) in campaigns: record["campaign"] = campaigns[norm(name)]
             records.append(record)
@@ -163,7 +169,13 @@ def declarations(today):
             state = next((c for c,s in STATES.items() if re.search(r"\b"+s+r"\b",name)), "")
             office = name[len(str(year))+1:-len(" election")]
             if "Senate" in office and "United States" in office: office="U.S. Senate"
-            elif "mayoral" in office: office="Mayor of "+office.replace(" mayoral","").strip(",")
+            elif "mayoral" in office:
+                city = office.replace(" mayoral","").strip(",")
+                city_states = {"Anchorage":"AK","Chicago":"IL","Colorado Springs":"CO","Denver":"CO",
+                               "Houston":"TX","Indianapolis":"IN","Jacksonville":"FL","Kansas City":"MO",
+                               "Madison":"WI","Nashville":"TN","Orlando":"FL","Philadelphia":"PA","Tampa":"FL"}
+                state = city_states.get(city, state)
+                office = "Mayor of "+city
             elif state:
                 office=office.replace(STATES[state]+" ","").replace("lieutenant gubernatorial","Lieutenant Governor").replace("gubernatorial","Governor")
             else: continue
