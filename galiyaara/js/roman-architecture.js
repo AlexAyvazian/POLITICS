@@ -7,6 +7,11 @@
  * corridor affordable on desktops and phones.
  */
 
+/** Physical proportions are shared with gallery.js and geometry regression tests. */
+export const ROMAN_ENGAGEMENT_DEPTH = 0.32;
+export const ROMAN_SHAFT_RADIUS = 0.36;
+export const ROMAN_ARCH_TUBE_RADIUS = 0.27;
+
 /** Return the paired floor-column/roof-arch locations. No Three.js needed. */
 export function corinthianColumnPositions({halfWidth,start,seg,archSpacing,length}){
   const valid=[halfWidth,start,seg,archSpacing,length].every(Number.isFinite);
@@ -18,7 +23,7 @@ export function corinthianColumnPositions({halfWidth,start,seg,archSpacing,lengt
     const z=firstArchZ-i*archSpacing;
     arches.push({z,index:i});
     for(const side of [-1,1]){
-      columns.push({x:side*(halfWidth-0.05),z,side,archIndex:i});
+      columns.push({x:side*(halfWidth-ROMAN_ENGAGEMENT_DEPTH),z,side,archIndex:i});
     }
   }
   return {arches,columns};
@@ -53,7 +58,7 @@ function acanthusLeafGeometry(THREE){
 /** Subtle lengthwise channels cut into the fluted Roman shaft. */
 function flutedShaftGeometry(THREE,height,lowPower){
   const radialSegments=lowPower?64:128;
-  const geo=new THREE.CylinderGeometry(0.213,0.231,height,radialSegments,1);
+  const geo=new THREE.CylinderGeometry(ROMAN_SHAFT_RADIUS*0.96,ROMAN_SHAFT_RADIUS*1.05,height,radialSegments,1);
   const positions=geo.attributes.position;
   for(let i=0;i<positions.count;i++){
     const x=positions.getX(i),z=positions.getZ(i),y=positions.getY(i);
@@ -126,16 +131,16 @@ export function createCorinthianColonnade(THREE,{columns,archSpringY=6.99,lowPow
   }
 
   // A classical Roman plinth and three slightly different toroidal base rings.
-  instanced(new THREE.CylinderGeometry(.30,.33,base.height,lowPower?48:96),stoneShadow,count,i=>({
+  instanced(new THREE.CylinderGeometry(.45,.48,base.height,lowPower?48:96),stoneShadow,count,i=>({
     x:rows[i].x,y:base.y+base.height/2,z:rows[i].z
   }));
-  instanced(new THREE.CylinderGeometry(.284,.292,.12,lowPower?48:96),limestone,count,i=>({
+  instanced(new THREE.CylinderGeometry(.435,.445,.12,lowPower?48:96),limestone,count,i=>({
     x:rows[i].x,y:0.215,z:rows[i].z
   }));
-  instanced(new THREE.CylinderGeometry(.271,.28,.12,lowPower?48:96),ivory,count,i=>({
+  instanced(new THREE.CylinderGeometry(.416,.43,.12,lowPower?48:96),ivory,count,i=>({
     x:rows[i].x,y:0.335,z:rows[i].z
   }));
-  const ringGeo=new THREE.TorusGeometry(.244,.028,lowPower?8:12,lowPower?32:64);
+  const ringGeo=new THREE.TorusGeometry(.395,.044,lowPower?8:12,lowPower?32:64);
   const ringRotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2);
   instanced(ringGeo,limestone,count,i=>({
     x:rows[i].x,y:0.426,z:rows[i].z,rotation:ringRotation
@@ -145,7 +150,7 @@ export function createCorinthianColonnade(THREE,{columns,archSpringY=6.99,lowPow
   instanced(flutedShaftGeometry(THREE,shaftHeight,lowPower),limestone,count,i=>({
     x:rows[i].x,y:(shaftTop+shaftBottom)/2,z:rows[i].z
   }));
-  instanced(new THREE.TorusGeometry(.218,.026,lowPower?8:12,lowPower?32:64),ivory,count,i=>({
+  instanced(new THREE.TorusGeometry(.352,.040,lowPower?8:12,lowPower?32:64),ivory,count,i=>({
     x:rows[i].x,y:shaftTop+.027,z:rows[i].z,rotation:ringRotation
   }));
 
@@ -153,20 +158,20 @@ export function createCorinthianColonnade(THREE,{columns,archSpringY=6.99,lowPow
   // stone-carved volute scrolls on the visible face, and a squared abacus
   // directly beneath the end of its matching sky arch.
   const bellY=archSpringY-.515;
-  instanced(new THREE.CylinderGeometry(.294,.218,.47,lowPower?48:96),limestone,count,i=>({
+  instanced(new THREE.CylinderGeometry(.418,.343,.47,lowPower?48:96),limestone,count,i=>({
     x:rows[i].x,y:bellY,z:rows[i].z
   }));
   const leafCount=lowPower?8:12;
   const leafGeometry=acanthusLeafGeometry(THREE);
   for(const [tier,yOffset,radius] of [
-    [0,archSpringY-.765,.238],
-    [1,archSpringY-.608,.276]
+    [0,archSpringY-.765,.34],
+    [1,archSpringY-.608,.392]
   ]){
     const items=count*leafCount;
     const leafM=new THREE.Matrix4();
     const leafQ=new THREE.Quaternion();
     const leafPos=new THREE.Vector3();
-    const leafScale=new THREE.Vector3(1,1,1);
+    const leafScale=new THREE.Vector3(1.32,1.12,1.22);
     const mesh=new THREE.InstancedMesh(leafGeometry,tier===0?ivory:limestone,items);
     mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
     for(let col=0;col<count;col++){
@@ -188,25 +193,25 @@ export function createCorinthianColonnade(THREE,{columns,archSpringY=6.99,lowPow
   }
 
   // Twin carved spiral volutes face into the hallway beneath the abacus.
-  const voluteGeo=new THREE.TorusGeometry(.080,.017,lowPower?8:12,lowPower?28:56,Math.PI*1.77);
+  const voluteGeo=new THREE.TorusGeometry(.108,.027,lowPower?8:12,lowPower?28:56,Math.PI*1.77);
   const voluteQ=[-1,1].map(side=>
     new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),side*Math.PI/2)
   );
   instanced(voluteGeo,ivory,count*2,k=>{
-    const c=rows[Math.floor(k/2)],offset=k%2? .17:-.17;
+    const c=rows[Math.floor(k/2)],offset=k%2? .24:-.24;
     return {
-      x:c.x-c.side*.257,
+      x:c.x-c.side*.375,
       y:archSpringY-.28,
       z:c.z+offset,
       rotation:voluteQ[c.side===-1?0:1]
     };
   });
   // Abacus and lip give the arc a real-looking structural spring point.
-  instanced(new THREE.BoxGeometry(.56,.115,.55),ivory,count,i=>({
-    x:rows[i].x,y:archSpringY-.0725,z:rows[i].z
+  instanced(new THREE.BoxGeometry(.82,.15,.82),ivory,count,i=>({
+    x:rows[i].x,y:archSpringY-.082,z:rows[i].z
   }));
-  instanced(new THREE.BoxGeometry(.59,.045,.59),limestone,count,i=>({
-    x:rows[i].x,y:archSpringY-.008,z:rows[i].z
+  instanced(new THREE.BoxGeometry(.86,.055,.86),limestone,count,i=>({
+    x:rows[i].x,y:archSpringY+.005,z:rows[i].z
   }));
 
   // Decorative seams are separate instanced meshes, not wall panel dividers.
