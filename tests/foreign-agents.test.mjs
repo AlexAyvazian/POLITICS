@@ -64,7 +64,7 @@ test('uploaded continent assets are wired directly into the selectors',()=>{
 });
 
 test('all public top-level navigation includes Foreign Agents',()=>{
- for(const page of ['index.html','congressional.html','records.html','foreign-influence.html','government-action.html','foreign-agents.html']){
+ for(const page of ['index.html','congressional.html','records.html','foreign-influence.html','issues.html','foreign-agents.html']){
   const html=read(page);
   assert.match(html,/href="foreign-agents\.html"/,page+' should link Foreign Agents');
  }
