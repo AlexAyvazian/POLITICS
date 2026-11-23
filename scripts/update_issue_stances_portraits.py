@@ -17,6 +17,7 @@ import unicodedata
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlencode, quote
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -160,7 +161,16 @@ def provider_state(provider, state):
             params = {"record": "members", "state": state, "page": page}
         else:
             params = {"record": "people", "jurisdiction": state.lower(), "limit": 25, "page": page}
-        data = api_json(GATEWAY + provider, params)["data"]
+        if provider == "openstates":
+            # This key is shared with the state-legislation refresh.
+            time.sleep(7)
+        try:
+            data = api_json(GATEWAY + provider, params)["data"]
+        except HTTPError as exc:
+            if exc.code != 429:
+                raise
+            print("Rate limited", provider, state, "at page", page)
+            return records, True
         for row in data["members" if provider == "congress" else "results"]:
             if provider == "congress":
                 if row.get("state") != STATES[state] or not re.fullmatch(r"[A-Z]\d{6}", row.get("bioguideId", "")):
@@ -182,7 +192,7 @@ def provider_state(provider, state):
         pagination = data["pagination"]
         last = not pagination.get("next") if provider == "congress" else page >= pagination["max_page"]
         if last:
-            return records
+            return records, False
         page += 1
 
 
@@ -192,25 +202,41 @@ def keyed_photos(people, states):
     by_state = defaultdict(list)
     for person in people:
         by_state[person["state"]].append(person)
-    with ThreadPoolExecutor(max_workers=3) as pool:
-        jobs = {pool.submit(provider_state, provider, state): (provider, state)
-                for state in states for provider in ("congress", "openstates")}
-        for job in as_completed(jobs):
-            provider, state = jobs[job]
-            try:
-                rows = job.result()
-            except Exception as exc:
-                print("Portrait API unavailable", provider, state, str(exc)[:120])
+    def record_matches(provider, state, rows):
+        for person in by_state[state]:
+            if provider == "congress" and not re.search(
+                r"\b(?:U\.?S\.?|United States|Congressional)\s+(?:Senat|House|Representative)",
+                person.get("office", ""), re.I
+            ):
                 continue
-            for person in by_state[state]:
-                # Only compare federal candidates with a federal roster.
-                # State-office candidates can still match via their Wikidata identity.
-                if provider == "congress" and not re.search(r"\b(?:U\.?S\.?|United States|Congressional)\s+(?:Senat|House|Representative)", person.get("office", ""), re.I):
-                    continue
-                matches = [record for name, party, record in rows if clean_name(name) == person["nameKey"]
-                           and (party == person["party"] or "other" in (party, person["party"]))]
-                if len(matches) == 1:
-                    by_identity[person["slug"]][provider] = matches[0]
+            matches = [record for name, party, record in rows if clean_name(name) == person["nameKey"]
+                       and (party == person["party"] or "other" in (party, person["party"]))]
+            if len(matches) == 1:
+                by_identity[person["slug"]][provider] = matches[0]
+
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        jobs = {pool.submit(provider_state, "congress", state): state for state in states}
+        for job in as_completed(jobs):
+            state = jobs[job]
+            try:
+                rows, _ = job.result()
+                record_matches("congress", state, rows)
+            except Exception as exc:
+                print("Congress.gov unavailable", state, str(exc)[:120])
+
+    # Rotate two state delegations daily. The bulk public source still covers
+    # every state on each refresh and previous portrait records are retained.
+    if states:
+        start = (int(time.time() // 86400) * 2) % len(states)
+        for index in range(min(2, len(states))):
+            state = states[(start + index) % len(states)]
+            try:
+                rows, limited = provider_state("openstates", state)
+                record_matches("openstates", state, rows)
+                if limited:
+                    break
+            except Exception as exc:
+                print("Open States unavailable", state, str(exc)[:120])
     return {slug: records.get("congress") or records["openstates"] for slug, records in by_identity.items()}
 
 
