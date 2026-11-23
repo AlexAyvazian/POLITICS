@@ -14,6 +14,7 @@
  */
 import * as THREE from '../vendor/three.module.min.js';
 import {advanceCorridorZ,wheelCorridorMetres} from '../../assets/js/issue-corridor-navigation.js';
+import {createCorinthianColonnade,corinthianColumnPositions} from './roman-architecture.js';
 
 // --- Corridor dimensions (metres) -------------------------------------------
 const HALF_W = 3.5;      // wall at x = ±HALF_W
@@ -240,7 +241,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   plaster.wrapS = plaster.wrapT = THREE.RepeatWrapping;
   plaster.repeat.set(LENGTH / 5, 1.4);
 
-  const stone = new THREE.MeshStandardMaterial({ color: 0x425364, roughness: 0.9, metalness: 0.02 });
+  const stone = new THREE.MeshStandardMaterial({ color: 0xb9ae9b, roughness: 0.88, metalness: 0.008 });
   const wallMat = new THREE.MeshStandardMaterial({ map: plaster, color: 0x50677a, roughness: 0.95, metalness: 0.0 });
 
   const midZ = -LENGTH / 2 + 10;
@@ -303,24 +304,36 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   floor.position.z = midZ;
   scene.add(floor);
 
-  // Keep Galiyaara's arched canopy, but ONLY above the walls. There are no
-  // floor-to-ceiling pillars interrupting the user-uploaded wallpaper.
+  // Roman Corinthian colonnade, integrated into the ORIGINAL Galiyaara scene.
+  // Each engaged floor-to-arch column is on the wall, at a point BETWEEN
+  // politicians' portrait bays, preserving the continuous wallpaper.
   const archSpacing = SEG * 4;
-  const bays = Math.ceil(LENGTH / archSpacing);
+  const archSpringY = 6.99;
+  const {arches, columns} = corinthianColumnPositions({
+    halfWidth: HALF_W, start: START, seg: SEG,
+    archSpacing, length: LENGTH
+  });
   const arch = new THREE.InstancedMesh(
-    new THREE.TorusGeometry(HALF_W, 0.12, 8, 28, Math.PI), stone, bays
+    new THREE.TorusGeometry(HALF_W, 0.13, 8, 32, Math.PI), stone, arches.length
   );
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const archScale = new THREE.Vector3(1, 0.48, 1);
-  for (let i = 0; i < bays; i++) {
-    const z = 6 - i * archSpacing;
-    // The end points are above the wallpaper, rather than halfway down it.
-    arch.setMatrixAt(i, m.compose(new THREE.Vector3(0, 6.99, z), q.identity(), archScale));
+  for (let i = 0; i < arches.length; i++) {
+    // The stone arc springs directly out of the paired Corinthian abaci.
+    arch.setMatrixAt(i,m.compose(
+      new THREE.Vector3(0,archSpringY,arches[i].z),
+      q.identity(),archScale
+    ));
   }
   arch.instanceMatrix.needsUpdate = true;
   arch.frustumCulled = false;
   scene.add(arch);
+
+  const corinthianColumns=createCorinthianColonnade(THREE,{
+    columns,archSpringY,lowPower
+  });
+  scene.add(corinthianColumns);
 
   // --- Artworks -------------------------------------------------------------
   const fade = fadeTex();
