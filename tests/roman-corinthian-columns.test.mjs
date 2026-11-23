@@ -53,7 +53,7 @@ test('the original Galiyaara scene contains attached Roman columns and aligned o
  assert.match(source,/const pickables = \[\]/);
 });
 
-test('Roman colonnade keeps party portraits and Galiyaara's controls, with no duplicate gallery',()=>{
+test('Roman colonnade retains portrait placement, walking controls, and original gallery',()=>{
  const html=read('issues.html');
  const app=read('assets/js/issue-stances.js');
  assert.match(html,/class="unifiedTopNav"/);
