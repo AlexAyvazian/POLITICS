@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: politics-issue-stances-portrait-source
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   update:
@@ -46,5 +46,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Refresh verified Issue Stances candidate portraits"
           git fetch origin main
-          git rebase origin/main
+          git rebase -X theirs origin/main
           git push origin HEAD:main
