@@ -1090,6 +1090,32 @@ async function fetchDistrictGeometry(u,request,ctx,fetcher){
  if(cache){try{const save=cache.put(request,output.clone());if(ctx.waitUntil)ctx.waitUntil(save);else await save;}catch{}}
  return output;
 }
+/* Voterist public issue positions: keyless, read-only and short-lived cache. */
+async function fetchVoteristPublic(u,request,ctx,fetcher){
+ const type=u.searchParams.get('type')||'candidates';
+ const slug=u.searchParams.get('slug')||'';
+ if(!['candidates','candidate'].includes(type))return json({error:'Unsupported Voterist record type'},400);
+ if(type==='candidate'&&!/^[a-z0-9](?:[a-z0-9-]{0,120}[a-z0-9])?$/.test(slug))
+  return json({error:'Invalid candidate slug'},400);
+ if(type==='candidates'&&slug)return json({error:'Slug not expected for directory'},400);
+ const path=type==='candidates'?'/api/public/candidates':'/api/public/candidates/'+slug;
+ const cache=globalThis.caches?.default;
+ if(cache){try{const saved=await cache.match(request);if(saved)return saved;}catch{}}
+ let upstream;
+ try{upstream=await fetcher('https://www.voterist.com'+path,{headers:{Accept:'application/json'}});}
+ catch{return json({provider:'voterist',error:'Public candidate source unreachable'},502);}
+ if(!upstream.ok)return json({provider:'voterist',error:'Upstream HTTP '+upstream.status},upstream.status===404?404:upstream.status===429?429:502);
+ let data;
+ try{
+  const raw=await upstream.text();
+  if(raw.length>4500000)throw Error('oversized');
+  data=JSON.parse(raw);
+ }catch{return json({provider:'voterist',error:'Invalid or oversized candidate response'},502);}
+ const response=json({provider:'voterist',source:'Voterist public candidate API',retrievedAt:new Date().toISOString(),data},200,type==='candidates'?1800:3600);
+ if(cache){try{const promise=cache.put(request,response.clone());if(ctx.waitUntil)ctx.waitUntil(promise);else await promise;}catch{}}
+ return response;
+}
+
 const US_STATE_ABBRS_FIPS=new Set('01 02 04 05 06 08 09 10 11 12 13 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 44 45 46 47 48 49 50 51 53 54 55 56'.split(' '));
 
 async function handleCore(request,env,ctx={},fetcher=fetch){
@@ -1099,6 +1125,7 @@ async function handleCore(request,env,ctx={},fetcher=fetch){
  if(path==='/'||path==='/health')return json({service:'POLITICS Research API',status:'operational',providers:Object.keys(CATALOG).length+Object.keys(KEYLESS_SOURCES).length+Object.keys(ACCESS_REQUIRED).length,catalog:'/api/catalog'},200,300);
  if(path==='/api/county-snapshot')return getSnapshot(env);
  if(path==='/api/district-geometry')return fetchDistrictGeometry(u,request,ctx,fetcher);
+ if(path==='/api/voterist')return fetchVoteristPublic(u,request,ctx,fetcher);
  if(path==='/api/catalog')return json({providers:[...Object.entries(CATALOG).map(([id,[binding,category,description]])=>({id,category,description,configured:!!key(env,binding),access:'cloudflare-variable'})),...Object.entries(KEYLESS_SOURCES).map(([id,[category,description]])=>({id,category,description,configured:true,access:'keyless-public'})),...Object.entries(ACCESS_REQUIRED).map(([id,[category,description,keyName,userName]])=>({id,category,description,configured:!!key(env,keyName)&&!!key(env,userName),access:'requires-provider-credentials'}))]},200,600);
  const id=path.startsWith('/api/')?path.slice(5):'';
  if(!Object.hasOwn(CATALOG,id)&&!Object.hasOwn(KEYLESS_SOURCES,id)&&!Object.hasOwn(ACCESS_REQUIRED,id))return json({error:'Unknown endpoint'},404);
