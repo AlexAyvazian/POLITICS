@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {corinthianColumnPositions} from '../galiyaara/js/roman-architecture.js';
+import {corinthianColumnPositions, ROMAN_SHAFT_RADIUS, ROMAN_ARCH_TUBE_RADIUS, ROMAN_ENGAGEMENT_DEPTH} from '../galiyaara/js/roman-architecture.js';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
@@ -15,9 +15,22 @@ test('Roman engaged columns stand on both walls directly beneath matching arches
   assert.deepEqual(pair.map(x=>x.side),[-1,1]);
   assert.equal(pair[0].z,arches[i].z);
   assert.equal(pair[1].z,arches[i].z);
-  assert.equal(pair[0].x,-3.45);
-  assert.equal(pair[1].x,3.45);
+  assert.equal(pair[0].x,-3.18);
+  assert.equal(pair[1].x,3.18);
  }
+});
+
+test('most of each round column is IN FRONT of the wallpaper, not embedded in the wall',()=>{
+ const halfWidth=3.5, wallSurface=halfWidth-0.019;
+ const {columns}=corinthianColumnPositions({halfWidth,start:5.5,seg:3,archSpacing:12,length:785});
+ assert.ok(ROMAN_SHAFT_RADIUS>=0.32,'Roman columns need substantial cylindrical shafts');
+ assert.ok(ROMAN_ENGAGEMENT_DEPTH>=0.30,'Move shafts toward corridor rather than burying them');
+ for(const col of columns){
+  const protrusion=wallSurface-Math.abs(col.x);
+  assert.ok(protrusion/ROMAN_SHAFT_RADIUS>0.80,'most of the shaft circumference must be visible');
+  assert.ok(protrusion<ROMAN_SHAFT_RADIUS,'columns should remain engaged with the wall');
+ }
+ assert.ok(ROMAN_ARCH_TUBE_RADIUS>=0.23,'stone arch must be thick enough to read as architecture');
 });
 
 test('column supports sit between image bays rather than cutting across portraits',()=>{
@@ -47,6 +60,9 @@ test('the original Galiyaara scene contains attached Roman columns and aligned o
  assert.match(source,/corinthianColumnPositions/);
  assert.match(source,/scene\.add\(corinthianColumns\)/);
  assert.match(source,/arch(?:es)?\.setMatrixAt/);
+ assert.match(source,/ROMAN_ARCH_TUBE_RADIUS/);
+ assert.match(source,/HALF_W - ROMAN_ENGAGEMENT_DEPTH/);
+ assert.match(source,/archFascia/,'a second rounded marble molding should give the sky arch depth');
  assert.doesNotMatch(source,/const pillars = new THREE\.InstancedMesh/);
  assert.doesNotMatch(source,/scene\.add\(arch, pillars\)/);
  assert.match(source,/options\.wallpapers/);
