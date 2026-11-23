@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
-const pages=['index.html','congressional.html','records.html','foreign-influence.html','foreign-agents.html'];
+const pages=['index.html','congressional.html','records.html','foreign-influence.html','foreign-agents.html','issues.html'];
 
 test('every top-level POLITICS page uses the same unified navigation shell',()=>{
  for(const page of pages){
@@ -14,13 +14,14 @@ test('every top-level POLITICS page uses the same unified navigation shell',()=>
  }
 });
 
-test('unified navigation exposes the same five destinations in the same order',()=>{
+test('unified navigation exposes the same six destinations in the same order',()=>{
  const expected=[
   ['index.html#map','County Atlas'],
   ['congressional.html','Congressional Atlas'],
   ['records.html','Congressional Records'],
   ['foreign-influence.html','Foreign Influence'],
-  ['foreign-agents.html','Foreign Agents']
+  ['foreign-agents.html','Foreign Agents'],
+  ['issues.html','Issue Stances']
  ];
  for(const page of pages){
   const html=read(page);
@@ -42,7 +43,8 @@ test('only the current top-level destination is marked active on each page',()=>
   'congressional.html':'Congressional Atlas',
   'records.html':'Congressional Records',
   'foreign-influence.html':'Foreign Influence',
-  'foreign-agents.html':'Foreign Agents'
+  'foreign-agents.html':'Foreign Agents',
+  'issues.html':'Issue Stances'
  };
  for(const page of pages){
   const html=read(page);
