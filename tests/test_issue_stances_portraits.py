@@ -1,0 +1,58 @@
+"""Source-identity regressions for the free Issue Stances portrait importer."""
+import unittest
+from unittest.mock import patch
+from scripts import update_issue_stances_portraits as photos
+
+
+class PortraitIdentityTests(unittest.TestCase):
+    def test_explicit_geography_not_guessed(self):
+        self.assertEqual(photos.state_from({"jurisdictionId": "us.ca", "name": "Alex Example"}), "CA")
+        self.assertEqual(photos.state_from({"electionId": "ny.2026.general"}), "NY")
+        self.assertEqual(photos.state_from({"name": "Alex Example"}), "")
+
+    def test_party_normalization(self):
+        self.assertEqual(photos.party_kind("Democratic"), "dem")
+        self.assertEqual(photos.party_kind("DEM/PROG"), "dem")
+        self.assertEqual(photos.party_kind("REP"), "rep")
+        self.assertEqual(photos.party_kind("Republican"), "rep")
+        self.assertEqual(photos.party_kind("Independent"), "other")
+
+    def test_exact_name_and_state_required_for_wikipedia_photo(self):
+        p = {"name": "Jane Candidate", "state": "CA", "nameKey": "jane-candidate"}
+        base = {
+            "title": "Jane Candidate (politician)",
+            "thumbnail": {"source": "https://upload.wikimedia.org/wikipedia/commons/thumb/J/Jane.jpg/480px-Jane.jpg"},
+            "terms": {"description": ["American politician"]},
+            "extract": "Jane Candidate served as a legislator in California and later became a governor."
+        }
+        self.assertTrue(photos.match_wikipedia_page(p, base))
+        self.assertFalse(photos.match_wikipedia_page({**p, "state": "NY"}, base))
+        self.assertFalse(photos.match_wikipedia_page({**p, "nameKey": "john-candidate"}, base))
+        self.assertFalse(photos.match_wikipedia_page(p, {**base, "extract": "Jane Candidate was a software engineer."}))
+        self.assertFalse(photos.match_wikipedia_page(p, {**base, "pageprops": {"disambiguation": ""}}))
+        self.assertFalse(photos.match_wikipedia_page(p, {**base, "thumbnail": {"source": "https://example.com/placeholder.jpg"}}))
+
+    def test_official_state_images_require_exact_candidate_and_party(self):
+        csv_data = (
+            "id,name,current_party,current_district,current_chamber,image\n"
+            "ocd-person/a,Jane Candidate,Democratic,5,lower,https://legislature.ca.gov/jane.jpg\n"
+            "ocd-person/b,Jane Candidate,Republican,1,upper,https://legislature.ca.gov/another.jpg\n"
+            "ocd-person/c,John Sample,Independent,2,upper,javascript:alert(1)\n"
+        )
+        with patch.object(photos, "fetch", return_value=csv_data):
+            _, result = photos.openstates_photos("CA")
+        self.assertEqual(len(result["jane-candidate"]), 2)
+        self.assertNotIn("john-sample", result)
+        candidates = [
+            {"slug": "jane", "state": "CA", "nameKey": "jane-candidate", "party": "dem"},
+            {"slug": "john", "state": "CA", "nameKey": "john-sample", "party": "other"}
+        ]
+        with patch.object(photos, "openstates_photos", return_value=("CA", result)):
+            output = photos.official_photos(candidates, ["CA"])
+        self.assertIn("jane", output)
+        self.assertNotIn("john", output)
+        self.assertEqual(output["jane"]["url"], "https://legislature.ca.gov/jane.jpg")
+
+
+if __name__ == "__main__":
+    unittest.main()
