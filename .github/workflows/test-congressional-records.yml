@@ -194,6 +194,11 @@ jobs:
         run: node --test tests/government-action.test.mjs tests/gateway.test.mjs
       - name: Verify unified top-level navigation shell and Issue Stances
         run: node --test tests/unified-top-nav.test.mjs tests/issue-stances.test.mjs tests/issue-stances-gallery.test.mjs tests/issue-stances-layout-regression.test.mjs tests/issue-stances-navigation.test.mjs
+      - name: Verify Issue Stances browser JavaScript syntax
+        run: |
+          node --check galiyaara/js/gallery.js
+          node --check assets/js/issue-stances.js
+          node --check assets/js/issue-corridor-navigation.js
       - name: Verify records refresh scheduling and member collection
         run: node --test tests/records-refresh.test.mjs tests/scheduled-collection.test.mjs tests/lda-search.test.mjs tests/lda-records-ui.test.mjs
       - name: Verify public data health and County Atlas transparency tabs
