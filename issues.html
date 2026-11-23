@@ -54,13 +54,15 @@
    <button type="button" id="issueSearchMore" hidden>Show more results</button>
   </aside>
 
-  <div class="issueMovement" aria-label="Corridor navigation instructions">
+  <div class="issueMovement" aria-label="Walk through the political portrait gallery">
    <span id="issueNow">THE CORRIDOR</span>
-   <p>W A S D <span>WALK</span> <b>·</b> DRAG <span>LOOK</span> <b>·</b> CLICK <span>OPEN ISSUE SHEET</span></p>
-   <div class="issueMovementButtons">
-    <button type="button" id="issuePrevious" aria-label="Previous issue sheet">← Previous</button>
-    <button type="button" id="issueNext" aria-label="Next issue sheet">Next →</button>
+   <p class="issueWalkHint">MOUSE WHEEL <span>TO WALK</span> <b>·</b> SWIPE <span>UP / DOWN</span> <b>·</b> W / S <span>WALK</span> <b>·</b> DRAG <span>LOOK</span></p>
+   <div class="issueMovementButtons" role="group" aria-label="Hallway walking controls">
+    <button type="button" id="issueWalkBack" aria-label="Walk backward through the hallway" title="Click to step back; hold to keep walking">← Walk back</button>
+    <button type="button" id="issueWalkForward" aria-label="Walk forward through the hallway" title="Click to step forward; hold to keep walking">Walk forward →</button>
+    <button type="button" id="issueAutoWalk" aria-label="Automatically walk forward through the hallway" aria-pressed="false" title="Automatically move forward; click again to stop">▶ Auto-walk</button>
    </div>
+   <p class="issueWalkSecondary">Tap to take a step · Hold to keep walking · Click any portrait to open its issue sheet</p>
   </div>
 
   <aside id="issueSheet" class="issueSheet" aria-label="Politician issue sheet" aria-hidden="true" hidden>
