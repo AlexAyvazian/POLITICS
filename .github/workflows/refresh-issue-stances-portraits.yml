@@ -28,6 +28,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install image encoder
+        run: python -m pip install "Pillow>=10,<12"
       - name: Verify verified portrait identification
         run: python -m unittest discover -s tests -p test_issue_stances_portraits.py -v
       - name: Fetch public legislator and verified Wikimedia portraits
@@ -35,7 +37,7 @@ jobs:
       - name: Publish updated public portrait cache
         shell: bash
         run: |
-          git add assets/data/issue-stances/portraits.json
+          git add assets/data/issue-stances/portraits.json assets/img/issue-portraits/
           if git diff --cached --quiet; then
             echo "Verified portraits unchanged."
             exit 0
