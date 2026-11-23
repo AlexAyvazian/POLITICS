@@ -98,17 +98,18 @@ const beamTex = () => canvasTex(64, 256, (g, w, h) => {
 });
 
 /** The little brass plate under each frame. */
-const plaqueTex = (title) => canvasTex(512, 128, (g, w, h) => {
-  g.fillStyle = '#0d0c0b';
+const plaqueTex = (title, office) => canvasTex(640, 152, (g, w, h) => {
+  g.fillStyle = '#171512';
   g.fillRect(0, 0, w, h);
-  g.fillStyle = '#c9a86a';
-  g.font = '600 40px Georgia, "Times New Roman", serif';
+  g.strokeStyle = '#aa9067';
+  g.strokeRect(5, 5, w-10, h-10);
   g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  let t = title.toUpperCase();
-  while (g.measureText(t).width > w - 48 && t.length > 4) t = t.slice(0, -2);
-  g.letterSpacing = '6px';
-  g.fillText(t, w / 2, h / 2 + 2);
+  g.fillStyle = '#fff1d7';
+  g.font = '600 46px Georgia, serif';
+  g.fillText(title, w/2, 65, w-40);
+  g.fillStyle = '#e2ceb0';
+  g.font = '34px Georgia, serif';
+  g.fillText(office || '', w/2, 120, w-40);
 });
 
 // --- Sky --------------------------------------------------------------------
@@ -501,8 +502,8 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     group.add(art);
     pickables.push(art);
 
-    const plaque = new THREE.Mesh(new THREE.PlaneGeometry(0.66, 0.165), new THREE.MeshBasicMaterial({
-      map: plaqueTex(photo.title), transparent: true, opacity: 0.9, toneMapped: false,
+    const plaque = new THREE.Mesh(new THREE.PlaneGeometry(1.56, 0.37), new THREE.MeshBasicMaterial({
+      map: plaqueTex(photo.title, photo.caption), transparent: true, opacity: 0.9, toneMapped: false,
     }));
     plaque.position.set(0, -h / 2 - 0.28, 0.07);
     group.add(plaque);

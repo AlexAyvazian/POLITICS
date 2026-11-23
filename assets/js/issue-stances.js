@@ -4,7 +4,7 @@
  * Galiyaara renderer, imported from the user-supplied source archive.
  * Only the content adapter and POLITICS issue-sheet overlays live here.
  */
-import {createGallery} from '../../galiyaara/js/gallery.js?v=20261123gallery5';
+import {createGallery} from '../../galiyaara/js/gallery.js?v=20261123doors';
 import {WALLPAPER_IMAGES} from './issue-stances-wallpapers.js';
 import {arrangeCorridor} from './issue-stances-layout.js';
 import {normalizeDirectory,normalizeIssueSheet,filterCandidates,safeImageUrl} from './issue-stances-model.js';
@@ -128,11 +128,14 @@ function sortCandidates(list){
  };
  return list.slice().sort((a,b)=>score(b)-score(a)||a.name.localeCompare(b.name));
 }
+function officeLabel(person){
+ return [[person.office,person.incomingOffice].filter(Boolean).join(" / "),person.state].filter(Boolean).join(" - ")+(person.year?" · "+person.year:"");
+}
 function makePhotographs(people){
  return people.map(p=>({
   slug:p.slug,title:p.name,
   side:p.side,bay:p.bay,wing:p.wing,
-  caption:[p.office,p.state,p.party].filter(Boolean).join(' · '),
+  caption:officeLabel(p),
   alt:p.portrait?'Photograph of '+p.name:'Portrait not available for '+p.name,
   thumb:p.portrait,large:p.portrait,
   alternates:p.portraitAlternates||[],
@@ -183,7 +186,7 @@ function renderSearch(){
   const button=tag('button','issueSearchResult');
   button.type='button';button.setAttribute('role','listitem');
   const inner=tag('span');
-  inner.append(tag('strong','',person.name),tag('small','',[person.office,person.state].filter(Boolean).join(' · ')||person.party||'Candidate'));
+  inner.append(tag('strong','',person.name),tag('small','',officeLabel(person)));
   button.append(inner,tag('span','','↗'));
   button.addEventListener('click',()=>selectCandidate(person));
   root.append(button);
@@ -202,7 +205,7 @@ function issueHeader(person){
   if(next&&photo.src!==new URL(next,location.href).href)photo.src=next;
  });
  head.append(photo,tag('p','issueSheetKicker','ISSUE STANCES'),tag('h2','issueSheetName',person.name),
-  tag('p','issueSheetOffice',[person.office,person.state,person.party].filter(Boolean).join(' · ')));
+  tag('p','issueSheetOffice',officeLabel(person)));
  if(person.portraitCredit)head.append(link('Portrait source and attribution',person.portraitCredit,'issueSheetLink'));
  head.append(tag('hr','issueSheetDivider'),tag('h3','issueSheetSubhead','DOCUMENTED POSITIONS'));
  return head;
@@ -219,10 +222,13 @@ function renderIssueSheet(person,record){
    if(!position.sourceUrl)section.append(tag('small','','Source URL not provided with this position'));
    content.append(section);
   }
- }else{
+ }else if(!person.policyLinks?.length){
   content.append(tag('p','issueSheetEmpty','No documented issue positions are available for this politician in the public record.'));
  }
- content.append(link('Open Voterist candidate profile',VOTERIST+'/candidate/'+encodeURIComponent(person.slug),'issueSheetLink'));
+ for(const policy of person.policyLinks||[])content.append(link(policy.label,policy.url,'issueSheetLink'));
+ if(person.campaign)content.append(link('Official campaign website',person.campaign,'issueSheetLink'));
+ if(person.source)content.append(link('View source record',person.source,'issueSheetLink'));
+ if(person.issueSlug)content.append(link('Open issue profile',VOTERIST+'/candidate/'+encodeURIComponent(person.issueSlug),'issueSheetLink'));
 }
 async function focusPerson(photo,index){
  const id=++selectionCounter;
@@ -239,7 +245,7 @@ async function focusPerson(photo,index){
  $('issueSheet').setAttribute('aria-hidden','false');
  $('issueSheetContent').replaceChildren(issueHeader(person),tag('p','issueSheetEmpty','Loading issue positions…'));
  try{
-  const data=details.has(person.slug)?details.get(person.slug):await voterist('candidate',person.slug);
+  const data=details.has(person.slug)?details.get(person.slug):person.issueSlug?await voterist('candidate',person.issueSlug):{};
   if(id!==selectionCounter)return;
   details.set(person.slug,data);
   renderIssueSheet(person,data);
@@ -247,7 +253,7 @@ async function focusPerson(photo,index){
   if(id!==selectionCounter)return;
   $('issueSheetContent').replaceChildren(issueHeader(person),
    tag('p','issueSheetEmpty','The public issue sheet could not be retrieved right now.'),
-   link('View candidate on Voterist',VOTERIST+'/candidate/'+encodeURIComponent(person.slug),'issueSheetLink'));
+   link('View candidate on Voterist',VOTERIST+'/candidate/'+encodeURIComponent(person.issueSlug),'issueSheetLink'));
  }
 }
 function closeSheet(){
@@ -378,11 +384,16 @@ function bind(){
  });
 }
 async function start(){
+ const hall=new URLSearchParams(location.search).get('hall');
+ syncNavHeight();
+ if(!['serving','upcoming'].includes(hall))return;
+ $('issueLobby').hidden=true;
+ $('issueExperience').hidden=false;
  bind();
  setStatus('Opening the gallery…');
  try{
-  const [data]=await Promise.all([voterist('candidates'),loadCongressPhotoIndex(),loadVerifiedPortraitIndex()]);
-  directory=sortCandidates(normalizeDirectory(data).map(augmentPortrait));
+  const [data]=await Promise.all([json('assets/data/issue-stances/hallways.json'),loadVerifiedPortraitIndex()]);
+  directory=sortCandidates(data[hall].map(p=>p.issueSlug&&!p.portrait?{...augmentPortrait({...p,slug:p.issueSlug}),slug:p.slug}:p));
   if(!directory.length){setStatus('No candidate records were returned by the public directory.');return;}
   buildCorridor(directory);
   fillFilters();

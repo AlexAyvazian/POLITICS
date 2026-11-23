@@ -1,0 +1,35 @@
+name: Refresh Issue Stances hallways
+on:
+  schedule:
+    - cron: "42 12 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/update_issue_hallways.py
+      - .github/workflows/refresh-issue-hallways.yml
+permissions:
+  contents: write
+concurrency:
+  group: issue-hallways
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install lxml Pillow
+      - run: python scripts/update_issue_hallways.py
+      - run: |
+          git add assets/data/issue-stances/hallways.json assets/img/hallway-portraits/
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name github-actions[bot]
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Refresh elected officials, upcoming candidacies and campaign issue sources'
+          git pull --rebase origin main
+          git push origin HEAD:main

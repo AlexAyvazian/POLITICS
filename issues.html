@@ -8,7 +8,7 @@
  <title>Issue Stances · POLITICS</title>
  <link rel="stylesheet" href="assets/css/atlas.css">
  <link rel="stylesheet" href="assets/css/unified-nav.css?v=20261123b">
- <link rel="stylesheet" href="assets/css/issue-stances.css?v=20261123clean2">
+ <link rel="stylesheet" href="assets/css/issue-stances.css?v=20261123doors">
 </head>
 <body data-view="issues">
  <header class="unifiedTopNav">
@@ -24,7 +24,11 @@
   <div class="unifiedNavSpacer" aria-hidden="true"></div>
  </header>
 
- <main class="issueExperience" id="issueExperience">
+ <nav class="issueLobby" id="issueLobby" aria-label="Choose an Issue Stances hallway">
+  <a class="issueDoor" href="?hall=serving"><span>Elected officials</span><small>U.S. Congress &amp; all 50 governors</small></a>
+  <a class="issueDoor" href="?hall=upcoming"><span>Upcoming candidates</span><small>Future elections</small></a>
+ </nav>
+ <main hidden class="issueExperience" id="issueExperience">
   <!-- The original Galiyaara renderer draws its actual 3D corridor here. -->
   <canvas id="stage" aria-label="Interactive three-dimensional gallery of politicians' issue positions"></canvas>
   <div class="issueVignette" aria-hidden="true"></div>
@@ -35,6 +39,7 @@
    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
   </button>
   <aside id="issueToolsPanel" class="issueToolsPanel" aria-label="Gallery tools" hidden>
+   <a class="issueReturn" href="issues.html">← Return to the doors</a>
    <div class="issuePanelHeading"><strong>GALLERY TOOLS</strong><button type="button" id="issueToolsClose" aria-label="Close gallery tools">×</button></div>
    <button type="button" id="issueFindToggle" class="issueToolsSearch" aria-expanded="false" aria-controls="issueSearchPanel">Search politicians <span aria-hidden="true">⌕</span></button>
    <div class="issueToolsMovement" aria-label="Walk through the gallery">
@@ -87,6 +92,6 @@
    <span>POSITIONS: <a href="https://www.voterist.com/ai" target="_blank" rel="noopener noreferrer">VOTERIST</a></span>
   </div>
  </main>
- <script type="module" src="assets/js/issue-stances.js?v=20261123gallery5"></script>
+ <script type="module" src="assets/js/issue-stances.js?v=20261123doors"></script>
 </body>
 </html>
