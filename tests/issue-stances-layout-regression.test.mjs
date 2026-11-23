@@ -58,5 +58,5 @@ test('Voterist issue sheet remains sourced and the shared POLITICS navigation is
  assert.match(js,/getJson|voterist\(/);
  assert.match(html,/class="unifiedTopNav"/);
  assert.match(html,/href="issues\.html" aria-current="page"/);
- assert.doesNotMatch(html,/Quick Record|Top donor|PAC/i);
+ assert.doesNotMatch(html,/Quick Record|Top donor|\bPAC\b/i);
 });
