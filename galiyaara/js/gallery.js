@@ -196,14 +196,14 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   // position lives one level up: the rig is the feet, the camera is the head.
   // Outside XR the camera simply sits at eye height above the rig.
   const rig = new THREE.Group();
-  rig.position.set(0, 0, 8);
+  rig.position.set(0, 0, -3);
   camera.position.set(0, EYE, 0);
   rig.add(camera);
   scene.add(rig);
 
   // Where the head actually is in the world — not the same as rig.position once
   // a headset is involved. Everything that measures distance uses this.
-  const eye = new THREE.Vector3(0, EYE, 8);
+  const eye = new THREE.Vector3(0, EYE, -3);
   const syncEye = () => { rig.updateMatrixWorld(true); camera.getWorldPosition(eye); };
 
   scene.fog = new THREE.FogExp2(0x0b1122, 0.0175);
