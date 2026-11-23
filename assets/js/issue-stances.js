@@ -30,7 +30,9 @@ function link(label,url,className=''){
  return a;
 }
 function plain(v){
- return String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/\b(jr|sr|ii|iii|iv)\b\.?/gi,'').replace(/[^\p{L}\p{N}]/gu,'').toLowerCase();
+ const tokens=String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/\b(jr|sr|ii|iii|iv)\b\.?/gi,'').split(/\s+/).map(x=>x.replace(/[^\p{L}\p{N}]/gu,'').toLowerCase()).filter(Boolean);
+ // First + last + state; middle initials may vary between filing and roster.
+ return tokens.length>=2?tokens[0]+'-'+tokens.at(-1):tokens.join('');
 }
 async function json(url){
  const response=await fetch(url,{credentials:'omit',headers:{Accept:'application/json'}});
