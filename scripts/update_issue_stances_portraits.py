@@ -214,9 +214,18 @@ def wikipedia_photos(people):
 def main():
     people = get_directory()
     states = sorted({person["state"] for person in people})
-    photos = official_photos(people, states)
-    remaining = [p for p in people if p["slug"] not in photos]
-    photos.update(wikipedia_photos(remaining))
+    official = official_photos(people, states)
+    wiki = wikipedia_photos(people)
+    # Wikimedia thumbnails are broadly WebGL-CORS accessible. When an
+    # exact-match official photo is also available, keep it as a backup.
+    photos = dict(official)
+    for slug, record in wiki.items():
+        entry = dict(record)
+        if slug in official and official[slug]["url"] != record["url"]:
+            entry["backupUrl"] = official[slug]["url"]
+        photos[slug] = entry
+    print("Photo matches: official =", len(official), "Wikimedia =", len(wiki),
+          "combined =", len(photos))
     if not photos:
         raise SystemExit("No source-verified portrait matches; retaining old file")
     doc = {"source": "POLITICS cached official state portraits and Wikipedia verified identity matches",
