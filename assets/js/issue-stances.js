@@ -18,7 +18,7 @@ let directory=[],corridor=[],gallery=null,selectedSlug='',selectionCounter=0,res
 const details=new Map();
 let congressPhotos=new Map();
 let verifiedPortraits=new Map();
-const PUBLIC_PHOTO_CACHE='assets/data/issue-stances/portraits.json';
+const PUBLIC_PHOTO_CACHE='assets/data/issue-stances/portraits.json?v=20261123p169';
 
 function tag(type,className,text){
  const el=document.createElement(type);
