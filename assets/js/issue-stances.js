@@ -88,8 +88,14 @@ async function loadVerifiedPortraitIndex(){
    const url=safeImageUrl(record?.url);
    const creditUrl=safeImageUrl(record?.creditUrl);
    const backupUrl=safeImageUrl(record?.backupUrl);
-   if(!url||!creditUrl||typeof slug!=='string')continue;
-   index.set(slug,{url,backupUrl,creditUrl,source:String(record.source||'Public photograph')});
+   const portraitLocalUrl=typeof record?.localUrl==='string'&&/^assets\/img\/issue-portraits\/[a-z0-9-]+\.webp$/.test(record.localUrl)?record.localUrl:null;
+   if((!url&&!portraitLocalUrl)||!creditUrl||typeof slug!=='string')continue;
+   index.set(slug,{
+    url:portraitLocalUrl||url,
+    backupUrl:portraitLocalUrl?url:backupUrl,
+    secondBackupUrl:backupUrl,
+    creditUrl,source:String(record.source||'Public photograph')
+   });
   }
   verifiedPortraits=index;
  }catch{
@@ -107,12 +113,12 @@ function augmentPortrait(person){
  if(id)return {
   ...person,
   portrait:'https://unitedstates.github.io/images/congress/225x275/'+id+'.jpg',
-  portraitAlternates:sourced?[sourced.url,sourced.backupUrl].filter(Boolean):[],
+  portraitAlternates:sourced?[sourced.url,sourced.backupUrl,sourced.secondBackupUrl].filter(Boolean):[],
   portraitCredit:null
  };
  if(sourced)return {
   ...person,portrait:sourced.url,
-  portraitAlternates:[sourced.backupUrl].filter(Boolean),
+  portraitAlternates:[sourced.backupUrl,sourced.secondBackupUrl].filter(Boolean),
   portraitCredit:sourced.creditUrl,portraitSource:sourced.source
  };
  return person;
