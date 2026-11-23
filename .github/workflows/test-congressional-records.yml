@@ -10,6 +10,8 @@ on:
       - assets/js/issue-stances-model.js
       - tests/issue-stances.test.mjs
       - tests/issue-stances-gallery.test.mjs
+      - tests/issue-stances-layout-regression.test.mjs
+      - assets/js/issue-stances-layout.js
       - assets/js/issue-stances-wallpapers.js
       - galiyaara/js/gallery.js
       - galiyaara/vendor/three.module.min.js
@@ -88,6 +90,8 @@ on:
       - assets/js/issue-stances-model.js
       - tests/issue-stances.test.mjs
       - tests/issue-stances-gallery.test.mjs
+      - tests/issue-stances-layout-regression.test.mjs
+      - assets/js/issue-stances-layout.js
       - assets/js/issue-stances-wallpapers.js
       - galiyaara/js/gallery.js
       - galiyaara/vendor/three.module.min.js
@@ -185,7 +189,7 @@ jobs:
       - name: Verify retired Government Action navigation and preserved federal gateway
         run: node --test tests/government-action.test.mjs tests/gateway.test.mjs
       - name: Verify unified top-level navigation shell and Issue Stances
-        run: node --test tests/unified-top-nav.test.mjs tests/issue-stances.test.mjs tests/issue-stances-gallery.test.mjs
+        run: node --test tests/unified-top-nav.test.mjs tests/issue-stances.test.mjs tests/issue-stances-gallery.test.mjs tests/issue-stances-layout-regression.test.mjs
       - name: Verify records refresh scheduling and member collection
         run: node --test tests/records-refresh.test.mjs tests/scheduled-collection.test.mjs tests/lda-search.test.mjs tests/lda-records-ui.test.mjs
       - name: Verify public data health and County Atlas transparency tabs
