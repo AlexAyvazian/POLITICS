@@ -87,8 +87,9 @@ async function loadVerifiedPortraitIndex(){
   for(const [slug,record] of Object.entries(doc.candidates)){
    const url=safeImageUrl(record?.url);
    const creditUrl=safeImageUrl(record?.creditUrl);
+   const backupUrl=safeImageUrl(record?.backupUrl);
    if(!url||!creditUrl||typeof slug!=='string')continue;
-   index.set(slug,{url,creditUrl,source:String(record.source||'Public photograph')});
+   index.set(slug,{url,backupUrl,creditUrl,source:String(record.source||'Public photograph')});
   }
   verifiedPortraits=index;
  }catch{
@@ -102,9 +103,18 @@ function augmentPortrait(person){
  if(person.portrait)return person;
  const state=String(person.state||'').toUpperCase();
  const id=congressPhotos.get(state+'/'+plain(person.name));
- if(id)return {...person,portrait:'https://unitedstates.github.io/images/congress/225x275/'+id+'.jpg',portraitCredit:null};
  const sourced=verifiedPortraits.get(person.slug);
- if(sourced)return {...person,portrait:sourced.url,portraitCredit:sourced.creditUrl,portraitSource:sourced.source};
+ if(id)return {
+  ...person,
+  portrait:'https://unitedstates.github.io/images/congress/225x275/'+id+'.jpg',
+  portraitAlternates:sourced?[sourced.url,sourced.backupUrl].filter(Boolean):[],
+  portraitCredit:null
+ };
+ if(sourced)return {
+  ...person,portrait:sourced.url,
+  portraitAlternates:[sourced.backupUrl].filter(Boolean),
+  portraitCredit:sourced.creditUrl,portraitSource:sourced.source
+ };
  return person;
 }
 function sortCandidates(list){
@@ -122,6 +132,7 @@ function makePhotographs(people){
   caption:[p.office,p.state,p.party].filter(Boolean).join(' · '),
   alt:p.portrait?'Photograph of '+p.name:'Portrait not available for '+p.name,
   thumb:p.portrait||FALLBACK,large:p.portrait||FALLBACK,
+  alternates:p.portraitAlternates||[],
   w:450,h:560,tint:'#24455a',tags:[p.name,p.office,p.state,p.party].filter(Boolean)
  }));
 }
@@ -175,7 +186,11 @@ function issueHeader(person){
  const photo=tag('img','issueSheetPortrait');
  photo.src=person.portrait||FALLBACK;
  photo.alt=person.portrait?'Portrait of '+person.name:'No verified portrait available';
- photo.addEventListener('error',()=>{if(!photo.src.endsWith(FALLBACK))photo.src=FALLBACK;});
+ const alternates=[...(person.portraitAlternates||[]),FALLBACK];
+ photo.addEventListener('error',()=>{
+  const next=alternates.shift();
+  if(next&&photo.src!==new URL(next,location.href).href)photo.src=next;
+ });
  head.append(photo,tag('p','issueSheetKicker','ISSUE STANCES'),tag('h2','issueSheetName',person.name),
   tag('p','issueSheetOffice',[person.office,person.state,person.party].filter(Boolean).join(' · ')));
  if(person.portraitCredit)head.append(link('Portrait source and attribution',person.portraitCredit,'issueSheetLink'));
