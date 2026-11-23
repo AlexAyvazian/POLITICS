@@ -201,6 +201,7 @@ jobs:
       - name: Verify Issue Stances browser JavaScript syntax
         run: |
           node --check galiyaara/js/gallery.js
+          node --check galiyaara/js/roman-architecture.js
           node --check assets/js/issue-stances.js
           node --check assets/js/issue-corridor-navigation.js
       - name: Verify records refresh scheduling and member collection
