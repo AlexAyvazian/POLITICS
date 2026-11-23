@@ -221,10 +221,10 @@ def policy_links(record):
         paragraphs = policy_page.xpath("//main//p | //article//p") or policy_page.xpath("//body//p")
         for paragraph in paragraphs:
             body = " ".join(paragraph.text_content().split())
-            for sentence in re.split(r"(?<=[.!?])\\s+", body):
+            for sentence in re.split(r"(?<=[.!?])\s+", body):
                 if (5 <= len(sentence.split()) <= 24 and
-                    re.search(r"\\b(?:I|we) (?:will|support|oppose|believe|propose|plan to|am committed to|are committed to)\\b", sentence, re.I) and
-                    re.search(r"\\b(?:housing|rent|tax(?:es)?|education|schools?|health(?:care)?|wages?|jobs?|abortion|transit|transportation|climate|water|immigration|polic(?:e|ing)|safety|infrastructure|veterans|childcare|energy|labor|zoning)\\b", sentence, re.I)):
+                    re.search(r"\b(?:I|we) (?:will|support|oppose|believe|propose|plan to|am committed to|are committed to)\b", sentence, re.I) and
+                    re.search(r"\b(?:housing|rent|tax(?:es)?|education|schools?|health(?:care)?|wages?|jobs?|abortion|transit|transportation|climate|water|immigration|polic(?:e|ing)|safety|infrastructure|veterans|childcare|energy|labor|zoning)\b", sentence, re.I)):
                     policy["statement"] = sentence
                     break
             if "statement" in policy:
