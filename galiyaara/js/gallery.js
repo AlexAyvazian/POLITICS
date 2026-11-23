@@ -241,7 +241,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   plaster.wrapS = plaster.wrapT = THREE.RepeatWrapping;
   plaster.repeat.set(LENGTH / 5, 1.4);
 
-  const stone = new THREE.MeshStandardMaterial({ color: 0xfcfcf9, roughness: 0.55, metalness: 0, emissive: 0x989895, emissiveIntensity: 0.27, toneMapped: false });
+  const stone = new THREE.MeshStandardMaterial({ color: 0xfcfcf9, roughness: 0.55, metalness: 0, emissive: 0xffffff, emissiveIntensity: 0.64, toneMapped: false });
   const wallMat = new THREE.MeshStandardMaterial({ map: plaster, color: 0x50677a, roughness: 0.95, metalness: 0.0 });
 
   const midZ = -LENGTH / 2 + 10;
