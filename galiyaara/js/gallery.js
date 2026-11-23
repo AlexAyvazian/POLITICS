@@ -18,7 +18,6 @@ import {createCorinthianColonnade,corinthianColumnPositions,ROMAN_ENGAGEMENT_DEP
 
 // --- Corridor dimensions (metres) -------------------------------------------
 const HALF_W = 3.5;      // wall at x = ±HALF_W
-const SPRING = 3.0;      // height the arches spring from
 const SEG = 3.0;         // one photograph per wall every 3 metres; opposite parties face each other
 const START = 5.5;       // first pair of portraits is visible near the entrance
 const EYE = 1.62;
@@ -142,18 +141,15 @@ function buildSky() {
 function buildStars(sprite) {
   const N = 1400;
   const pos = new Float32Array(N * 3);
-  const size = new Float32Array(N);
   for (let i = 0; i < N; i++) {
-    // Upper hemisphere only, biased away from the horizon haze.
+    // Extend slightly below the horizon for views through the end window.
     const theta = Math.random() * Math.PI * 2;
-    const y = Math.pow(Math.random(), 0.6);
+    const y = Math.random() * 1.12 - 0.12;
     const r = Math.sqrt(1 - y * y);
     pos.set([Math.cos(theta) * r * 420, y * 420, Math.sin(theta) * r * 420], i * 3);
-    size[i] = 1.4 + Math.pow(Math.random(), 3) * 6;
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute('size', new THREE.BufferAttribute(size, 1));
   const mat = new THREE.PointsMaterial({
     map: sprite, size: 3, sizeAttenuation: false, transparent: true,
     depthWrite: false, blending: THREE.AdditiveBlending, color: 0xcfe0ff, fog: false,
@@ -161,6 +157,79 @@ function buildStars(sprite) {
   const pts = new THREE.Points(geo, mat);
   pts.frustumCulled = false;
   return pts;
+}
+
+function buildMeteor() {
+  const segments = 24;
+  const positions = new Float32Array(segments * 6);
+  const colors = new Float32Array(positions.length);
+  const color = new THREE.Color(0xbcd9ff);
+  for (let i = 0; i < segments * 2; i++) {
+    const strength = Math.pow(1 - Math.ceil(i / 2) / segments, 1.7);
+    colors.set([color.r * strength, color.g * strength, color.b * strength], i * 3);
+  }
+  const geometry = new THREE.BufferGeometry();
+  const position = new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage);
+  geometry.setAttribute('position', position);
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const material = new THREE.LineBasicMaterial({
+    vertexColors: true, transparent: true, blending: THREE.AdditiveBlending,
+    depthWrite: false, fog: false, toneMapped: false,
+  });
+  const meteor = new THREE.LineSegments(geometry, material);
+  meteor.frustumCulled = false;
+  const forward = new THREE.Vector3();
+  const right = new THREE.Vector3();
+  const origin = new THREE.Vector3();
+  const velocity = new THREE.Vector3();
+  const point = new THREE.Vector3();
+  let event = -1;
+
+  return {
+    meteor,
+    update(time, eye, yaw) {
+      const interval = 7;
+      const elapsed = time % interval;
+      meteor.visible = elapsed < 1.4;
+      if (!meteor.visible) return;
+      const nextEvent = Math.floor(time / interval);
+      if (event !== nextEvent) {
+        event = nextEvent;
+        forward.set(-Math.sin(yaw), 0, -Math.cos(yaw));
+        right.set(-forward.z, 0, forward.x);
+        const direction = event % 2 === 0 ? 1 : -1;
+        origin.copy(eye).addScaledVector(forward, 155).addScaledVector(right, -62 * direction);
+        origin.y += 84;
+        velocity.copy(right).multiplyScalar(102 * direction);
+        velocity.y = -26;
+      }
+      for (let i = 0; i < segments * 2; i++) {
+        const lag = Math.ceil(i / 2) / segments * 0.38;
+        point.copy(origin).addScaledVector(velocity, Math.max(0, elapsed - lag));
+        position.setXYZ(i, point.x, point.y, point.z);
+      }
+      position.needsUpdate = true;
+      material.opacity = Math.min(elapsed * 12, (1.4 - elapsed) * 3, 0.95);
+    },
+  };
+}
+
+function namePanel(photo) {
+  return canvasTex(256, 320, (g, w, h) => {
+    g.fillStyle = '#172631';
+    g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#b89d72';
+    g.strokeRect(14, 14, w - 28, h - 28);
+    g.fillStyle = '#f3e5cb';
+    g.textAlign = 'center';
+    g.font = '600 28px Georgia, serif';
+    g.fillText(photo.title, w / 2, 155, w - 54);
+    g.fillStyle = '#d1dce4';
+    g.font = '15px sans-serif';
+    g.fillText(photo.caption || '', w / 2, 185, w - 54);
+    g.font = '12px sans-serif';
+    g.fillText('PORTRAIT UNAVAILABLE', w / 2, 270, w - 54);
+  });
 }
 
 // --- Main -------------------------------------------------------------------
@@ -220,7 +289,10 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   pmrem.dispose();
 
   const soft = radialTex();
-  scene.add(buildStars(soft));
+  const stars = buildStars(soft);
+  scene.add(stars);
+  const shootingStar = reduced ? null : buildMeteor();
+  if (shootingStar) scene.add(shootingStar.meteor);
 
   // Moon: one real light, cool, raking down the corridor.
   const moon = new THREE.DirectionalLight(0xa8c0ff, 1.45);
@@ -244,13 +316,45 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   const stone = new THREE.MeshStandardMaterial({ color: 0xfcfcf9, roughness: 0.55, metalness: 0, emissive: 0xffffff, emissiveIntensity: 0.64, toneMapped: false });
   const wallMat = new THREE.MeshStandardMaterial({ map: plaster, color: 0x50677a, roughness: 0.95, metalness: 0.0 });
 
-  const midZ = -LENGTH / 2 + 10;
+  const endZ = -(LENGTH - 24) - 3;
+  const builtLength = 10 - endZ;
+  const midZ = (10 + endZ) / 2;
   for (const s of [-1, 1]) {
-    const wall = new THREE.Mesh(new THREE.PlaneGeometry(LENGTH, 7.4), wallMat);
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(builtLength, 7.4), wallMat);
     wall.rotation.y = s * Math.PI / -2;
     wall.position.set(s * HALF_W, 3.7, midZ);
     scene.add(wall);
   }
+
+  // Close the corridor just beyond the walking limit, with a glazed end window.
+  const endWall = new THREE.Group();
+  endWall.position.z = endZ;
+  const windowWidth = 4.6, windowBottom = 0.95, windowTop = 6.1, wallHeight = 7.4;
+  const endPanel = (width, height, x, y, material, depth = 0) => {
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material);
+    panel.position.set(x, y, depth);
+    endWall.add(panel);
+  };
+  const surround = new THREE.MeshStandardMaterial({ color: 0xa4adb5, roughness: 0.9, side: THREE.DoubleSide });
+  const pierWidth = HALF_W - windowWidth / 2;
+  for (const side of [-1, 1]) {
+    endPanel(pierWidth, wallHeight, side * (HALF_W - pierWidth / 2), wallHeight / 2, surround);
+  }
+  endPanel(windowWidth, windowBottom, 0, windowBottom / 2, surround);
+  endPanel(windowWidth, wallHeight - windowTop, 0, (wallHeight + windowTop) / 2, surround);
+  const glazing = new THREE.MeshBasicMaterial({
+    color: 0x182c4a, opacity: 0.2, transparent: true, depthWrite: false, toneMapped: false,
+  });
+  const windowHeight = windowTop - windowBottom;
+  const windowY = (windowTop + windowBottom) / 2;
+  endPanel(windowWidth, windowHeight, 0, windowY, glazing);
+  for (const x of [-windowWidth / 2, 0, windowWidth / 2]) {
+    endPanel(0.14, windowHeight + 0.16, x, windowY, stone, 0.03);
+  }
+  for (const y of [windowBottom, windowY, windowTop]) {
+    endPanel(windowWidth + 0.14, 0.14, 0, y, stone, 0.03);
+  }
+  scene.add(endWall);
 
   // The original Galiyaara corridor carries a continuous wallpaper gallery.
   // Reuse the 25 existing textures across the *entire* hallway rather than
@@ -260,7 +364,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     : [];
   const wallpaperLoader = new THREE.TextureLoader();
   const wallPanelWidth = SEG * 3; // seamless horizontal panels, no breaks by columns
-  const wallPanelCount = Math.ceil((LENGTH + 4) / wallPanelWidth);
+  const wallPanelCount = Math.ceil((6 - endZ) / wallPanelWidth);
   const wallpaperGeo = new THREE.PlaneGeometry(wallPanelWidth + 0.04, 6.85);
   // One material per image, reused across all sections of that wall.
   wallpaperImages.forEach((path, imageIndex) => {
@@ -295,7 +399,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   wet.repeat.set(3, LENGTH / 9);
 
   const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(HALF_W * 2, LENGTH),
+    new THREE.PlaneGeometry(HALF_W * 2, builtLength),
     new THREE.MeshStandardMaterial({
       color: 0x172538, roughness: 0.62, metalness: 0.4, roughnessMap: wet,
     })
@@ -311,7 +415,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   const archSpringY = 6.99;
   const {arches, columns} = corinthianColumnPositions({
     halfWidth: HALF_W, start: START, seg: SEG,
-    archSpacing, length: LENGTH
+    archSpacing, length: LENGTH - 9
   });
   const archRadius = HALF_W - ROMAN_ENGAGEMENT_DEPTH;
   const arch = new THREE.InstancedMesh(
@@ -449,7 +553,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     group.add(pool);
 
     scene.add(group);
-    artworks.push({ photo, group, art, glow, reflection, side, z, w, h, tint, tex: null, level: null, loading: false });
+    artworks.push({ photo, group, art, glow, reflection, side, z, w, h, tint, tex: null, level: null, loading: false, failedPortraitUrls: new Set() });
   });
 
   // --- Dust -------------------------------------------------------------------
@@ -488,33 +592,41 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     a.reflection.material.map = tex;
     a.reflection.material.color.set(0xffffff);
     a.reflection.material.needsUpdate = true;
-    a.art.material.opacity = 0;   // faded in by the loop
+    a.art.material.opacity = 1;
+    a.reflection.material.opacity = 0.3;
   }
 
   function want(a, level) {
-    if (a.loading || a.level === level || (level === 'thumb' && a.level === 'large')) return;
+    if (a.loading || a.level === level || a.level === 'large' || a.level === 'panel') return;
+    const url = [a.photo[level], ...(a.photo.alternates || [])].find(
+      source => source && !a.failedPortraitUrls.has(source)
+    );
+    if (!url) {
+      if (!a.tex) apply(a, namePanel(a.photo), 'panel');
+      else a.level = level;
+      return;
+    }
+    if (url === a.loadedUrl) {
+      a.level = level;
+      return;
+    }
     a.loading = true;
-    loader.load(a.photo[level], (tex) => { a.loading = false; apply(a, tex, level); },
-      undefined, () => {
-        a.loading = false;
-        if (!a.failedPortraitUrls) a.failedPortraitUrls = new Set();
-        a.failedPortraitUrls.add(a.photo[level]);
-        const alternatives = Array.isArray(a.photo.alternates) ? a.photo.alternates : [];
-        const fallback = options.fallbackPortraitUrl;
-        const next = [...alternatives, fallback].find(
-          url => typeof url === 'string' && !a.failedPortraitUrls.has(url)
-        );
-        if (next) {
-          a.photo[level] = next;
-          want(a, level);
-        }
-      });
+    loader.load(url, tex => {
+      a.loading = false;
+      if (!running) { tex.dispose(); return; }
+      a.loadedUrl = url;
+      apply(a, tex, level);
+    }, undefined, () => {
+      a.loading = false;
+      a.failedPortraitUrls.add(url);
+      if (running) want(a, level);
+    });
   }
 
   function release(a) {
     if (!a.tex) return;
     a.tex.dispose();
-    a.tex = null; a.level = null;
+    a.tex = null; a.level = null; a.loadedUrl = null;
     for (const mat of [a.art.material, a.reflection.material]) {
       mat.map = null;
       mat.color.copy(a.tint);
@@ -707,7 +819,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     raycaster.setFromCamera(
       document.pointerLockElement === canvas ? new THREE.Vector2(0, 0) : pointer, camera
     );
-    const hit = raycaster.intersectObjects(pickables, false)[0];
+    const hit = raycaster.intersectObjects(pickables, false).find(hit => hit.object.parent.visible);
     if (hit) {
       if (mode === 'page') setMode('roam');
       endTour();
@@ -842,24 +954,22 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     if (!inXR) camera.rotation.set(pitch, yaw, 0);   // in XR the headset decides
     syncEye();
     sky.position.copy(eye);
+    stars.position.copy(eye);
+    shootingStar?.update(time * 0.001 + 5, eye, yaw);
     moonDisc.position.set(eye.x - 130, 220, eye.z + 90);
 
-    // Stream textures, fade them in, breathe the glows.
+    // Stream textures and breathe the glows.
     const t = performance.now() * 0.001;
     let best = Infinity, bestI = -1;
     for (let i = 0; i < artworks.length; i++) {
       const a = artworks[i];
       const d = Math.abs(a.z - eye.z);
-      // All 477 frames exist; only nearby ones render to keep WebGL light.
-      a.group.visible = d < LOAD_D + 16 || i === focused;
       if (d < LOAD_D) want(a, 'thumb');
       else if (d > DROP_D && i !== focused) release(a);
 
+      a.group.visible = Boolean(a.tex) && (d < LOAD_D + 16 || i === focused);
+
       if (d < LOAD_D) {
-        if (a.tex && a.art.material.opacity < 1) {
-          a.art.material.opacity = Math.min(1, a.art.material.opacity + dt * 1.8);
-          a.reflection.material.opacity = a.art.material.opacity * 0.3;
-        }
         const pulse = 0.8 + Math.sin(t * 0.9 + i) * 0.05;
         a.glow.material.opacity = i === hovered || i === focused ? pulse + 0.28 : pulse;
         if (d < best) { best = d; bestI = i; }
@@ -870,7 +980,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     // Hover highlight (skipped while docked — nothing else is clickable then).
     if (focused === null && !dragging && !inXR) {
       raycaster.setFromCamera(document.pointerLockElement === canvas ? new THREE.Vector2(0, 0) : pointer, camera);
-      const hit = raycaster.intersectObjects(pickables, false)[0];
+      const hit = raycaster.intersectObjects(pickables, false).find(hit => hit.object.parent.visible);
       const idx = hit ? hit.object.userData.index : null;
       if (idx !== hovered) {
         hovered = idx;

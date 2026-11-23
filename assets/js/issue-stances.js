@@ -4,7 +4,7 @@
  * Galiyaara renderer, imported from the user-supplied source archive.
  * Only the content adapter and POLITICS issue-sheet overlays live here.
  */
-import {createGallery} from '../../galiyaara/js/gallery.js?v=20261123roman4';
+import {createGallery} from '../../galiyaara/js/gallery.js?v=20261123gallery5';
 import {WALLPAPER_IMAGES} from './issue-stances-wallpapers.js';
 import {arrangeCorridor} from './issue-stances-layout.js';
 import {normalizeDirectory,normalizeIssueSheet,filterCandidates,safeImageUrl} from './issue-stances-model.js';
@@ -110,17 +110,13 @@ function augmentPortrait(person){
  const state=String(person.state||'').toUpperCase();
  const id=congressPhotos.get(state+'/'+plain(person.name));
  const sourced=verifiedPortraits.get(person.slug);
- if(id)return {
-  ...person,
-  portrait:'https://unitedstates.github.io/images/congress/225x275/'+id+'.jpg',
-  portraitAlternates:sourced?[sourced.url,sourced.backupUrl,sourced.secondBackupUrl].filter(Boolean):[],
-  portraitCredit:null
- };
+ const official=id?'https://unitedstates.github.io/images/congress/225x275/'+id+'.jpg':null;
  if(sourced)return {
   ...person,portrait:sourced.url,
-  portraitAlternates:[sourced.backupUrl,sourced.secondBackupUrl].filter(Boolean),
+  portraitAlternates:[official,sourced.backupUrl,sourced.secondBackupUrl].filter(Boolean),
   portraitCredit:sourced.creditUrl,portraitSource:sourced.source
  };
+ if(official)return {...person,portrait:official};
  return person;
 }
 function sortCandidates(list){
@@ -138,7 +134,7 @@ function makePhotographs(people){
   side:p.side,bay:p.bay,wing:p.wing,
   caption:[p.office,p.state,p.party].filter(Boolean).join(' · '),
   alt:p.portrait?'Photograph of '+p.name:'Portrait not available for '+p.name,
-  thumb:p.portrait||FALLBACK,large:p.portrait||FALLBACK,
+  thumb:p.portrait,large:p.portrait,
   alternates:p.portraitAlternates||[],
   w:450,h:560,tint:'#24455a',tags:[p.name,p.office,p.state,p.party].filter(Boolean)
  }));
@@ -272,7 +268,7 @@ function buildCorridor(people){
    onReady:()=>setStatus(''),
    onMode:()=>{},
    onAutoWalk:(walking)=>updateAutoWalkButton(walking)
-  },{wallpapers:WALLPAPER_IMAGES,fallbackPortraitUrl:FALLBACK});
+  },{wallpapers:WALLPAPER_IMAGES});
   gallery.setMode('roam');
   updateAutoWalkButton(false);
   $('issueFallback').hidden=true;
