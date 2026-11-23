@@ -129,6 +129,7 @@ function sortCandidates(list){
 function makePhotographs(people){
  return people.map(p=>({
   slug:p.slug,title:p.name,
+  side:p.side,bay:p.bay,wing:p.wing,
   caption:[p.office,p.state,p.party].filter(Boolean).join(' · '),
   alt:p.portrait?'Photograph of '+p.name:'Portrait not available for '+p.name,
   thumb:p.portrait||FALLBACK,large:p.portrait||FALLBACK,
