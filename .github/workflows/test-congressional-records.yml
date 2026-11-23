@@ -13,6 +13,7 @@ on:
       - tests/issue-stances-layout-regression.test.mjs
       - tests/issue-stances-navigation.test.mjs
       - tests/roman-corinthian-columns.test.mjs
+      - tests/issue-stances-immersive-ui.test.mjs
       - galiyaara/js/roman-architecture.js
       - assets/js/issue-corridor-navigation.js
       - assets/js/issue-stances-layout.js
@@ -97,6 +98,7 @@ on:
       - tests/issue-stances-layout-regression.test.mjs
       - tests/issue-stances-navigation.test.mjs
       - tests/roman-corinthian-columns.test.mjs
+      - tests/issue-stances-immersive-ui.test.mjs
       - galiyaara/js/roman-architecture.js
       - assets/js/issue-corridor-navigation.js
       - assets/js/issue-stances-layout.js
@@ -197,7 +199,7 @@ jobs:
       - name: Verify retired Government Action navigation and preserved federal gateway
         run: node --test tests/government-action.test.mjs tests/gateway.test.mjs
       - name: Verify unified top-level navigation shell and Issue Stances
-        run: node --test tests/unified-top-nav.test.mjs tests/issue-stances.test.mjs tests/issue-stances-gallery.test.mjs tests/issue-stances-layout-regression.test.mjs tests/issue-stances-navigation.test.mjs tests/roman-corinthian-columns.test.mjs
+        run: node --test tests/unified-top-nav.test.mjs tests/issue-stances.test.mjs tests/issue-stances-gallery.test.mjs tests/issue-stances-layout-regression.test.mjs tests/issue-stances-navigation.test.mjs tests/roman-corinthian-columns.test.mjs tests/issue-stances-immersive-ui.test.mjs
       - name: Verify Issue Stances browser JavaScript syntax
         run: |
           node --check galiyaara/js/gallery.js
