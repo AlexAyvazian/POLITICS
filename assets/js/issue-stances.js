@@ -146,13 +146,20 @@ function syncNavHeight(){
  const height=document.querySelector('.unifiedTopNav')?.getBoundingClientRect().height||58;
  document.body.style.setProperty('--issueNavH',Math.ceil(height)+'px');
 }
+function setToolsOpen(open){
+ const panel=$('issueToolsPanel'),toggle=$('issueToolsToggle');
+ panel.hidden=!open;
+ toggle.setAttribute('aria-expanded',String(open));
+ if(open)$('issueFindToggle').focus({preventScroll:true});
+}
 function setFinder(open){
  $('issueSearchPanel').hidden=!open;
  $('issueFindToggle').setAttribute('aria-expanded',String(open));
  if(open){
+  setToolsOpen(false);
   fillFilters();renderSearch();
-  $('issueSearch').focus();
- }else $('issueFindToggle').focus();
+  $('issueSearch').focus({preventScroll:true});
+ }else $('issueToolsToggle').focus({preventScroll:true});
 }
 function fillFilters(){
  for(const [id,prop,label] of [['issueState','state','All states'],['issueParty','party','All parties']]){
@@ -336,7 +343,10 @@ function bind(){
   observer.observe(document.querySelector('.unifiedTopNav'));
  }
  window.addEventListener('resize',syncNavHeight,{passive:true});
+ $('issueToolsToggle').addEventListener('click',()=>setToolsOpen($('issueToolsPanel').hidden));
+ $('issueToolsClose').addEventListener('click',()=>{setToolsOpen(false);$('issueToolsToggle').focus();});
  $('issueFindToggle').addEventListener('click',()=>setFinder($('issueSearchPanel').hidden));
+ $('stage').addEventListener('pointerdown',()=>{if(!$('issueToolsPanel').hidden)setToolsOpen(false);});
  $('issueFindClose').addEventListener('click',()=>setFinder(false));
  $('issueFallbackSearch').addEventListener('click',()=>setFinder(true));
  $('issueSearch').addEventListener('input',()=>{resultLimit=45;renderSearch();});
@@ -352,7 +362,17 @@ function bind(){
   $(id).addEventListener('click',()=>gallery?.[method]?.());
  }
  document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&!$('issueSearchPanel').hidden)setFinder(false);
+  if(e.key==='Escape'){
+   if(!$('issueSearchPanel').hidden){e.preventDefault();setFinder(false);}
+   else if(!$('issueToolsPanel').hidden){e.preventDefault();setToolsOpen(false);}
+   return;
+  }
+  if(e.target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+  if(e.key==='/' || e.key==='?'){
+   e.preventDefault();
+   if(e.key==='/')setFinder(true);
+   else setToolsOpen($('issueToolsPanel').hidden);
+  }
  });
 }
 async function start(){
