@@ -165,6 +165,13 @@ function target(id,p,env){
  case 'bls':u='https://api.bls.gov/publicAPI/v2/timeseries/data/';options={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seriesid:[f?'LAUCN'+f+'0000000003':'CUUR0000SA0'],registrationkey:k})};break;
  case 'census':if(!f)throw Error('Five-digit county FIPS required');u=qs('https://api.census.gov/data/2024/acs/acs5',{get:'NAME,B19013_001E,B17001_001E,B17001_002E',for:'county:'+f.slice(2),in:'state:'+f.slice(0,2),key:k});break;
  case 'congress':{
+  if(p.get('record')==='members'){
+   const state=p.get('state')||'',page=Number(p.get('page')||1);
+   if(!/^[A-Z]{2}$/.test(state)||!Number.isInteger(page)||page<1||page>100)throw Error('Invalid member state or page');
+   u=qs('https://api.congress.gov/v3/member/'+state,{format:'json',offset:(page-1)*25,limit:25});
+   options.headers['X-Api-Key']=k;
+   break;
+  }
   const congress=currentCongressNumber();
   u=qs('https://api.congress.gov/v3/bill/'+congress,{api_key:k,format:'json',limit:n,sort:'updateDate+desc'});
   break;

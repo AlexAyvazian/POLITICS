@@ -142,6 +142,115 @@ def official_photos(candidates, states):
     return found
 
 
+GATEWAY = "https://crimson-mud-d254.alxayvazian.workers.dev/api/"
+WIKIDATA = "https://www.wikidata.org/w/api.php"
+COMMONS = "https://commons.wikimedia.org/w/api.php"
+
+
+def api_json(endpoint, params):
+    return json.loads(fetch(endpoint + "?" + urlencode(params), 6_000_000))
+
+
+def provider_state(provider, state):
+    """Read only portrait/identity fields from the two credentialed gateway routes."""
+    records = []
+    page = 1
+    while True:
+        if provider == "congress":
+            params = {"record": "members", "state": state, "page": page}
+        else:
+            params = {"record": "people", "jurisdiction": state.lower(), "limit": 25, "page": page}
+        data = api_json(GATEWAY + provider, params)["data"]
+        for row in data["members" if provider == "congress" else "results"]:
+            if provider == "congress":
+                if row.get("state") != STATES[state] or not re.fullmatch(r"[A-Z]\d{6}", row.get("bioguideId", "")):
+                    continue
+                surname, comma, given = row["name"].partition(",")
+                name = (given + " " + surname).strip() if comma else surname
+                url = (row.get("depiction") or {}).get("imageUrl")
+                party = row.get("partyName")
+                credit = "https://bioguide.congress.gov/search/bio/" + row["bioguideId"]
+                source = "Congress.gov member portrait"
+            else:
+                if (row.get("jurisdiction") or {}).get("name") != STATES[state]:
+                    continue
+                name, url, party = row.get("name"), row.get("image"), row.get("party")
+                credit = row.get("openstates_url")
+                source = "Open States API legislator portrait"
+            if name and WEB_IMAGE.fullmatch(url or "") and WEB_IMAGE.fullmatch(credit or ""):
+                records.append((name, party_kind(party), {"url": url, "creditUrl": credit, "source": source}))
+        pagination = data["pagination"]
+        last = not pagination.get("next") if provider == "congress" else page >= pagination["max_page"]
+        if last:
+            return records
+        page += 1
+
+
+def keyed_photos(people, states):
+    from collections import defaultdict
+    by_identity = defaultdict(dict)
+    by_state = defaultdict(list)
+    for person in people:
+        by_state[person["state"]].append(person)
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        jobs = {pool.submit(provider_state, provider, state): (provider, state)
+                for state in states for provider in ("congress", "openstates")}
+        for job in as_completed(jobs):
+            provider, state = jobs[job]
+            try:
+                rows = job.result()
+            except Exception as exc:
+                print("Portrait API unavailable", provider, state, str(exc)[:120])
+                continue
+            for person in by_state[state]:
+                matches = [record for name, party, record in rows if clean_name(name) == person["nameKey"]
+                           and (party == person["party"] or "other" in (party, person["party"]))]
+                if len(matches) == 1:
+                    by_identity[person["slug"]][provider] = matches[0]
+    return {slug: records.get("congress") or records["openstates"] for slug, records in by_identity.items()}
+
+
+def commons_portraits(entities):
+    """Resolve P18 filenames to their credited Commons file pages and thumbnails."""
+    filenames = {}
+    ids = sorted(set(entities.values()))
+    for start in range(0, len(ids), 20):
+        try:
+            result = api_json(WIKIDATA, {"action": "wbgetentities", "format": "json", "props": "claims",
+                                         "ids": "|".join(ids[start:start + 20])})
+            for qid, item in result["entities"].items():
+                for claim in item.get("claims", {}).get("P18", []):
+                    name = claim.get("mainsnak", {}).get("datavalue", {}).get("value")
+                    if claim.get("rank") != "deprecated" and isinstance(name, str):
+                        filenames[qid] = "File:" + name.replace("_", " ")
+                        break
+        except Exception as exc:
+            print("Wikidata portrait lookup failed", str(exc)[:140])
+    files = sorted(set(filenames.values()))
+    photos = {}
+    for start in range(0, len(files), 20):
+        try:
+            result = api_json(COMMONS, {"action": "query", "format": "json", "formatversion": 2,
+                                        "prop": "imageinfo", "iiprop": "url|extmetadata", "iiurlwidth": 440,
+                                        "iiextmetadatafilter": "Artist|LicenseShortName|LicenseUrl",
+                                        "titles": "|".join(files[start:start + 20])})
+            query = result["query"]
+            for page in query["pages"]:
+                info = next(iter(page.get("imageinfo", [])), {})
+                url = info.get("thumburl") or info.get("url", "")
+                if WIKI_IMAGE.match(url) and info.get("descriptionurl"):
+                    metadata = info.get("extmetadata", {})
+                    photos[page["title"]] = {"url": url, "creditUrl": info["descriptionurl"],
+                                              "source": "Wikidata / Wikimedia Commons",
+                                              "license": metadata.get("LicenseShortName", {}).get("value", "")}
+            for alias in query.get("normalized", []):
+                if alias["to"] in photos:
+                    photos[alias["from"]] = photos[alias["to"]]
+        except Exception as exc:
+            print("Commons portrait lookup failed", str(exc)[:140])
+    return {slug: photos[filenames[qid]] for slug, qid in entities.items() if filenames.get(qid) in photos}
+
+
 def wikipedia_titles(people):
     names = set()
     for p in people:
@@ -156,7 +265,7 @@ def wiki_batch(titles):
         "action": "query", "format": "json", "formatversion": "2",
         "redirects": "1", "prop": "pageimages|pageterms|extracts|pageprops",
         "piprop": "thumbnail", "pithumbsize": "480", "wbptterms": "description",
-        "exintro": "1", "explaintext": "1", "exsentences": "4",
+        "exlimit": "max", "exintro": "1", "explaintext": "1", "exsentences": "4",
         "titles": "|".join(titles)
     })
     result = json.loads(fetch(url, 1_800_000))
@@ -172,7 +281,7 @@ def match_wikipedia_page(person, page):
     if clean_name(stem) != person["nameKey"]:
         return False
     url = (page.get("thumbnail") or {}).get("source") or ""
-    if not WIKI_IMAGE.match(url):
+    if not WIKI_IMAGE.match(url) and not re.fullmatch(r"Q[1-9]\d*", page.get("pageprops", {}).get("wikibase_item", "")):
         return False
     desc = " ".join((page.get("terms") or {}).get("description") or [])
     lead = page.get("extract") or ""
@@ -198,8 +307,13 @@ def wikipedia_photos(people):
             print("Wikipedia batch failed", i, str(exc)[:190])
         time.sleep(.20)
     candidates = {}
+    entities = {}
     for person in people:
         matches = [page for page in pages if match_wikipedia_page(person, page)]
+        ids = {p.get("pageprops", {}).get("wikibase_item") for p in matches}
+        if len(ids) == 1 and re.fullmatch(r"Q[1-9]\d*", next(iter(ids)) or ""):
+            entities[person["slug"]] = next(iter(ids))
+        matches = [p for p in matches if WIKI_IMAGE.match((p.get("thumbnail") or {}).get("source", ""))]
         urls = {page["thumbnail"]["source"] for page in matches}
         # Two different pages with matching first/last and state are ambiguous.
         if len(urls) != 1:
@@ -211,6 +325,7 @@ def wikipedia_photos(people):
             "source": "Wikipedia / Wikimedia Commons portrait",
             "creditUrl": "https://en.wikipedia.org/wiki/" + title
         }
+    candidates.update(commons_portraits(entities))
     return candidates
 
 
@@ -406,28 +521,25 @@ def cache_photos(photos):
 def main():
     people = get_directory()
     states = sorted({person["state"] for person in people})
-    official = official_photos(people, states)
-    federal = federal_member_photos([p for p in people if p["slug"] not in official])
-    # Covers governors, statewide officeholders, municipal officials, and
-    # former legislators omitted from the current legislators CSV.
-    archived = archived_official_photos([p for p in people if p["slug"] not in official and p["slug"] not in federal])
-    wiki = wikipedia_photos([p for p in people if p["slug"] not in official and p["slug"] not in federal and p["slug"] not in archived])
-    # Wikimedia thumbnails are broadly WebGL-CORS accessible. When an
-    # exact-match official photo is also available, keep it as a backup.
-    photos = dict(official)
-    photos.update(federal)
-    photos.update(archived)
-    for slug, record in wiki.items():
-        entry = dict(record)
-        if slug in official and official[slug]["url"] != record["url"]:
-            entry["backupUrl"] = official[slug]["url"]
-        photos[slug] = entry
-    print("Photo matches: official =", len(official), "federal =", len(federal), "archive =", len(archived), "Wikimedia =", len(wiki),
-          "combined =", len(photos))
-    if not photos:
-        raise SystemExit("No source-verified portrait matches; retaining old file")
+    previous = json.loads(OUTPUT.read_text())["candidates"] if OUTPUT.exists() else {}
+    photos = {p["slug"]: previous[p["slug"]] for p in people if p["slug"] in previous}
+    def missing():
+        return [p for p in people if p["slug"] not in photos]
+
+    keyed = keyed_photos(people, states)
+    for slug, record in keyed.items():
+        if slug in photos:
+            if record["url"] != photos[slug]["url"]:
+                photos[slug]["backupUrl"] = record["url"]
+        else:
+            photos[slug] = record
+    photos.update(wikipedia_photos(missing()))
+    photos.update(official_photos(missing(), states))
+    photos.update(federal_member_photos(missing()))
+    photos.update(archived_official_photos(missing()))
+    print("Credentialed API matches:", len(keyed), "combined portrait records:", len(photos))
     cache_photos(photos)
-    doc = {"source": "POLITICS cached official state portraits and Wikipedia verified identity matches",
+    doc = {"source": "Issue Stances verified Congress.gov, Open States and Wikimedia portraits",
            "candidateCount": len(people),
            "photoCount": len(photos),
            "candidates": {key: photos[key] for key in sorted(photos)}}
