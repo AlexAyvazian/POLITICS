@@ -14,7 +14,7 @@
  */
 import * as THREE from '../vendor/three.module.min.js';
 import {advanceCorridorZ,wheelCorridorMetres} from '../../assets/js/issue-corridor-navigation.js';
-import {createCorinthianColonnade,corinthianColumnPositions} from './roman-architecture.js';
+import {createCorinthianColonnade,corinthianColumnPositions,ROMAN_ENGAGEMENT_DEPTH,ROMAN_ARCH_TUBE_RADIUS} from './roman-architecture.js';
 
 // --- Corridor dimensions (metres) -------------------------------------------
 const HALF_W = 3.5;      // wall at x = ±HALF_W
@@ -313,22 +313,39 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     halfWidth: HALF_W, start: START, seg: SEG,
     archSpacing, length: LENGTH
   });
+  const archRadius = HALF_W - ROMAN_ENGAGEMENT_DEPTH;
   const arch = new THREE.InstancedMesh(
-    new THREE.TorusGeometry(HALF_W, 0.097, 16, 96, Math.PI), stone, arches.length
+    new THREE.TorusGeometry(archRadius, ROMAN_ARCH_TUBE_RADIUS, 20, 108, Math.PI), stone, arches.length
+  );
+  // Rounded inner marble fascia adds depth: the earlier .097m wire arch
+  // looked like a thin suspended hoop rather than a load-bearing vault.
+  const fasciaStone = new THREE.MeshStandardMaterial({
+    color:0xf2f1ed,roughness:.61,metalness:0,
+    emissive:0xd0d0cc,emissiveIntensity:.40,toneMapped:false
+  });
+  const archFascia = new THREE.InstancedMesh(
+    new THREE.TorusGeometry(archRadius-.20, .085, 12, 108, Math.PI),
+    fasciaStone, arches.length
   );
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const archScale = new THREE.Vector3(1, 0.66, 1);
   for (let i = 0; i < arches.length; i++) {
-    // The stone arc springs directly out of the paired Corinthian abaci.
+    // The arc now springs directly over the more visible wall columns.
     arch.setMatrixAt(i,m.compose(
       new THREE.Vector3(0,archSpringY,arches[i].z),
       q.identity(),archScale
     ));
+    archFascia.setMatrixAt(i,m.compose(
+      new THREE.Vector3(0,archSpringY,arches[i].z+.055),
+      q.identity(),archScale
+    ));
   }
   arch.instanceMatrix.needsUpdate = true;
+  archFascia.instanceMatrix.needsUpdate = true;
   arch.frustumCulled = false;
-  scene.add(arch);
+  archFascia.frustumCulled = false;
+  scene.add(arch,archFascia);
 
   const corinthianColumns=createCorinthianColonnade(THREE,{
     columns,archSpringY,lowPower
