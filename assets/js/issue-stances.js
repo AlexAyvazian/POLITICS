@@ -257,9 +257,11 @@ function buildCorridor(people){
     $('issueNow').textContent=photo?photo.title:'THE CORRIDOR';
    },
    onReady:()=>setStatus(''),
-   onMode:()=>{}
+   onMode:()=>{},
+   onAutoWalk:(walking)=>updateAutoWalkButton(walking)
   },{wallpapers:WALLPAPER_IMAGES,fallbackPortraitUrl:FALLBACK});
   gallery.setMode('roam');
+  updateAutoWalkButton(false);
   $('issueFallback').hidden=true;
   $('issueCount').textContent=corridor.length+' IN THE CORRIDOR · '+directory.length+' IN THE DIRECTORY';
   // Inspectable layout diagnostics used by automated browser checks.
@@ -291,6 +293,42 @@ function selectCandidate(person){
  if(gallery)gallery.jumpTo(i);
  else void focusPerson({slug:person.slug},corridor.findIndex(p=>p.slug===person.slug));
 }
+function updateAutoWalkButton(walking){
+ const button=$('issueAutoWalk');
+ button.setAttribute('aria-pressed',String(!!walking));
+ button.textContent=walking?'■ Stop auto-walk':'▶ Auto-walk';
+ button.setAttribute('aria-label',walking?'Stop automatically walking':'Automatically walk forward through the hallway');
+}
+
+/** Tap for one hallway bay; hold a button down to walk continuously. */
+function bindWalkButton(id,direction){
+ const button=$(id);
+ let activePointer=null;
+ let startedAt=0;
+ button.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  activePointer=e.pointerId;
+  startedAt=performance.now();
+  gallery?.setStick(0,direction);
+  try{button.setPointerCapture(e.pointerId);}catch{}
+ });
+ const release=e=>{
+  if(activePointer===null||activePointer!==e.pointerId)return;
+  const elapsed=performance.now()-startedAt;
+  activePointer=null;
+  gallery?.setStick(0,0);
+  // The original continuous walking system handles a hold. A quick tap
+  // advances a full frame bay so clicking is immediately useful too.
+  if(e.type==='pointerup'&&elapsed<230)gallery?.walkBy(direction*4.5);
+ };
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,release);
+ button.addEventListener('click',e=>{
+  // Keyboard Enter/Space emits click with detail=0, without pointer events.
+  if(e.detail===0)gallery?.walkBy(direction*4.5);
+ });
+ window.addEventListener('blur',()=>{activePointer=null;gallery?.setStick(0,0);});
+}
+
 function bind(){
  syncNavHeight();
  if(typeof ResizeObserver!=='undefined'){
@@ -305,7 +343,12 @@ function bind(){
  for(const id of ['issueState','issueParty'])$(id).addEventListener('change',()=>{resultLimit=45;renderSearch();});
  $('issueSearchMore').addEventListener('click',()=>{resultLimit+=45;renderSearch();});
  $('issueSheetClose').addEventListener('click',closeSheet);
- for(const [id,method] of [['issuePrevious','prev'],['issueNext','next'],['issueSheetPrevious','prev'],['issueSheetNext','next']]){
+ bindWalkButton('issueWalkBack',-1);
+ bindWalkButton('issueWalkForward',1);
+ $('issueAutoWalk').addEventListener('click',()=>{
+  if(gallery)gallery.setAutoWalk(!gallery.getAutoWalk());
+ });
+ for(const [id,method] of [['issueSheetPrevious','prev'],['issueSheetNext','next']]){
   $(id).addEventListener('click',()=>gallery?.[method]?.());
  }
  document.addEventListener('keydown',e=>{
