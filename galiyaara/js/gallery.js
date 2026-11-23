@@ -17,8 +17,8 @@ import * as THREE from '../vendor/three.module.min.js';
 // --- Corridor dimensions (metres) -------------------------------------------
 const HALF_W = 3.5;      // wall at x = ±HALF_W
 const SPRING = 3.0;      // height the arches spring from
-const SEG = 5.4;         // spacing between artworks (they alternate walls)
-const START = 9;         // clear run before the first photograph
+const SEG = 3.0;         // one photograph per wall every 3 metres; opposite parties face each other
+const START = 5.5;       // first pair of portraits is visible near the entrance
 const EYE = 1.62;
 const ART_Y = 2.05;      // centre height of a hung photograph
 const ART_H = 2.05;      // nominal height; wide images are capped by ART_MAX_W
@@ -175,7 +175,9 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   const lowPower = matchMedia('(pointer: coarse)').matches
     || matchMedia('(max-width: 820px)').matches
     || navigator.hardwareConcurrency <= 4;
-  const LENGTH = START + photos.length * SEG + 30;
+  // Two wall-mounted portraits can share the same corridor bay; all candidates fit.
+  const lastBay = photos.reduce((max,photo)=>Math.max(max,Number.isInteger(photo.bay)?photo.bay:0),-1);
+  const LENGTH = START + (lastBay + 1) * SEG + 32;
 
   // alpha:true is not cosmetic — three derives its clear alpha from it, and a
   // clear alpha of 1 paints the AR framebuffer opaque, burying the passthrough
@@ -248,31 +250,37 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     scene.add(wall);
   }
 
-  // POLITICS adaptation: the uploaded U.S. history/landscape images are
-  // wall-mounted atmospheric panels INSIDE the original 3D corridor.
-  // The uploaded assets never stand in for an unidentified politician photo.
+  // The original Galiyaara corridor carries a continuous wallpaper gallery.
+  // Reuse the 25 existing textures across the *entire* hallway rather than
+  // showing each once, leaving the remainder as bare plaster.
   const wallpaperImages = Array.isArray(options.wallpapers)
-    ? options.wallpapers.filter(path => typeof path === 'string' && path.startsWith('wallpaper/') && /\.(jpe?g|png|webp|avif)$/i.test(path)).slice(0, 32)
+    ? options.wallpapers.filter(path => typeof path === 'string' && path.startsWith('wallpaper/') && /\.(jpe?g|png|webp|avif)$/i.test(path))
     : [];
   const wallpaperLoader = new THREE.TextureLoader();
-  wallpaperImages.forEach((path, i) => {
-    const side = i % 2 ? 1 : -1;
-    const z = -(START + (Math.floor(i / 2) * SEG * 2.55));
-    if (Math.abs(z) > LENGTH - 16) return;
-    wallpaperLoader.load(encodeURI(path), (tex) => {
+  const wallPanelWidth = SEG * 3; // seamless horizontal panels, no breaks by columns
+  const wallPanelCount = Math.ceil((LENGTH + 4) / wallPanelWidth);
+  const wallpaperGeo = new THREE.PlaneGeometry(wallPanelWidth + 0.04, 6.85);
+  // One material per image, reused across all sections of that wall.
+  wallpaperImages.forEach((path, imageIndex) => {
+    wallpaperLoader.load(encodeURI(path), tex => {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-      const panel = new THREE.Mesh(
-        new THREE.PlaneGeometry(SEG * 2.2, 6.55),
-        new THREE.MeshBasicMaterial({
-          map: tex, color: 0x8eb3c6, transparent: true, opacity: 0.39,
-          side: THREE.DoubleSide, depthWrite: false, toneMapped: false
-        })
-      );
-      panel.position.set(side * (HALF_W - 0.014), 3.45, z);
-      panel.rotation.y = side * -Math.PI / 2;
-      scene.add(panel);
-    }, undefined, () => { /* missing art must not block corridor */ });
+      const material = new THREE.MeshBasicMaterial({
+        map: tex, color: 0xc6dce6, transparent: true, opacity: 0.80,
+        side: THREE.DoubleSide, depthWrite: false, toneMapped: false
+      });
+      for (const side of [-1, 1]) {
+        for (let j = 0; j < wallPanelCount; j++) {
+          const assigned = (j + (side === 1 ? 7 : 0)) % wallpaperImages.length;
+          if (assigned !== imageIndex) continue;
+          const panel = new THREE.Mesh(wallpaperGeo, material);
+          panel.position.set(side * (HALF_W - 0.019), 3.46,
+            6 - ((j + 0.5) * wallPanelWidth));
+          panel.rotation.y = side * -Math.PI / 2;
+          scene.add(panel);
+        }
+      }
+    }, undefined, () => { /* a failed wallpaper must not block the hallway */ });
   });
 
   // Same plaster canvas, re-tiled: as a roughness map it gives the flagstones
@@ -292,29 +300,24 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   floor.position.z = midZ;
   scene.add(floor);
 
-  // Arches, offset half a bay so they fall between the photographs.
-  const bays = Math.ceil(LENGTH / SEG);
+  // Keep Galiyaara's arched canopy, but ONLY above the walls. There are no
+  // floor-to-ceiling pillars interrupting the user-uploaded wallpaper.
+  const archSpacing = SEG * 4;
+  const bays = Math.ceil(LENGTH / archSpacing);
   const arch = new THREE.InstancedMesh(
-    new THREE.TorusGeometry(HALF_W, 0.145, 8, 26, Math.PI), stone, bays
-  );
-  const pillars = new THREE.InstancedMesh(
-    new THREE.CylinderGeometry(0.19, 0.23, SPRING, 10), stone, bays * 2
+    new THREE.TorusGeometry(HALF_W, 0.12, 8, 28, Math.PI), stone, bays
   );
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
-  const one = new THREE.Vector3(1, 1, 1);
+  const archScale = new THREE.Vector3(1, 0.48, 1);
   for (let i = 0; i < bays; i++) {
-    const z = 6 - (i * SEG + SEG / 2);
-    arch.setMatrixAt(i, m.compose(new THREE.Vector3(0, SPRING, z), q.identity(), one));
-    for (const [j, s] of [[0, -1], [1, 1]]) {
-      pillars.setMatrixAt(i * 2 + j, m.compose(
-        new THREE.Vector3(s * HALF_W, SPRING / 2, z), q.identity(), one
-      ));
-    }
+    const z = 6 - i * archSpacing;
+    // The end points are above the wallpaper, rather than halfway down it.
+    arch.setMatrixAt(i, m.compose(new THREE.Vector3(0, 6.99, z), q.identity(), archScale));
   }
-  arch.instanceMatrix.needsUpdate = pillars.instanceMatrix.needsUpdate = true;
-  arch.frustumCulled = pillars.frustumCulled = false;
-  scene.add(arch, pillars);
+  arch.instanceMatrix.needsUpdate = true;
+  arch.frustumCulled = false;
+  scene.add(arch);
 
   // --- Artworks -------------------------------------------------------------
   const fade = fadeTex();
@@ -325,8 +328,9 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   const glowGeo = new THREE.PlaneGeometry(1, 1);
 
   photos.forEach((photo, i) => {
-    const side = i % 2 ? 1 : -1;
-    const z = -(START + i * SEG);
+    const side = photo.side === -1 ? -1 : 1;
+    const bay = Number.isInteger(photo.bay) ? photo.bay : Math.floor(i / 2);
+    const z = -(START + bay * SEG);
     const ar = (photo.w || 1) / (photo.h || 1);
     let h = ART_H, w = h * ar;
     if (w > ART_MAX_W) { w = ART_MAX_W; h = w / ar; }
@@ -740,6 +744,8 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     for (let i = 0; i < artworks.length; i++) {
       const a = artworks[i];
       const d = Math.abs(a.z - eye.z);
+      // All 477 frames exist; only nearby ones render to keep WebGL light.
+      a.group.visible = d < LOAD_D + 16 || i === focused;
       if (d < LOAD_D) want(a, 'thumb');
       else if (d > DROP_D && i !== focused) release(a);
 
