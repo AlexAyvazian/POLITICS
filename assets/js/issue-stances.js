@@ -4,7 +4,7 @@
  * Galiyaara renderer, imported from the user-supplied source archive.
  * Only the content adapter and POLITICS issue-sheet overlays live here.
  */
-import {createGallery} from '../../galiyaara/js/gallery.js';
+import {createGallery} from '../../galiyaara/js/gallery.js?v=20261123h';
 import {WALLPAPER_IMAGES} from './issue-stances-wallpapers.js';
 import {normalizeDirectory,normalizeIssueSheet,filterCandidates,safeImageUrl} from './issue-stances-model.js';
 
