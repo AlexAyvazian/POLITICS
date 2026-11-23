@@ -49,6 +49,6 @@ test('portrait pipeline localizes verified remote images before browser gallery 
  assert.match(importer,/issue-portraits/);
  assert.match(importer,/\.webp/);
  assert.match(workflow,/Pillow/);
- assert.match(workflow,/git add assets\/img\/issue-portraits/);
+ assert.match(workflow,/git add [^\n]*assets\/img\/issue-portraits/);
  assert.match(app,/portraitLocalUrl/);
 });
