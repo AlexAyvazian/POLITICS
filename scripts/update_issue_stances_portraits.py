@@ -22,6 +22,7 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "assets/data/issue-stances/portraits.json"
 PHOTO_DIR = ROOT / "assets/img/issue-portraits"
+PEOPLE_ARCHIVE = "https://codeload.github.com/openstates/people/zip/refs/heads/main"
 VOTERIST = "https://www.voterist.com/api/public/candidates"
 OPENSTATES = "https://data.openstates.org/people/current/{state}.csv"
 WIKIPEDIA = "https://en.wikipedia.org/w/api.php"
@@ -212,6 +213,95 @@ def wikipedia_photos(people):
     return candidates
 
 
+def archived_official_photos(people):
+    """Additional CC0 Open States people records: executive, local, retired.
+
+    The nightly current-legislator CSV excludes these groups. One scheduled
+    archive download reads published state YAML, with no visitor-side requests.
+    An exact first/last/state and compatible party must identify one person;
+    conflicts or ambiguous matches never become portraits.
+    """
+    import zipfile
+    import yaml
+
+    wanted_states = {p["state"].lower() for p in people}
+    wanted = {(p["state"].lower(), p["nameKey"]): [] for p in people}
+    try:
+        request = Request(PEOPLE_ARCHIVE, headers={"User-Agent": UA})
+        with urlopen(request, timeout=65) as response:
+            raw = response.read(80_000_001)
+        if len(raw) > 80_000_000:
+            print("Open States people archive exceeded safety limit")
+            return {}
+        container = zipfile.ZipFile(io.BytesIO(raw))
+    except Exception as exc:
+        print("Open States archive temporarily unavailable:", str(exc)[:180])
+        return {}
+
+    prefix = re.compile(
+        r"^[^/]+/data/([a-z]{2})/(legislature|retired|executive|municipalities)/[^/]+\.ya?ml$"
+    )
+    count = 0
+    with container:
+        for entry in container.infolist():
+            m = prefix.match(entry.filename)
+            if not m or m.group(1) not in wanted_states or entry.file_size > 150_000:
+                continue
+            try:
+                row = yaml.safe_load(container.read(entry)) or {}
+                if not isinstance(row, dict):
+                    continue
+                name = str(row.get("name") or "")
+                aliases = [name] + [
+                    item.get("name", "") for item in (row.get("other_names") or [])
+                    if isinstance(item, dict)
+                ]
+                matching_keys = {clean_name(n) for n in aliases}
+                keys = [(m.group(1), key) for key in matching_keys if (m.group(1),key) in wanted]
+                if not keys:
+                    continue
+                image = row.get("image") or ""
+                if not WEB_IMAGE.match(str(image)):
+                    continue
+                parties = [
+                    str(x.get("name") or "") for x in row.get("party", [])
+                    if isinstance(x, dict)
+                ]
+                political_party = party_kind(parties[-1] if parties else "")
+                ident = str(row.get("id") or entry.filename)
+                candidate = {
+                    "id": ident, "url": str(image),
+                    "party": political_party,
+                    "source": "Open States public person record",
+                    "creditUrl": "https://github.com/openstates/people/blob/main/"
+                                 + "/".join(entry.filename.split("/")[1:])
+                }
+                for key in keys:
+                    wanted[key].append(candidate)
+                count += 1
+            except Exception:
+                continue
+    results = {}
+    for person in people:
+        matches = wanted[(person["state"].lower(), person["nameKey"])]
+        matches = [m for m in matches if (
+            m["party"] == person["party"] or
+            m["party"] == "other" or person["party"] == "other"
+        )]
+        unique = {m["id"]: m for m in matches}
+        if len(unique) != 1:
+            continue
+        match = next(iter(unique.values()))
+        results[person["slug"]] = {
+            "url": match["url"],
+            "source": match["source"],
+            "creditUrl": match["creditUrl"]
+        }
+    print("Open States archived people inspected:", count,
+          "verified extra portraits:", len(results))
+    return results
+
+
 def cache_photos(photos):
     """Download identity-matched public portraits once, for local WebGL loading.
 
@@ -271,16 +361,20 @@ def main():
     people = get_directory()
     states = sorted({person["state"] for person in people})
     official = official_photos(people, states)
-    wiki = wikipedia_photos(people)
+    # Covers governors, statewide officeholders, municipal officials, and
+    # former legislators omitted from the current legislators CSV.
+    archived = archived_official_photos([p for p in people if p["slug"] not in official])
+    wiki = wikipedia_photos([p for p in people if p["slug"] not in official and p["slug"] not in archived])
     # Wikimedia thumbnails are broadly WebGL-CORS accessible. When an
     # exact-match official photo is also available, keep it as a backup.
     photos = dict(official)
+    photos.update(archived)
     for slug, record in wiki.items():
         entry = dict(record)
         if slug in official and official[slug]["url"] != record["url"]:
             entry["backupUrl"] = official[slug]["url"]
         photos[slug] = entry
-    print("Photo matches: official =", len(official), "Wikimedia =", len(wiki),
+    print("Photo matches: official =", len(official), "archive =", len(archived), "Wikimedia =", len(wiki),
           "combined =", len(photos))
     if not photos:
         raise SystemExit("No source-verified portrait matches; retaining old file")
