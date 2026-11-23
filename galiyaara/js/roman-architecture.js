@@ -88,15 +88,15 @@ export function createCorinthianColonnade(THREE,{columns,archSpringY=6.99,lowPow
   // not blue-gray stone or a flat white polygon against the night sky.
   const limestone=new THREE.MeshStandardMaterial({
     color:0xf9f9f7,roughness:0.56,metalness:0,
-    emissive:0x92908c,emissiveIntensity:0.26,toneMapped:false
+    emissive:0xffffff,emissiveIntensity:0.62,toneMapped:false
   });
   const ivory=new THREE.MeshStandardMaterial({
     color:0xfefefc,roughness:0.51,metalness:0,
-    emissive:0xaaa9a5,emissiveIntensity:0.24,toneMapped:false
+    emissive:0xffffff,emissiveIntensity:0.58,toneMapped:false
   });
   const stoneShadow=new THREE.MeshStandardMaterial({
     color:0xe8e9e8,roughness:0.73,metalness:0,
-    emissive:0x787977,emissiveIntensity:0.17,toneMapped:false
+    emissive:0xececea,emissiveIntensity:0.52,toneMapped:false
   });
 
   const matrix=new THREE.Matrix4();
