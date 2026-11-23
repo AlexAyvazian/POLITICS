@@ -1,0 +1,48 @@
+name: Refresh Issue Stances verified portraits
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 09 * * *"
+  push:
+    paths:
+      - scripts/update_issue_stances_portraits.py
+      - tests/test_issue_stances_portraits.py
+      - .github/workflows/refresh-issue-stances-portraits.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: politics-issue-stances-portrait-source
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out POLITICS
+        uses: actions/checkout@v4
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify verified portrait identification
+        run: python -m unittest discover -s tests -p test_issue_stances_portraits.py -v
+      - name: Fetch public legislator and verified Wikimedia portraits
+        run: python scripts/update_issue_stances_portraits.py
+      - name: Publish updated public portrait cache
+        shell: bash
+        run: |
+          git add assets/data/issue-stances/portraits.json
+          if git diff --cached --quiet; then
+            echo "Verified portraits unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh verified Issue Stances candidate portraits"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
