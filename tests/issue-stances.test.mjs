@@ -47,10 +47,12 @@ test('real Voterist directory is normalized without assuming fields or fabricati
 test('candidate slug explicitly supplies the state code when the directory omits it',()=>{
  const items=normalizeDirectory({candidates:[
   {slug:'hakeem-jeffries-ny-2026-us-house',name:'Hakeem Jeffries'},
-  {slug:'someone-xx-2026-state-house',name:'Unspecified'}
+  {slug:'someone-xx-2026-state-house',name:'Unspecified'},
+  {slug:'xavier-becerra',name:'Xavier Becerra',jurisdictionId:'us.ca',electionId:'ca.2026.general'}
  ]});
  assert.equal(items[0].state,'NY');
  assert.equal(items[1].state,'');
+ assert.equal(items[2].state,'CA');
 });
 
 test('published positions match their own sourceId to their evidence URL',()=>{
