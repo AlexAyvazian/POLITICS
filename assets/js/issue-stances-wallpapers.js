@@ -1,0 +1,28 @@
+/** User-uploaded wallpaper collection. Paths reflect exact GitHub filenames. */
+export const WALLPAPER_IMAGES = Object.freeze([
+  "wallpaper/American-Eagle-Flag-Patriotic-4th-png-Graphics-113400236-1.jpeg",
+  "wallpaper/Capitol Hill.jpeg",
+  "wallpaper/Court.jpeg",
+  "wallpaper/Eagle.jpeg",
+  "wallpaper/Flag.jpeg",
+  "wallpaper/Flag2.jpeg",
+  "wallpaper/Half Dome.jpeg",
+  "wallpaper/LANDSCAPE.jpeg",
+  "wallpaper/LANDSCAPE2.jpeg",
+  "wallpaper/LANDSCAPE3.jpeg",
+  "wallpaper/LANDSCAPE4.jpeg",
+  "wallpaper/LANDSCAPE5.jpeg",
+  "wallpaper/LANDSCAPE6.jpeg",
+  "wallpaper/Lincoln-Memorial-Painting-by-Borbay-1024x675.jpeg",
+  "wallpaper/MOUNT RUSH.jpeg",
+  "wallpaper/Statue of Liberty.jpeg",
+  "wallpaper/Statue of Libery2.jpeg",
+  "wallpaper/WAshington mon.jpeg",
+  "wallpaper/White House.jpeg",
+  "wallpaper/blue-mountains-landscape-vector-illustration-flat-2_764382-78591.jpeg",
+  "wallpaper/cartoon-illustration-canyon-landscape_272293-3286.jpeg",
+  "wallpaper/istockphoto-944774326-170667a.jpeg",
+  "wallpaper/mountain-beautiful-landscape-background-design-illustration-free-vector.jpeg",
+  "wallpaper/mountain-landscape-with-river-and-tree-s-beautiful-mountain-minimalist-art-vector.jpeg",
+  "wallpaper/reflective-building-philadelphia-museum-of-art-philadelphia-autumnal-architectural-giunia-sigworth.jpeg"
+]);
