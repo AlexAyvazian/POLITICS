@@ -31,15 +31,23 @@
   <div class="issueWings" aria-label="Gallery party organization"><span>← DEMOCRATS</span><span>REPUBLICANS →</span></div>
   <div class="issueGrain" aria-hidden="true"></div>
 
-  <header class="issueTitleBlock">
-   <p class="issueEyebrow">POLITICS / PUBLIC ISSUE ARCHIVE</p>
-   <h1>Issue <em>Stances.</em></h1>
-   <p>Walk the gallery. Select a politician to read their documented positions.</p>
-   <div class="issueTitleActions">
-    <button type="button" id="issueFindToggle" aria-expanded="false" aria-controls="issueSearchPanel">Find a politician <span aria-hidden="true">⌕</span></button>
-    <span id="issueCount" aria-live="polite"></span>
+  <button type="button" id="issueToolsToggle" class="issueToolsToggle" aria-label="Open gallery tools" aria-controls="issueToolsPanel" aria-expanded="false" title="Gallery tools (press ?)">
+   <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+  </button>
+  <aside id="issueToolsPanel" class="issueToolsPanel" aria-label="Gallery tools" hidden>
+   <div class="issuePanelHeading"><strong>GALLERY TOOLS</strong><button type="button" id="issueToolsClose" aria-label="Close gallery tools">×</button></div>
+   <button type="button" id="issueFindToggle" class="issueToolsSearch" aria-expanded="false" aria-controls="issueSearchPanel">Search politicians <span aria-hidden="true">⌕</span></button>
+   <div class="issueToolsMovement" aria-label="Walk through the gallery">
+    <p>Scroll / swipe to walk · drag to look · click portrait to open</p>
+    <div class="issueMovementButtons" role="group" aria-label="Hallway walking controls">
+     <button type="button" id="issueWalkBack" aria-label="Walk backward through the hallway" title="Click to step back; hold to keep walking">← Back</button>
+     <button type="button" id="issueWalkForward" aria-label="Walk forward through the hallway" title="Click to step forward; hold to keep walking">Forward →</button>
+     <button type="button" id="issueAutoWalk" aria-label="Automatically walk forward through the hallway" aria-pressed="false" title="Automatically move forward; click again to stop">▶ Auto-walk</button>
+    </div>
    </div>
-  </header>
+  </aside>
+  <span id="issueCount" class="issueVisuallyHidden" aria-live="polite"></span>
+  <span id="issueNow" class="issueVisuallyHidden" aria-live="off"></span>
 
   <aside id="issueSearchPanel" class="issueSearchPanel" aria-label="Find a politician" hidden>
    <div class="issuePanelHeading"><strong>FIND A POLITICIAN</strong><button type="button" id="issueFindClose" aria-label="Close search">×</button></div>
@@ -53,17 +61,6 @@
    <div id="issueSearchResults" class="issueSearchResults" role="list" aria-label="Matching politician profiles"></div>
    <button type="button" id="issueSearchMore" hidden>Show more results</button>
   </aside>
-
-  <div class="issueMovement" aria-label="Walk through the political portrait gallery">
-   <span id="issueNow">THE CORRIDOR</span>
-   <p class="issueWalkHint">SCROLL / SWIPE / W · S <span>TO WALK</span> <b>·</b> DRAG <span>TO LOOK</span></p>
-   <div class="issueMovementButtons" role="group" aria-label="Hallway walking controls">
-    <button type="button" id="issueWalkBack" aria-label="Walk backward through the hallway" title="Click to step back; hold to keep walking">← Walk back</button>
-    <button type="button" id="issueWalkForward" aria-label="Walk forward through the hallway" title="Click to step forward; hold to keep walking">Walk forward →</button>
-    <button type="button" id="issueAutoWalk" aria-label="Automatically walk forward through the hallway" aria-pressed="false" title="Automatically move forward; click again to stop">▶ Auto-walk</button>
-   </div>
-   <p class="issueWalkSecondary">Tap to take a step · Hold to keep walking · Click any portrait to open its issue sheet</p>
-  </div>
 
   <aside id="issueSheet" class="issueSheet" aria-label="Politician issue sheet" aria-hidden="true" hidden>
    <header class="issueSheetHead">
