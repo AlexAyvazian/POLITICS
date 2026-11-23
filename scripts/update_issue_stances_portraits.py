@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "assets/data/issue-stances/portraits.json"
 PHOTO_DIR = ROOT / "assets/img/issue-portraits"
 PEOPLE_ARCHIVE = "https://codeload.github.com/openstates/people/zip/refs/heads/main"
+CONGRESS_ROSTER = "https://politics-daily-snapshot.alxayvazian.workers.dev/api/congress-snapshot"
 VOTERIST = "https://www.voterist.com/api/public/candidates"
 OPENSTATES = "https://data.openstates.org/people/current/{state}.csv"
 WIKIPEDIA = "https://en.wikipedia.org/w/api.php"
@@ -213,6 +214,51 @@ def wikipedia_photos(people):
     return candidates
 
 
+def federal_member_photos(people):
+    """Use exact state/name/Bioguide matches from the existing Congress roster.
+
+    The photo thumbnails are stored locally at refresh time for reliable WebGL
+    loading without a per-visitor image API or cross-origin image dependency.
+    """
+    try:
+        roster = json.loads(fetch(CONGRESS_ROSTER, 7_000_000))
+    except Exception as error:
+        print("Congress roster unavailable:", str(error)[:140])
+        return {}
+    members = {}
+    for state, groups in (roster.get("states") or {}).items():
+        state = str(state).upper()
+        if state not in STATES:
+            continue
+        for row in (groups.get("house") or []) + (groups.get("senators") or []):
+            bioguide = str(row.get("bioguide") or "")
+            name = str(row.get("name") or "")
+            if not re.fullmatch(r"[A-Z]\d{6}", bioguide):
+                continue
+            key = (state, clean_name(name))
+            members.setdefault(key, []).append({
+                "bioguide": bioguide,
+                "party": party_kind(row.get("party"))
+            })
+    found = {}
+    for person in people:
+        matches = members.get((person["state"], person["nameKey"]), [])
+        matches = [m for m in matches if
+                   m["party"] == person["party"]
+                   or m["party"] == "other" or person["party"] == "other"]
+        unique = {m["bioguide"]: m for m in matches}
+        if len(unique) != 1:
+            continue
+        bioguide = next(iter(unique))
+        found[person["slug"]] = {
+            "url": "https://unitedstates.github.io/images/congress/225x275/" + bioguide + ".jpg",
+            "source": "United States Congress public member portrait",
+            "creditUrl": "https://bioguide.congress.gov/search/bio/" + bioguide
+        }
+    print("Congress source: additional exact member matches:", len(found))
+    return found
+
+
 def archived_official_photos(people):
     """Additional CC0 Open States people records: executive, local, retired.
 
@@ -361,20 +407,22 @@ def main():
     people = get_directory()
     states = sorted({person["state"] for person in people})
     official = official_photos(people, states)
+    federal = federal_member_photos([p for p in people if p["slug"] not in official])
     # Covers governors, statewide officeholders, municipal officials, and
     # former legislators omitted from the current legislators CSV.
-    archived = archived_official_photos([p for p in people if p["slug"] not in official])
-    wiki = wikipedia_photos([p for p in people if p["slug"] not in official and p["slug"] not in archived])
+    archived = archived_official_photos([p for p in people if p["slug"] not in official and p["slug"] not in federal])
+    wiki = wikipedia_photos([p for p in people if p["slug"] not in official and p["slug"] not in federal and p["slug"] not in archived])
     # Wikimedia thumbnails are broadly WebGL-CORS accessible. When an
     # exact-match official photo is also available, keep it as a backup.
     photos = dict(official)
+    photos.update(federal)
     photos.update(archived)
     for slug, record in wiki.items():
         entry = dict(record)
         if slug in official and official[slug]["url"] != record["url"]:
             entry["backupUrl"] = official[slug]["url"]
         photos[slug] = entry
-    print("Photo matches: official =", len(official), "archive =", len(archived), "Wikimedia =", len(wiki),
+    print("Photo matches: official =", len(official), "federal =", len(federal), "archive =", len(archived), "Wikimedia =", len(wiki),
           "combined =", len(photos))
     if not photos:
         raise SystemExit("No source-verified portrait matches; retaining old file")
