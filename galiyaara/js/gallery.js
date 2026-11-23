@@ -252,7 +252,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   // wall-mounted atmospheric panels INSIDE the original 3D corridor.
   // The uploaded assets never stand in for an unidentified politician photo.
   const wallpaperImages = Array.isArray(options.wallpapers)
-    ? options.wallpapers.filter(path => typeof path === 'string' && /^wallpaper\\/.test(path) === false && /^wallpaper\//.test(path)).slice(0, 32)
+    ? options.wallpapers.filter(path => typeof path === 'string' && path.startsWith('wallpaper/') && /\.(jpe?g|png|webp|avif)$/i.test(path)).slice(0, 32)
     : [];
   const wallpaperLoader = new THREE.TextureLoader();
   wallpaperImages.forEach((path, i) => {
@@ -458,7 +458,14 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     if (a.loading || a.level === level || (level === 'thumb' && a.level === 'large')) return;
     a.loading = true;
     loader.load(a.photo[level], (tex) => { a.loading = false; apply(a, tex, level); },
-      undefined, () => { a.loading = false; });
+      undefined, () => {
+        a.loading = false;
+        const fallback = options.fallbackPortraitUrl;
+        if (fallback && a.photo[level] !== fallback) {
+          a.photo[level] = fallback;
+          want(a, level);
+        }
+      });
   }
 
   function release(a) {
@@ -475,6 +482,11 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
 
   // --- Input ------------------------------------------------------------------
   const keys = new Set();
+  // Scoped event registration lets POLITICS rebuild the gallery after a search
+  // without leaving the old instance's camera handlers attached.
+  const events = new AbortController();
+  const listenCanvas = (name, handler) => canvas.addEventListener(name, handler, {signal:events.signal});
+  const listenWindow = (name, handler) => addEventListener(name, handler, {signal:events.signal});
   const stick = { x: 0, y: 0 };
   const pointer = new THREE.Vector2();     // -1..1, for page-mode parallax
   const raycaster = new THREE.Raycaster();
@@ -572,12 +584,12 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   // Pointer look (pointer lock on desktop, drag on touch)
   let dragging = false, dragMoved = 0, lastX = 0, lastY = 0;
 
-  canvas.addEventListener('pointerdown', (e) => {
+  listenCanvas('pointerdown', (e) => {
     dragging = true; dragMoved = 0; lastX = e.clientX; lastY = e.clientY;
     canvas.setPointerCapture(e.pointerId);
   });
 
-  canvas.addEventListener('pointermove', (e) => {
+  listenCanvas('pointermove', (e) => {
     const r = canvas.getBoundingClientRect();
     pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     if (document.pointerLockElement === canvas) {
@@ -592,7 +604,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     }
   });
 
-  canvas.addEventListener('pointerup', (e) => {
+  listenCanvas('pointerup', (e) => {
     dragging = false;
     if (dragMoved > 8) return;             // that was a look, not a click
     raycaster.setFromCamera(
@@ -609,13 +621,13 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     e.preventDefault();
   });
 
-  canvas.addEventListener('dblclick', () => {
+  listenCanvas('dblclick', () => {
     if (mode === 'roam' && focused === null && !matchMedia('(pointer: coarse)').matches) {
       canvas.requestPointerLock?.();
     }
   });
 
-  addEventListener('keydown', (e) => {
+  listenWindow('keydown', (e) => {
     if (e.key === 'Escape') {
       if (focused !== null) unfocus();
       else if (mode === 'roam') setMode('page');
@@ -639,8 +651,8 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     keys.add(e.code);
     if (/^(Key[WASD]|Arrow|Space)/.test(e.code)) e.preventDefault();
   });
-  addEventListener('keyup', (e) => keys.delete(e.code));
-  addEventListener('blur', () => keys.clear());
+  listenWindow('keyup', (e) => keys.delete(e.code));
+  listenWindow('blur', () => keys.clear());
 
   // --- Frame ------------------------------------------------------------------
   const clock = new THREE.Clock();
@@ -804,7 +816,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
       return t;
     }),
     count: artworks.length,
-    dispose() { running = false; renderer.setAnimationLoop(null); renderer.dispose(); },
+    dispose() { running = false; events.abort(); renderer.setAnimationLoop(null); renderer.dispose(); },
 
     /** What the XR layer needs to drive the same corridor from a headset. */
     xr: {
