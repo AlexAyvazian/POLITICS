@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
  <meta charset="utf-8">
- <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
  <meta name="theme-color" content="#050814">
- <meta name="description" content="Explore documented positions on key issues, with direct links to the underlying evidence.">
+ <meta name="description" content="Walk through the POLITICS Issue Stances gallery. Explore politicians' documented positions and their original sources.">
  <title>Issue Stances · POLITICS</title>
  <link rel="stylesheet" href="assets/css/atlas.css">
- <link rel="stylesheet" href="assets/css/unified-nav.css?v=20261122c">
- <link rel="stylesheet" href="assets/css/issue-stances.css?v=20261122a">
+ <link rel="stylesheet" href="assets/css/unified-nav.css?v=20261123b">
+ <link rel="stylesheet" href="assets/css/issue-stances.css?v=20261123g">
 </head>
 <body data-view="issues">
  <header class="unifiedTopNav">
@@ -24,44 +24,69 @@
   <div class="unifiedNavSpacer" aria-hidden="true"></div>
  </header>
 
- <main class="issuesMain">
-  <div class="issuesBackdrop" aria-hidden="true"></div>
-  <section class="issuesIntro" aria-labelledby="issuesTitle">
-   <div>
-    <p class="issuesOverline">THE POLITICAL ISSUE ARCHIVE</p>
-    <h1 id="issuesTitle">Issue <em>Stances.</em></h1>
-    <p class="issuesTagline">What politicians say they stand for. One issue sheet, with the evidence beside it.</p>
-   </div>
-   <span class="issuesArchiveTag">PUBLIC RECORDS · SOURCE LINKED</span>
-  </section>
+ <main class="issueExperience" id="issueExperience">
+  <!-- The original Galiyaara renderer draws its actual 3D corridor here. -->
+  <canvas id="stage" aria-label="Interactive three-dimensional gallery of politicians' issue positions"></canvas>
+  <div class="issueVignette" aria-hidden="true"></div>
+  <div class="issueGrain" aria-hidden="true"></div>
 
-  <div class="issuesFilters" role="search" aria-label="Find a politician">
-   <label class="issuesSearchLabel" for="issueSearch"><span class="sr-only">Find a politician by name or office</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.2"></circle><path d="m16 16 5 5"></path></svg><input id="issueSearch" type="search" placeholder="Find a politician…" autocomplete="off"></label>
-   <label for="issueState"><span class="sr-only">Filter by state</span><select id="issueState"><option value="">All states</option></select></label>
-   <label for="issueParty"><span class="sr-only">Filter by party</span><select id="issueParty"><option value="">All parties</option></select></label>
-   <span id="issueCount" class="issuesCount" aria-live="polite"></span>
+  <header class="issueTitleBlock">
+   <p class="issueEyebrow">POLITICS / PUBLIC ISSUE ARCHIVE</p>
+   <h1>Issue <em>Stances.</em></h1>
+   <p>Walk the gallery. Select a politician to read their documented positions.</p>
+   <div class="issueTitleActions">
+    <button type="button" id="issueFindToggle" aria-expanded="false" aria-controls="issueSearchPanel">Find a politician <span aria-hidden="true">⌕</span></button>
+    <span id="issueCount" aria-live="polite"></span>
+   </div>
+  </header>
+
+  <aside id="issueSearchPanel" class="issueSearchPanel" aria-label="Find a politician" hidden>
+   <div class="issuePanelHeading"><strong>FIND A POLITICIAN</strong><button type="button" id="issueFindClose" aria-label="Close search">×</button></div>
+   <label for="issueSearch">Search by name or office</label>
+   <input type="search" id="issueSearch" placeholder="Name, state, or office" autocomplete="off">
+   <div class="issueFilters">
+    <label for="issueState">State <select id="issueState"><option value="">All states</option></select></label>
+    <label for="issueParty">Party <select id="issueParty"><option value="">All parties</option></select></label>
+   </div>
+   <p id="issueSearchCount" aria-live="polite"></p>
+   <div id="issueSearchResults" class="issueSearchResults" role="list" aria-label="Matching politician profiles"></div>
+   <button type="button" id="issueSearchMore" hidden>Show more results</button>
+  </aside>
+
+  <div class="issueMovement" aria-label="Corridor navigation instructions">
+   <span id="issueNow">THE CORRIDOR</span>
+   <p>W A S D <span>WALK</span> <b>·</b> DRAG <span>LOOK</span> <b>·</b> CLICK <span>OPEN ISSUE SHEET</span></p>
+   <div class="issueMovementButtons">
+    <button type="button" id="issuePrevious" aria-label="Previous issue sheet">← Previous</button>
+    <button type="button" id="issueNext" aria-label="Next issue sheet">Next →</button>
+   </div>
   </div>
 
-  <section class="issuesScene" aria-label="Browse politician portraits and their issue sheets">
-   <div class="issuesWall left" aria-hidden="true"></div><div class="issuesWall right" aria-hidden="true"></div>
-   <div class="issuesFloor" aria-hidden="true"></div>
-   <div class="issuesSceneHead">
-    <span>THE COLLECTION</span>
-    <div class="issuesGalleryNav">
-     <button id="issuesPrevious" type="button" aria-label="Scroll portraits left">←</button>
-     <button id="issuesNext" type="button" aria-label="Scroll portraits right">→</button>
-    </div>
-   </div>
-   <p id="issueStatus" class="issuesStatus" role="status">Loading public candidate records…</p>
-   <div id="issueGallery" class="issuesGallery" role="list" aria-label="Politician issue sheets"></div>
-   <button type="button" id="issuesMore" class="issuesMore" hidden>Show more profiles</button>
-  </section>
+  <aside id="issueSheet" class="issueSheet" aria-label="Politician issue sheet" aria-hidden="true" hidden>
+   <header class="issueSheetHead">
+    <span>POLITICAL ISSUE SHEET</span>
+    <button type="button" id="issueSheetClose" aria-label="Close issue sheet">×</button>
+   </header>
+   <div id="issueSheetContent" class="issueSheetContent" aria-live="polite"></div>
+   <footer class="issueSheetFooter">
+    <button type="button" id="issueSheetPrevious" aria-label="Previous politician">←</button>
+    <span>DOCUMENTED POSITIONS</span>
+    <button type="button" id="issueSheetNext" aria-label="Next politician">→</button>
+   </footer>
+  </aside>
 
-  <section id="issueSheet" class="issuesSheet" aria-label="Selected politician's issue sheet" aria-live="polite">
-   <div class="issuesSheetEmpty"><span class="issuesSheetMark">I / S</span><p>SELECT A PORTRAIT</p><h2>Open an issue sheet</h2><span>Positions and supporting sources appear here.</span></div>
-  </section>
-  <p class="issuesAttribution">Issue positions and cited source records: <a href="https://www.voterist.com/ai" target="_blank" rel="noopener noreferrer">Voterist public candidate API</a>. Coverage reflects published positions and available researched previews.</p>
+  <div id="issueStatus" class="issueStatus" role="status">Opening the gallery…</div>
+  <div id="issueFallback" class="issueFallback" hidden>
+   <h2>3D corridor unavailable</h2>
+   <p>You can still find a politician and read their documented issue sheet.</p>
+   <button type="button" id="issueFallbackSearch">Browse the directory</button>
+  </div>
+
+  <div class="issueCredits">
+   <span>3D CORRIDOR: <a href="https://github.com/ni-sh-a-char/Galiyaara" target="_blank" rel="noopener noreferrer">GALIYAARA</a></span>
+   <span>POSITIONS: <a href="https://www.voterist.com/ai" target="_blank" rel="noopener noreferrer">VOTERIST</a></span>
+  </div>
  </main>
- <script type="module" src="assets/js/issue-stances.js?v=20261122a"></script>
+ <script type="module" src="assets/js/issue-stances.js?v=20261123g"></script>
 </body>
 </html>
