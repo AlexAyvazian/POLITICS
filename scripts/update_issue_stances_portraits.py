@@ -203,6 +203,10 @@ def keyed_photos(people, states):
                 print("Portrait API unavailable", provider, state, str(exc)[:120])
                 continue
             for person in by_state[state]:
+                # Only compare federal candidates with a federal roster.
+                # State-office candidates can still match via their Wikidata identity.
+                if provider == "congress" and not re.search(r"\b(?:U\.?S\.?|United States|Congressional)\s+(?:Senat|House|Representative)", person.get("office", ""), re.I):
+                    continue
                 matches = [record for name, party, record in rows if clean_name(name) == person["nameKey"]
                            and (party == person["party"] or "other" in (party, person["party"]))]
                 if len(matches) == 1:
@@ -533,6 +537,11 @@ def main():
     keyed = keyed_photos(people, states)
     for slug, record in keyed.items():
         if slug in photos:
+            # A state legislator and a member of Congress can have the same
+            # name and party in the same state. Preserve the established ID.
+            previous_credit = photos[slug].get("creditUrl", "")
+            if record["source"].startswith("Congress.gov") and previous_credit != record["creditUrl"]:
+                continue
             if record["url"] != photos[slug]["url"]:
                 photos[slug]["backupUrl"] = record["url"]
         else:
