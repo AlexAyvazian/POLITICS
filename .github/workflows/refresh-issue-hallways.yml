@@ -25,6 +25,9 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install lxml Pillow
       - run: python scripts/update_issue_hallways.py
+        env:
+          CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
+          FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
       - run: |
           git add assets/data/issue-stances/hallways.json assets/img/hallway-portraits/
           if git diff --cached --quiet; then exit 0; fi

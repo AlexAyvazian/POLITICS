@@ -129,7 +129,8 @@ function sortCandidates(list){
  return list.slice().sort((a,b)=>score(b)-score(a)||a.name.localeCompare(b.name));
 }
 function officeLabel(person){
- return [[person.office,person.incomingOffice].filter(Boolean).join(" / "),person.state].filter(Boolean).join(" - ")+(person.year?" · "+person.year:"");
+ const title=person.former?'Former '+person.office:person.office;
+ return [[title,person.incomingOffice].filter(Boolean).join(" / "),person.state].filter(Boolean).join(" - ")+(person.year?" · "+person.year:"")+(person.congresses?.length?" · "+person.congresses.map(n=>n+"th").join(" & "):"");
 }
 function makePhotographs(people){
  return people.map(p=>({
@@ -232,6 +233,7 @@ function renderIssueSheet(person,record){
   content.append(section);
  }
  if(person.campaign)content.append(link('Official campaign website',person.campaign,'issueSheetLink'));
+ if(person.electionSource&&person.electionSource!==person.source)content.append(link('View election result',person.electionSource,'issueSheetLink'));
  if(person.source)content.append(link('View source record',person.source,'issueSheetLink'));
  if(person.issueSlug)content.append(link('Open issue profile',VOTERIST+'/candidate/'+encodeURIComponent(person.issueSlug),'issueSheetLink'));
 }
@@ -399,9 +401,9 @@ async function start(){
  try{
   const [data]=await Promise.all([json('assets/data/issue-stances/hallways.json'),loadVerifiedPortraitIndex()]);
   const allowedOffices=new Set(hall==='upcoming'
-   ? ['Candidate for U.S. Senate','Candidate for U.S. House','Candidate for Governor']
-   : ['Senator','Representative','Delegate','Resident Commissioner','Governor','Senator-elect','Representative-elect']);
-  directory=sortCandidates(data[hall].filter(person=>allowedOffices.has(person.office)).map(p=>p.issueSlug&&!p.portrait?{...augmentPortrait({...p,slug:p.issueSlug}),slug:p.slug}:p));
+   ? ['Candidate for President','Candidate for U.S. Senate','Candidate for U.S. House','Candidate for Governor']
+   : ['Senator','Representative','Delegate','Resident Commissioner','Governor','Senator-elect','Representative-elect','Delegate-elect','Resident Commissioner-elect']);
+  directory=sortCandidates(data[hall].filter(person=>allowedOffices.has(person.office)&&(hall!=='upcoming'||person.year>=2027)).map(p=>p.issueSlug&&!p.portrait?{...augmentPortrait({...p,slug:p.issueSlug}),slug:p.slug}:p));
   if(!directory.length){setStatus('No candidate records were returned by the public directory.');return;}
   buildCorridor(directory);
   fillFilters();

@@ -2,6 +2,8 @@
 import csv
 import io
 import json
+import gzip
+import os
 import re
 import subprocess
 import unicodedata
@@ -9,7 +11,7 @@ import zipfile
 from datetime import date, timedelta, datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from urllib.parse import unquote, urljoin, urlsplit
+from urllib.parse import unquote, urlencode, urljoin, urlsplit
 from xml.etree import ElementTree
 from lxml import html
 from update_issue_stances_portraits import STATES, state_from, wikipedia_photos, clean_name
@@ -22,12 +24,13 @@ VOTERIST = "https://www.voterist.com/api/public/candidates"
 
 
 def read(url, optional=False):
-    response = subprocess.run(["curl", "--retry", "2", "--max-time", "35", "-sSL", "-w", "%{http_code}", url], capture_output=True, check=True).stdout
+    response = subprocess.run(["curl", "--compressed", "--retry", "2", "--max-time", "35", "-sSL", "-w", "%{http_code}", url], capture_output=True, check=True).stdout
     if optional and response[-3:] == b"404":
         return None
     if response[-3:] != b"200":
-        raise RuntimeError(f"HTTP {response[-3:].decode()} from {url}")
-    return response[:-3]
+        raise RuntimeError(f"HTTP {response[-3:].decode()} from {url.split('?')[0]}")
+    body = response[:-3]
+    return gzip.decompress(body) if body.startswith(b"\x1f\x8b") else body
 
 
 def norm(name):
@@ -38,63 +41,138 @@ def row(slug, name, office, state, party, source, **extra):
     return dict(slug=slug, name=name, office=office, state=state, party=party or "Unaffiliated / unspecified", source=source, **extra)
 
 
+CONGRESSES = {119: ("2025-01-03", "2027-01-03"), 120: ("2027-01-03", "2029-01-03")}
+NPR = "https://apps.npr.org/2026-election-results/"
+TERRITORIES = {"DC", "AS", "MP", "GU", "VI"}
+
+
+def election_winners():
+    for chamber, title, expected in [("house", "Representative", 435), ("senate", "Senator", 35)]:
+        races = json.loads(read(NPR + "data/" + chamber + ".json"))["results"]
+        if len({race["id"] for race in races}) < expected:
+            raise ValueError(f"Incomplete 2026 {chamber} election feed")
+        for race in races:
+            if race.get("test") or not race.get("called"):
+                continue
+            for candidate in race["candidates"]:
+                if candidate.get("winner") == "X":
+                    party = {"Dem": "Democratic", "GOP": "Republican"}.get(candidate["party"], candidate["party"])
+                    yield (race["state"], title, int(race["seatNumber"]), candidate["first"] + " " + candidate["last"],
+                           party, bool(candidate.get("incumbent")), NPR + chamber + ".html")
+    # The national race feed covers the 435 voting seats. The five delegates
+    # are elected separately. Puerto Rico's resident commissioner serves four years.
+    for state, name, party, incumbent, source in [
+        ("AS", "Aumua Amata Coleman Radewagen", "Republican", True, "https://pina.com.fj/2026/11/05/guam-elects-democrat-northern-marianas-retains-republican-delegate-as-american-samoa-re-elects-amata/"),
+        ("MP", "Kimberlyn King-Hinds", "Republican", True, "https://www.islapublic.org/news/2026-11-04/king-hinds-wins-reelection-in-landslide-governor-ag-races-head-to-runoff"),
+        ("DC", "Robert White", "Democratic", False, "https://www.washingtonpost.com/elections/results/2026/11/03/dc-house-delegate-rosado-white-live-updates/"),
+        ("GU", "Alicia Limtiaco", "Democratic", False, "https://gec.guam.gov/2026/"),
+        ("VI", "Janelle K. Sarauw", "Democratic", False, "https://vivote.gov/wp-content/uploads/2026/11/2026-General-Election-Certification-11.03.2026.pdf"),
+    ]:
+        yield state, "Delegate", 0, name, party, incumbent, source
+
+
+def congress_directory(number):
+    offset = 0
+    collected = {}
+    while True:
+        params = {"format": "json", "limit": 250, "offset": offset,
+                  "api_key": os.getenv("CONGRESS_API_KEY") or "DEMO_KEY"}
+        batch = json.loads(read(f"https://api.congress.gov/v3/member/congress/{number}?" + urlencode(params)))
+        for member in batch["members"]:
+            collected[member["bioguideId"]] = member
+        offset += len(batch["members"])
+        if offset >= batch["pagination"]["count"]:
+            break
+        if not batch["members"]:
+            raise ValueError(f"Incomplete Congress.gov pagination for {number}")
+    if len(collected) != batch["pagination"]["count"]:
+        raise ValueError(f"Incomplete Congress.gov roster for {number}")
+    return collected
+
+
 def officials(today):
-    result, seats = [], {}
-    senators = {r.findtext("bioguide_id"):r for r in ElementTree.fromstring(read(
+    result, identities = [], []
+    as_of = today.isoformat()
+    members = {}
+    for url in [CURRENT.replace("-current", "-historical"), CURRENT]:
+        for member in json.loads(read(url)):
+            members[member["id"]["bioguide"]] = member
+    sitting_senators = {m.findtext("bioguide_id") for m in ElementTree.fromstring(read(
         "https://www.senate.gov/general/contact_information/senators_cfm.xml")).findall("member")}
-    if len(senators)<90: raise ValueError("Incomplete Senate directory")
-    for member in json.loads(read(CURRENT)):
-        term = next((t for t in reversed(member["terms"]) if t["start"] <= str(today) < t["end"]), None)
-        if member["terms"][-1]["type"]=="sen":
-            if member["id"]["bioguide"] not in senators:continue
-            term=member["terms"][-1]
-        if not term:
+    for bio, member in members.items():
+        terms = [t for t in member["terms"] if t["end"] > CONGRESSES[119][0]
+                 and t["start"] < CONGRESSES[120][1] and t["start"] <= as_of]
+        if not terms:
             continue
-        state, bio = term["state"], member["id"]["bioguide"]
+        congresses = [number for number, (start, end) in CONGRESSES.items()
+                      if any(t["start"] < end and t["end"] > start for t in terms)]
+        term = terms[-1]
+        state = term["state"]
         title = "Senator" if term["type"] == "sen" else "Representative"
-        if title == "Representative" and state not in set(STATES) - {"DC"}:
+        if title == "Representative" and (state in TERRITORIES or state == "PR"):
             title = "Resident Commissioner" if state == "PR" else "Delegate"
         names = member["name"]
         name = names.get("official_full") or names["first"] + " " + names["last"]
-        entry = row(bio.lower(), name, title, state, term["party"], term.get("url") or "https://bioguide.congress.gov/search/bio/"+bio,
-                    portrait=f"https://unitedstates.github.io/images/congress/225x275/{bio}.jpg")
+        variants = {name, names["first"] + " " + names["last"], names.get("nickname", "") + " " + names["last"]}
+        entry = row(bio.lower(), name, title, state, term["party"], "https://bioguide.congress.gov/search/bio/"+bio,
+                    congresses=congresses, portrait=f"https://unitedstates.github.io/images/congress/225x275/{bio}.jpg")
+        if member["id"].get("fec"):
+            entry["fecIds"] = member["id"]["fec"]
+        if term["end"] <= as_of and bio not in sitting_senators:
+            entry["former"] = True
+        if bio == "H001103" and 120 not in congresses and as_of < CONGRESSES[120][0]:
+            # The resident commissioner elected in 2024 has a four-year term.
+            congresses.append(120)
+        identities.append((entry, variants, term))
         result.append(entry)
-        seats.setdefault((state, title, term.get("district", 0)), []).append((entry, names))
 
-    for bio, senator in senators.items():
-        if any(r["slug"]==bio.lower() for r in result):continue
-        first,last=senator.findtext("first_name"),senator.findtext("last_name")
-        state=senator.findtext("state")
-        entry=row(bio.lower(),first+" "+last,"Senator",state,{"D":"Democratic","R":"Republican","I":"Independent"}.get(senator.findtext("party")),senator.findtext("website"),portrait=f"https://unitedstates.github.io/images/congress/225x275/{bio}.jpg")
-        result.append(entry)
-        seats.setdefault((state,"Senator",0),[]).append((entry,{"first":first,"last":last}))
-    # Incoming winners are explicitly titled until the new Congress convenes.
+    by_id = {r["slug"].upper(): r for r in result}
+    codes = {name: code for code, name in STATES.items()}
+    codes.update({"Puerto Rico": "PR", "Guam": "GU", "American Samoa": "AS",
+                  "Northern Mariana Islands": "MP", "Virgin Islands": "VI"})
+    for number in CONGRESSES:
+        for bio, record in congress_directory(number).items():
+            if bio not in by_id:
+                term = record["terms"]["item"][-1]
+                state = codes[record["state"]]
+                last, _, first = record["name"].partition(", ")
+                name = (first + " " + last).strip()
+                title = "Senator" if term["chamber"] == "Senate" else (
+                    "Delegate" if state in TERRITORIES else "Resident Commissioner" if state == "PR" else "Representative")
+                entry = row(bio.lower(), name, title, state, record["partyName"],
+                            "https://bioguide.congress.gov/search/bio/"+bio, congresses=[])
+                by_id[bio] = entry
+                result.append(entry)
+                identities.append((entry, {name}, {}))
+            entry = by_id[bio]
+            if number not in entry["congresses"]:
+                entry["congresses"].append(number)
+            image = (record.get("depiction") or {}).get("imageUrl")
+            if image:
+                entry["officialPortrait"] = image
+                entry.setdefault("portrait", image)
+
     if date(2026, 11, 3) <= today < date(2027, 1, 3):
-        js = (ROOT / "assets/data/elections/us-2026.js").read_text()
-        races = json.JSONDecoder().raw_decode(js.split("Object.freeze(", 1)[1])[0]
-        for chamber, title in [("senate", "Senator"), ("house", "Representative")]:
-            for seat, race in races[chamber].items():
-                winner, state = race.get("winner"), race["state"]
-                if not winner or race.get("status") != "called":
-                    continue
-                district = seat.split("-")[-1]
-                district = int(district) if district.isdigit() else 0
-                sitting = [m for (st, role, _), members in seats.items() if st==state and role==title for m in members]
-                def same_member(member, names):
-                    variants = [member["name"], names["first"]+" "+names["last"], names.get("nickname","")+" "+names["last"]]
-                    return any(norm(winner) == norm(v) or clean_name(winner) == clean_name(v) for v in variants)
-                aliases = {"r000584":"Jim Risch","c001088":"Chris Coons","c001110":"Lou Correa","s001214":"Greg Steube",
-                           "b001307":"Jim Baird","d000230":"Don Davis","c001123":"Gil Cisneros","k000375":"Bill Keating",
-                           "o000176":"John “Johnny O” Olszewski, Jr.","o000177":"Bob Onder"}
-                if any(same_member(member,names) or norm(aliases.get(member["slug"],""))==norm(winner) for member,names in sitting):
-                    continue
-                moving = [member for (st,role,_), members in seats.items() if st==state and role!=title
-                          for member,names in members if same_member(member,names)]
-                if len(moving)==1:
-                    moving[0]["incomingOffice"]=title+"-elect"
-                    continue
-                result.append(row("elect-"+norm(seat+"-"+title+"-"+winner), winner, title+"-elect", state,
-                                  race.get("winnerParty","").title(), race["pageUrl"]))
+        for state, title, seat, winner, party, incumbent, source in election_winners():
+            pool = [(r, names, term) for r, names, term in identities if r["state"] == state]
+            matches = [r for r, names, _ in pool if any(clean_name(winner) == clean_name(n) for n in names)]
+            if not matches and incumbent:
+                # Redistricting can change a returning incumbent's district number.
+                matches = [r for r, names, _ in pool if r["office"] == title and not r.get("former")
+                           and any(norm(n).split("-")[-1] == norm(winner).split("-")[-1] for n in names)]
+            if len(matches) == 1:
+                entry = matches[0]
+                if 120 not in entry["congresses"]:
+                    entry["congresses"].append(120)
+                if entry["office"] != title or entry.get("former"):
+                    entry["incomingOffice"] = title+"-elect"
+            else:
+                slug = "elect-" + norm(f"{state}-{seat}-{title}-{winner}")
+                entry = row(slug, winner, title+"-elect", state, party, source, congresses=[120])
+                result.append(entry)
+            entry["electionSource"] = source
+    if today >= date(2027, 1, 3) and sum(120 in r["congresses"] for r in result) < 500:
+        raise ValueError("120th term data is incomplete; retaining the previous hallway snapshot")
     gov = html.fromstring(read(NGA))
     codes = {name: code for code,name in STATES.items() if code != "DC"}
     parties = {}
@@ -124,7 +202,9 @@ def november_election(year):
 
 def declared_race(spec):
     url, year, state, office = spec
-    doc = html.fromstring(read(url))
+    raw = read(url, optional=True)
+    if not raw: return []
+    doc = html.fromstring(raw)
     if year == date.today().year:
         info=doc.xpath('(//table[contains(@class,"infobox")])[1]')
         dates=[] if not info else re.findall(r"(?:January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}, "+str(year),info[0].text_content())
@@ -155,36 +235,35 @@ def declared_race(spec):
 
 def declarations(today):
     specs = {}
-    for year in range(today.year, today.year+3):
-        # Same-year race pages also need a dated election in their infobox.
-        if year == today.year and today > november_election(year): continue
+    state_names = {name: abbr for abbr, name in STATES.items()}
+    # Walk published election calendars. A two-year window misses the next
+    # gubernatorial cycle and later declarations in years with existing pages.
+    year = max(today.year, 2027)
+    while True:
         url = f"https://en.wikipedia.org/wiki/{year}_United_States_elections"
-        raw = read(url,optional=True)
-        if not raw: continue
-        for href in html.fromstring(raw).xpath('//*[contains(@class,"navbox")]//a/@href'):
-            target = urljoin(url, href)
-            name = unquote(target.split("/")[-1]).replace("_"," ")
-            if not target.startswith(f"https://en.wikipedia.org/wiki/{year}_") or not name.endswith(" election"): continue
-            if "presidential election in" in name or "special" in name.lower() and today.year == year: continue
-            state = next((c for c,s in STATES.items() if re.search(r"\b"+s+r"\b",name)), "")
-            if not state or state=="DC": continue
-            race_title=name[len(str(year))+1:-len(" election")]
-            if race_title==STATES[state]+" gubernatorial":
-                office="Governor"
-            elif "United States Senate" in race_title:
-                office="U.S. Senate"
-            elif "United States House of Representatives" in race_title:
-                office="U.S. House"
-            else:
+        raw = read(url, optional=True)
+        if not raw:
+            break
+        for href in html.fromstring(raw).xpath('//a[@href]/@href'):
+            target = urljoin(url, href).split("#")[0]
+            prefix = f"https://en.wikipedia.org/wiki/{year}_"
+            if not target.startswith(prefix):
                 continue
-            specs[target]=(target,year,state,office)
-        # Federal Senate special elections put the state after the word election.
-        for href in html.fromstring(raw).xpath('//a/@href'):
-            target=urljoin(url,href)
-            match=re.fullmatch(r"https://en.wikipedia.org/wiki/"+str(year)+r"_United_States_Senate_special_election_in_([A-Za-z_]+)",target)
-            if match and year>today.year:
-                state=next((k for k,v in STATES.items() if v==match[1].replace("_"," ")),"")
-                if state:specs[target]=(target,year,state,"U.S. Senate")
+            name = unquote(target[len(prefix):]).replace("_", " ")
+            if name == "United States presidential election":
+                specs[target] = (target, year, "US", "President")
+                continue
+            governor = re.fullmatch(r"(.+) (?:special )?gubernatorial (?:special )?election", name)
+            if governor and governor[1] in state_names and state_names[governor[1]] != "DC":
+                specs[target] = (target, year, state_names[governor[1]], "Governor")
+                continue
+            federal = re.fullmatch(r"United States (Senate|House of Representatives) (?:special )?elections? in (.+)", name)
+            district = re.fullmatch(r"(.+?)(?:'s|’) (?:.+?) congressional district special election", name)
+            state = federal[2] if federal else district[1] if district else None
+            if state in state_names:
+                office = "U.S. Senate" if federal and federal[1] == "Senate" else "U.S. House"
+                specs[target] = (target, year, state_names[state], office)
+        year += 1
     records=[]
     with ThreadPoolExecutor(max_workers=5) as pool:
         for batch in pool.map(declared_race, specs.values()):
@@ -231,6 +310,7 @@ def policy_links(record):
 
 
 CANDIDATE_OFFICES = {
+    "president":"President", "u.s. president":"President", "president of the united states":"President",
     "governor":"Governor", "u.s. senate":"U.S. Senate", "us senate":"U.S. Senate",
     "united states senate":"U.S. Senate", "u.s. house":"U.S. House",
     "u.s. house of representatives":"U.S. House", "united states house of representatives":"U.S. House",
@@ -238,35 +318,95 @@ CANDIDATE_OFFICES = {
 }
 
 
+FEC_OFFICES = {"S": "U.S. Senate", "H": "U.S. House", "P": "President"}
+
+
+def federal_candidates(today):
+    earliest = max(2027, today.year)
+    records = {}
+    possible_filers = {}
+    def add(key, name, office, state, party, year, source=None):
+        if office not in FEC_OFFICES or not str(year).isdigit() or not name or not key:
+            return
+        year = int(year)
+        # Self-reported filing years sometimes contain typos such as 2999.
+        if year < earliest or year > today.year + 100 or (office == "P" and year % 4) or november_election(year) < today:
+            return
+        last, comma, first = name.partition(",")
+        display = ((first.strip() + " " + last) if comma else last).title()
+        records[(key, year)] = row(
+            f"fec-{key.lower()}-{year}", display, "Candidate for " + FEC_OFFICES[office],
+            "US" if office == "P" else state, {"DEM":"Democratic","REP":"Republican"}.get(party,party),
+            source or "https://www.fec.gov/data/candidate/"+key+"/", year=year, fecId=key)
+    cycle = today.year + today.year % 2
+    for year in [cycle-2, cycle, cycle+2]:
+        base = f"https://www.fec.gov/files/bulk-downloads/{year}/"
+        raw = read(base + f"cn{year%100:02}.zip", optional=True)
+        if raw:
+            with zipfile.ZipFile(io.BytesIO(raw)) as z:
+                for f in csv.reader(io.StringIO(z.read(z.namelist()[0]).decode("latin1")), delimiter="|"):
+                    # F denotes a statutory candidate specifically for a future election.
+                    # An N record alone can originate with a third-party committee.
+                    if len(f) < 10 or not f[3].isdigit() or int(f[3]) < earliest:
+                        continue
+                    if f[8] == "N":
+                        possible_filers[f[0]] = int(f[3])
+                    elif f[8] in ("C", "F"):
+                        add(f[0], f[1], f[5], f[4], f[2], f[3])
+        if year >= earliest:
+            statements = read(base + f"Form2Filer_{year}.csv", optional=True)
+            if statements:
+                for f in csv.DictReader(io.StringIO(statements.decode("utf-8-sig", errors="replace"))):
+                    add(f["CANDIDATE_ID"], f["CANDIDATE_NAME"], f["CANDIDATE_OFFICE_CODE"],
+                        f["CANDIDATE_OFFICE_STATE_CODE"], f["PARTY_CODE"], f["ELECTION_YEAR"])
+    # Confirm pre-threshold filers against their own Statement of Candidacy.
+    # Candidate master rows can also be created by an independent draft committee.
+    ids = sorted(possible_filers)
+    api_key = os.getenv("FEC_API_KEY") or "DEMO_KEY"
+    for i in range(0, len(ids), 100):
+        params = {"api_key": api_key, "candidate_id": ids[i:i+100], "per_page": 100}
+        profiles = json.loads(read("https://api.open.fec.gov/v1/candidates/?" + urlencode(params, doseq=True)))
+        for profile in profiles["results"]:
+            key = profile["candidate_id"]
+            year = possible_filers[key]
+            if (profile.get("last_f2_date") and not profile.get("candidate_inactive") and
+                    year in profile["election_years"] and year not in (profile.get("inactive_election_years") or [])):
+                add(key, profile["name"], profile["office"], profile["state"], profile["party"], year)
+    # Electronic filings arrive before the future cycle's bulk file exists.
+    # Keep prior verified filings and overlap receipt dates to pick up late indexing.
+    past = json.loads(OUT.read_text()) if OUT.exists() else {}
+    for record in past.get("upcoming", []):
+        if record.get("filingId") and record["year"] >= earliest and november_election(record["year"]) >= today:
+            records[(record["filingId"], record["year"])] = dict(record)
+    checkpoint = past.get("filingsThrough")
+    since = date.fromisoformat(checkpoint) - timedelta(days=14) if checkpoint else date(2026,11,3)
+    page = 1
+    while True:
+        params = {"api_key": os.getenv("FEC_API_KEY") or "DEMO_KEY", "form_type":"F2",
+                  "min_receipt_date":since.isoformat(), "max_receipt_date":today.isoformat(),
+                  "most_recent":"true", "page":page, "per_page":100, "sort":"receipt_date"}
+        payload = json.loads(read("https://api.open.fec.gov/v1/filings/?" + urlencode(params)))
+        for filing in payload["results"]:
+            key, election = filing.get("candidate_id"), filing.get("election_year")
+            add(key, filing.get("candidate_name"), filing.get("office"), filing.get("state"),
+                filing.get("party"), election, filing.get("html_url"))
+            if (key, election) in records:
+                records[key, election]["filingId"] = key
+        if page >= payload["pagination"]["pages"]: break
+        page += 1
+    return records
+
+
 def candidates(today, voters):
     result = []
     for v in voters:
-        if (v.get("electionDate") or "") < str(today) or v.get("management",{}).get("lifecycleStatus") not in (None,"active"):
+        if (v.get("electionDate") or "") < max(str(today), "2027-01-01") or v.get("management",{}).get("lifecycleStatus") not in (None,"active"):
             continue
         office = CANDIDATE_OFFICES.get((v.get("office") or "").strip().lower().removeprefix("candidate for "))
         if not office or (office=="Governor" and state_from(v) not in set(STATES)-{"DC"}): continue
-        result.append(row("v-"+v["slug"],v["name"],"Candidate for "+office,state_from(v),v.get("party"),
+        result.append(row("v-"+v["slug"],v["name"],"Candidate for "+office,"US" if office == "President" else state_from(v),v.get("party"),
                           "https://www.voterist.com/candidate/"+v["slug"], issueSlug=v["slug"], year=int(v["electionDate"][:4])))
-    cycle = today.year + today.year%2
-    fec = {}
-    for year in [cycle-2,cycle,cycle+2]:
-        url=f"https://www.fec.gov/files/bulk-downloads/{year}/cn{year%100:02}.zip"
-        raw=read(url,optional=True)
-        if not raw:
-            if year == cycle-2: raise ValueError("Missing prior FEC cycle")
-            continue
-        with zipfile.ZipFile(io.BytesIO(raw)) as z:
-            for f in csv.reader(io.StringIO(z.read(z.namelist()[0]).decode("latin1")),delimiter="|"):
-                if len(f)<10 or not f[3].isdigit(): continue
-                key=f[0]
-                fec.pop(key,None)
-                election=int(f[3])
-                if f[8]!="C" or election < today.year or november_election(election)<today or f[5] not in ("S","H"): continue
-                last,comma,first=f[1].partition(",")
-                name=((first.strip()+" "+last) if comma else last).title()
-                office={"S":"U.S. Senate","H":"U.S. House"}[f[5]]
-                fec[key]=row("fec-"+key.lower(),name,"Candidate for "+office,f[4],{"DEM":"Democratic","REP":"Republican"}.get(f[2],f[2]),
-                             "https://www.fec.gov/data/candidate/"+key+"/",year=election)
+    fec = federal_candidates(today)
     seen={(norm(r["name"]),r["state"],norm(r["office"]),r["year"]) for r in result}
     result.extend(r for r in fec.values() if (norm(r["name"]),r["state"],norm(r["office"]),r["year"]) not in seen)
     entries = {(norm(r["name"]),r["year"],r["state"],norm(r["office"])): r for r in result}
@@ -293,8 +433,11 @@ def cache_portrait(record):
                 image.convert("RGB").save(ROOT/path,"WEBP",quality=82)
         record["originalPortrait"]=url
         record["portrait"]=str(path)
-    except (OSError,ValueError,subprocess.SubprocessError):
-        pass
+    except (OSError, ValueError, subprocess.SubprocessError):
+        alternate = record.pop("officialPortrait", None)
+        if alternate and alternate != url:
+            record["portrait"] = alternate
+            cache_portrait(record)
 
 
 def main():
@@ -303,6 +446,8 @@ def main():
     serving, upcoming=officials(today), candidates(today,voters)
     past = json.loads(OUT.read_text()) if OUT.exists() else {}
     stored = {r["slug"]:r for hall in ("serving","upcoming") for r in past.get(hall,[])}
+    old_identity = {(norm(r["name"]), r["state"], r["office"], r.get("year")): r for r in stored.values()}
+    by_fec = {key: r for r in serving for key in r.pop("fecIds", [])}
     manifest=json.loads((OUT.parent/"portraits.json").read_text())["candidates"]
     for r in serving+upcoming:
         office = r["office"].lower().replace("-elect","").removeprefix("candidate for ")
@@ -312,9 +457,14 @@ def main():
         photo=manifest.get(r.get("issueSlug"),{})
         if not r.get("portrait") and photo:
             r.update(portrait=photo.get("localUrl") or photo["url"],portraitCredit=photo["creditUrl"])
-        old=stored.get(r["slug"],{})
+        member = by_fec.get(r.get("fecId"))
+        if member and not r.get("portrait"):
+            r.update(portrait=member.get("portrait") or member.get("officialPortrait"), portraitCredit=member["source"])
+        old = stored.get(r["slug"]) or old_identity.get((norm(r["name"]), r["state"], r["office"], r.get("year")), {})
         if not r.get("portrait") and old.get("portrait") and old["name"]==r["name"]:
-            r.update(portrait=old.get("originalPortrait") or old["portrait"],portraitCredit=old.get("portraitCredit"))
+            r["portrait"] = old["portrait"]
+            for field in ("originalPortrait", "portraitCredit"):
+                if old.get(field): r[field] = old[field]
     missing=[dict(r,nameKey=clean_name(r["name"])) for r in serving+upcoming if not r.get("portrait") and r["state"] in STATES]
     images=wikipedia_photos(missing) if missing else {}
     for r in serving+upcoming:
@@ -331,7 +481,7 @@ def main():
     allowed = {"Candidate for "+office for office in CANDIDATE_OFFICES.values()}
     if any(r["office"] not in allowed for r in upcoming):
         raise ValueError("Unsupported office in upcoming hallway")
-    OUT.write_text(json.dumps(dict(asOf=str(today),serving=serving,upcoming=upcoming),ensure_ascii=False,separators=(",",":"))+"\n")
+    OUT.write_text(json.dumps(dict(asOf=str(today),filingsThrough=str(today),serving=serving,upcoming=upcoming),ensure_ascii=False,separators=(",",":"))+"\n")
     print(len(serving),"officeholders and members-elect;",len(upcoming),"upcoming candidacies")
 
 
