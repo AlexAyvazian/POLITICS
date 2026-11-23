@@ -13,6 +13,7 @@
  * the sky itself.
  */
 import * as THREE from '../vendor/three.module.min.js';
+import {advanceCorridorZ,wheelCorridorMetres} from '../../assets/js/issue-corridor-navigation.js';
 
 // --- Corridor dimensions (metres) -------------------------------------------
 const HALF_W = 3.5;      // wall at x = ±HALF_W
@@ -497,12 +498,14 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   // Scoped event registration lets POLITICS rebuild the gallery after a search
   // without leaving the old instance's camera handlers attached.
   const events = new AbortController();
-  const listenCanvas = (name, handler) => canvas.addEventListener(name, handler, {signal:events.signal});
+  const listenCanvas = (name, handler, extra = {}) => canvas.addEventListener(name, handler, {signal:events.signal,...extra});
   const listenWindow = (name, handler) => addEventListener(name, handler, {signal:events.signal});
   const stick = { x: 0, y: 0 };
   const pointer = new THREE.Vector2();     // -1..1, for page-mode parallax
   const raycaster = new THREE.Raycaster();
   let mode = 'page';
+  let travelTargetZ = null; // browser wheels, touch swipes and visible walk buttons
+  let autoWalk = false;
   let focused = null;                       // index or null
   let scrollT = 0;                          // 0..1 through the page
   let yaw = 0, pitch = 0;
@@ -550,6 +553,38 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     reportTour();
   }
 
+  function stopAutoWalk(){
+    if (!autoWalk) return;
+    autoWalk = false;
+    hooks.onAutoWalk?.(false);
+  }
+
+  function setAutoWalk(enabled){
+    const next = !!enabled;
+    if (autoWalk === next) return;
+    if (next){
+      if (focused !== null) unfocus();
+      endTour();
+      if (mode !== 'roam') setMode('roam');
+      travelTargetZ = null;
+      vel.set(0, 0, 0);
+    }
+    autoWalk = next;
+    hooks.onAutoWalk?.(autoWalk);
+  }
+
+  /** Advance in metres along the hallway, without selecting any picture. */
+  function walkBy(metres){
+    if (!Number.isFinite(metres) || !metres) return;
+    if (focused !== null) unfocus();
+    endTour();
+    stopAutoWalk();
+    if (mode !== 'roam') setMode('roam');
+    vel.set(0, 0, 0);
+    const z = travelTargetZ === null ? rig.position.z : travelTargetZ;
+    travelTargetZ = advanceCorridorZ(z,metres,LENGTH);
+  }
+
   function dockAt(i) {
     const a = artworks[i];
     // Far enough back that the long edge fits the frustum, then turn to face
@@ -565,6 +600,8 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
 
   function focus(i, silent) {
     if (i < 0 || i >= artworks.length) return;
+    stopAutoWalk();
+    travelTargetZ = null;
     focused = i;
     dockAt(i);
     want(artworks[i], 'large');
@@ -585,6 +622,8 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   function setMode(next) {
     if (next === mode) return;
     if (next === 'page') {
+      stopAutoWalk();
+      travelTargetZ = null;
       unfocus();
       document.exitPointerLock?.();
     }
@@ -595,6 +634,16 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
 
   // Pointer look (pointer lock on desktop, drag on touch)
   let dragging = false, dragMoved = 0, lastX = 0, lastY = 0;
+
+  // Scroll/trackpad continuously moves the walker through the hallway.
+  // Only events on the 3D canvas are intercepted: the issue sheet still scrolls.
+  listenCanvas('wheel', (e) => {
+    if (e.ctrlKey) return; // preserve browser pinch-to-zoom gestures
+    const metres = wheelCorridorMetres(e.deltaY, e.deltaMode);
+    if (!metres) return;
+    e.preventDefault();
+    walkBy(metres);
+  }, {passive:false});
 
   listenCanvas('pointerdown', (e) => {
     dragging = true; dragMoved = 0; lastX = e.clientX; lastY = e.clientY;
@@ -610,8 +659,14 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     } else if (dragging && mode === 'roam' && focused === null) {
       const dx = e.clientX - lastX, dy = e.clientY - lastY;
       dragMoved += Math.abs(dx) + Math.abs(dy);
-      yaw -= dx * 0.004;
-      pitch = clamp(pitch - dy * 0.004, -1.1, 1.1);
+      if (e.pointerType === 'touch' && Math.abs(dy) > Math.abs(dx) * 1.1 && Math.abs(dy) > 1) {
+        // Swipe up to move forward; swipe down to return. Horizontal swipes
+        // still turn the camera, preserving Galiyaara's original look control.
+        walkBy(-dy * 0.055);
+      } else {
+        yaw -= dx * 0.004;
+        pitch = clamp(pitch - dy * 0.004, -1.1, 1.1);
+      }
       lastX = e.clientX; lastY = e.clientY;
     }
   });
@@ -640,6 +695,8 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   });
 
   listenWindow('keydown', (e) => {
+    // Text-entry controls should never accidentally drive the camera.
+    if (e.target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
     if (e.key === 'Escape') {
       if (focused !== null) unfocus();
       else if (mode === 'roam') setMode('page');
@@ -660,6 +717,8 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
       if (back) focus(focused - 1);
       return;
     }
+    if (/^(Key[WASD]|Arrow)/.test(e.code)) travelTargetZ = null;
+    if (/^(Key[WASD]|Arrow)/.test(e.code)) stopAutoWalk();
     keys.add(e.code);
     if (/^(Key[WASD]|Arrow|Space)/.test(e.code)) e.preventDefault();
   });
@@ -680,7 +739,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   }
 
   function walk(dt) {
-    const f = clamp((keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) + stick.y, -1, 1);
+    const f = clamp((keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) + stick.y + (autoWalk ? 0.5 : 0), -1, 1);
     const s = clamp((keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + stick.x, -1, 1);
     const boost = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 2.4 : 1;
     const accel = 34 * boost;
@@ -689,6 +748,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     vel.multiplyScalar(Math.exp(-7 * dt));
     rig.position.x = clamp(rig.position.x + vel.x * dt, -HALF_W + 0.55, HALF_W - 0.55);
     rig.position.z = clamp(rig.position.z + vel.z * dt, -(LENGTH - 24), 10);
+    if (autoWalk && rig.position.z <= -(LENGTH-24) + 0.04) stopAutoWalk();
     camera.position.y = EYE + (reduced ? 0 : Math.sin(performance.now() * 0.004) * 0.012 * vel.length());
   }
 
@@ -718,7 +778,15 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
       pitch = lerp(pitch, dock.pitch, k);
       vel.set(0, 0, 0);
     } else if (mode === 'roam') {
-      walk(dt);
+      if (travelTargetZ !== null) {
+        const k = reduced ? 1 : ease(dt, 5);
+        rig.position.z = lerp(rig.position.z, travelTargetZ, k);
+        rig.position.x = lerp(rig.position.x, 0, ease(dt, 3));
+        vel.set(0, 0, 0);
+        if (Math.abs(rig.position.z - travelTargetZ) < 0.025) travelTargetZ = null;
+      } else {
+        walk(dt);
+      }
     } else {
       // Page mode: scroll pulls you down the corridor, with a slow drift on top
       // so the shot is never completely still.
@@ -818,11 +886,17 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
       focus(i);
     },
     setScroll: (t) => { scrollT = clamp(t, 0, 1); },
+    walkBy,
+    setAutoWalk,
+    getAutoWalk: () => autoWalk,
     startTour,
     stepTour,
     endTour,
     toggleTour() { if (tour) { tour.playing = !tour.playing; reportTour(); } },
-    setStick: (x, y) => { stick.x = x; stick.y = y; },
+    setStick: (x, y) => {
+      if (x || y) { travelTargetZ = null; stopAutoWalk(); }
+      stick.x = x; stick.y = y;
+    },
     /** Full-resolution texture for a photograph — used by the AR print. */
     loadTexture: (url) => loader.loadAsync(url).then((t) => {
       t.colorSpace = THREE.SRGBColorSpace;
@@ -830,7 +904,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
       return t;
     }),
     count: artworks.length,
-    dispose() { running = false; events.abort(); renderer.setAnimationLoop(null); renderer.dispose(); },
+    dispose() { running = false; stopAutoWalk(); events.abort(); renderer.setAnimationLoop(null); renderer.dispose(); },
 
     /** What the XR layer needs to drive the same corridor from a headset. */
     xr: {
