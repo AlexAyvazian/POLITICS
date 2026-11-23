@@ -12,6 +12,7 @@ const first=(...values)=>values.map(x=>text(x)).find(Boolean)||'';
 const slugOk=v=>typeof v==='string'&&/^[a-z0-9](?:[a-z0-9-]{0,120}[a-z0-9])?$/.test(v);
 const US_STATES=new Set('AL AK AZ AR CA CO CT DE FL GA HI IA ID IL IN KS KY LA MA MD ME MI MN MO MS MT NC ND NE NH NJ NM NV NY OH OK OR PA RI SC SD TN TX UT VA VT WA WI WV WY DC'.split(' '));
 const slugState=slug=>{const match=slug.match(/-([a-z]{2})-(20\d\d)(?:-|$)/);const value=match?.[1]?.toUpperCase();return US_STATES.has(value)?value:'';};
+const jurisdictionState=row=>{const code=String(row.jurisdictionId||'').match(/^us\.([a-z]{2})(?:\.|$)/i)?.[1]?.toUpperCase();const election=String(row.electionId||'').match(/^([a-z]{2})\.20\d\d\./i)?.[1]?.toUpperCase();return US_STATES.has(code)?code:US_STATES.has(election)?election:'';};
 const imageFrom=obj=>safeImageUrl(obj?.photoUrl||obj?.portraitUrl||obj?.imageUrl||obj?.photo||obj?.headshotUrl||obj?.image||obj?.candidate?.photoUrl||'');
 function candidateFrom(value){
  const row=value?.candidate||value||{};
@@ -22,7 +23,7 @@ function candidateFrom(value){
   name:first(row.name,row.fullName,row.candidateName,row.displayName,value?.name) || slug.replace(/-/g,' '),
   office:first(row.office,row.officeName,row.race?.office,row.raceName,row.position,row.ballotOffice),
   party:first(row.party,row.partyName,row.partyAffiliation),
-  state:first(row.state,row.stateCode,row.jurisdiction?.state,row.stateAbbreviation,slugState(slug)),
+  state:first(row.state,row.stateCode,row.jurisdiction?.state,row.stateAbbreviation,jurisdictionState(row),slugState(slug)),
   portrait:imageFrom(row)||imageFrom(value),
   published:row.published===true||value?.published===true
  };
