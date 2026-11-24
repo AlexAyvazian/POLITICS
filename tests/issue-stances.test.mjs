@@ -64,6 +64,18 @@ test('Issue Stances uses the supplied portal artwork below the wings with wing-o
  assert.doesNotMatch(css.slice(portalStart,portalEnd),/conic-gradient/);
 });
 
+test('Issue Stances end window is a hard gallery boundary with an animated sun and orbiting Earth',()=>{
+ const gallery=read('galiyaara/js/gallery.js');
+ assert.match(gallery,/const wallpaperSpan = 6 - endZ;/);
+ assert.match(gallery,/const panelWidth = Math\.min\(wallPanelWidth, nearEdge - endZ\);/);
+ assert.match(gallery,/if \(panelWidth <= 0\) continue;/);
+ assert.match(gallery,/function buildEndWindowSolarSystem\(/);
+ assert.match(gallery,/new THREE\.SphereGeometry\([^\n]+sun/i);
+ assert.match(gallery,/earthPivot\.rotation\.y/);
+ assert.match(gallery,/earth\.rotation\.y/);
+ assert.match(gallery,/solarSystem\.position\.z = endZ -/);
+});
+
 test('Issue Stances contains only portrait identity and sourced issue-sheet content',()=>{
  const html=read('issues.html'),js=read('assets/js/issue-stances.js'),css=read('assets/css/issue-stances.css');
  assert.match(html,/class="unifiedTopNav"/);
