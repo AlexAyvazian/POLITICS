@@ -73,7 +73,7 @@ test('Issue Stances end window is a hard boundary with a detailed full solar sys
  assert.match(gallery,/if \(panelWidth <= 0\) continue;/);
  assert.match(gallery,/function buildEndWindowSolarSystem\(/);
  for(const planet of ['Mercury','Venus','Earth','Mars','Jupiter','Saturn','Uranus','Neptune']){
-  assert.match(gallery,new RegExp(\`name:\\s*['"]\${planet}['"]\`),planet);
+  assert.match(gallery,new RegExp("name:\\\\s*['\\\"]"+planet+"['\\\"]"),planet);
  }
  assert.match(gallery,/function planetSurfaceTex\(/);
  assert.match(gallery,/Saturn ring/);
