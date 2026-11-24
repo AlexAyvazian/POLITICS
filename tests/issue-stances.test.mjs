@@ -36,7 +36,7 @@ test('Issue Stances lobby uses bright eagle background and circular portal selec
  assert.match(css,/American-Eagle-Flag-Patriotic-4th-png-Graphics-113400236-1\.jpeg/);
  assert.match(css,/\.issueDoor\{[\s\S]*aspect-ratio:1[\s\S]*border-radius:50%/);
  assert.match(css,/@keyframes portalShimmer/);
- assert.match(css,/@keyframes portalPulse/);
+ assert.match(css,/@keyframes portalGlow/);
  assert.match(css,/\.issueDoor span,\.issueDoor small\{[\s\S]*background:none!important/);
  assert.doesNotMatch(css,/border:\s*8px\s+ridge/);
  assert.doesNotMatch(css,/Capitol Hill\.jpeg/);
