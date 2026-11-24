@@ -64,16 +64,23 @@ test('Issue Stances uses the supplied portal artwork below the wings with wing-o
  assert.doesNotMatch(css.slice(portalStart,portalEnd),/conic-gradient/);
 });
 
-test('Issue Stances end window is a hard gallery boundary with an animated sun and orbiting Earth',()=>{
+test('Issue Stances end window is a hard boundary with a detailed full solar system and no hallway light leak',()=>{
  const gallery=read('galiyaara/js/gallery.js');
+ assert.match(gallery,/const END_BUFFER = 23;/);
+ assert.doesNotMatch(gallery,/\+ 32;/);
  assert.match(gallery,/const wallpaperSpan = 6 - endZ;/);
  assert.match(gallery,/const panelWidth = Math\.min\(wallPanelWidth, nearEdge - endZ\);/);
  assert.match(gallery,/if \(panelWidth <= 0\) continue;/);
  assert.match(gallery,/function buildEndWindowSolarSystem\(/);
- assert.match(gallery,/new THREE\.SphereGeometry\([^\n]+sun/i);
- assert.match(gallery,/earthPivot\.rotation\.y/);
- assert.match(gallery,/earth\.rotation\.y/);
- assert.match(gallery,/solarSystem\.group\.position\.set\(0, 3\.55, endZ - 13\.5\)/);
+ for(const planet of ['Mercury','Venus','Earth','Mars','Jupiter','Saturn','Uranus','Neptune']){
+  assert.match(gallery,new RegExp(\`name:\\s*['"]\${planet}['"]\`),planet);
+ }
+ assert.match(gallery,/function planetSurfaceTex\(/);
+ assert.match(gallery,/Saturn ring/);
+ assert.match(gallery,/planet\.rotation\.y/);
+ assert.match(gallery,/pivot\.rotation\.y/);
+ assert.doesNotMatch(gallery,/new THREE\.PointLight/,'solar view must not cast light onto the hallway floor');
+ assert.match(gallery,/solarSystem\.group\.position\.set\(0, 3\.55, endZ - 16\)/);
 });
 
 test('Issue Stances contains only portrait identity and sourced issue-sheet content',()=>{
