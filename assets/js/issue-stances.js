@@ -6,7 +6,7 @@
  */
 import {createGallery} from '../../galiyaara/js/gallery.js?v=20261123solarsystem';
 import {WALLPAPER_IMAGES} from './issue-stances-wallpapers.js';
-import {arrangeCorridor} from './issue-stances-layout.js';
+import {arrangeCorridor} from './issue-stances-layout.js?v=20261123spreadwalls';
 import {normalizeDirectory,normalizeIssueSheet,filterCandidates,safeImageUrl} from './issue-stances-model.js';
 
 const $=id=>document.getElementById(id);
