@@ -215,112 +215,268 @@ function buildMeteor() {
   };
 }
 
-function earthSurfaceTex() {
-  return canvasTex(768, 384, (g, w, h) => {
-    g.fillStyle = '#0f4d86';
-    g.fillRect(0, 0, w, h);
+function seededRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
 
-    // Stylized, deterministic continents so Earth reads clearly from the end window.
-    g.fillStyle = '#5f8d4c';
-    const continent = (points) => {
-      g.beginPath();
-      points.forEach(([x,y],i) => i ? g.lineTo(x*w,y*h) : g.moveTo(x*w,y*h));
-      g.closePath();
-      g.fill();
+function planetSurfaceTex(name) {
+  const seed = [...name].reduce((sum,ch)=>sum+ch.charCodeAt(0),0) * 997;
+  const rand = seededRandom(seed);
+  return canvasTex(1024, 512, (g, w, h) => {
+    const band = (y0,y1,a,b) => {
+      const grad = g.createLinearGradient(0,y0,0,y1);
+      grad.addColorStop(0,a); grad.addColorStop(1,b);
+      g.fillStyle = grad; g.fillRect(0,y0,w,y1-y0);
     };
-    continent([[.10,.22],[.18,.13],[.26,.18],[.29,.32],[.23,.42],[.19,.58],[.13,.52],[.08,.37]]);
-    continent([[.27,.49],[.33,.54],[.35,.71],[.31,.86],[.25,.76],[.22,.60]]);
-    continent([[.47,.22],[.56,.14],[.69,.18],[.78,.27],[.74,.39],[.64,.37],[.58,.47],[.50,.42]]);
-    continent([[.53,.43],[.61,.47],[.62,.66],[.56,.81],[.49,.69],[.47,.53]]);
-    continent([[.80,.61],[.87,.58],[.91,.68],[.87,.76],[.80,.72]]);
+    const speckles = (count,color,min=1,max=7) => {
+      g.fillStyle = color;
+      for(let i=0;i<count;i++){
+        const r=min+rand()*(max-min);
+        g.beginPath(); g.arc(rand()*w,rand()*h,r,0,Math.PI*2); g.fill();
+      }
+    };
 
-    g.fillStyle = 'rgba(255,255,255,.88)';
-    g.fillRect(0, 0, w, h * .045);
-    g.fillRect(0, h * .955, w, h * .045);
-
-    g.strokeStyle = 'rgba(255,255,255,.34)';
-    g.lineWidth = 5;
-    for (const [x,y,len] of [[.16,.35,.09],[.55,.30,.12],[.70,.27,.08],[.57,.58,.09],[.83,.65,.06]]) {
-      g.beginPath();
-      g.arc(x*w,y*h,len*w*.42,0,Math.PI*1.35);
-      g.stroke();
+    if(name==='Mercury'){
+      band(0,h,'#77736d','#3f3d39');
+      speckles(460,'rgba(28,26,24,.28)',1,8);
+      speckles(180,'rgba(214,205,193,.16)',1,5);
+      for(let i=0;i<38;i++){
+        const x=rand()*w,y=rand()*h,r=4+rand()*16;
+        const grd=g.createRadialGradient(x-r*.25,y-r*.25,1,x,y,r);
+        grd.addColorStop(0,'rgba(210,203,193,.22)');
+        grd.addColorStop(.48,'rgba(75,70,65,.34)');
+        grd.addColorStop(1,'rgba(25,24,22,.08)');
+        g.fillStyle=grd; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
+      }
+    }else if(name==='Venus'){
+      band(0,h,'#d79e4b','#8e5f2c');
+      for(let i=0;i<120;i++){
+        const y=rand()*h,amp=8+rand()*28;
+        g.strokeStyle=`rgba(255,224,157,${.08+rand()*.18})`;
+        g.lineWidth=3+rand()*12; g.beginPath(); g.moveTo(-20,y);
+        for(let x=0;x<=w+30;x+=42)g.lineTo(x,y+Math.sin(x*.015+rand()*6)*amp);
+        g.stroke();
+      }
+      speckles(110,'rgba(101,55,20,.13)',2,11);
+    }else if(name==='Earth'){
+      const ocean=g.createLinearGradient(0,0,w,h);
+      ocean.addColorStop(0,'#0b4f91'); ocean.addColorStop(.5,'#1475b9'); ocean.addColorStop(1,'#082f6b');
+      g.fillStyle=ocean; g.fillRect(0,0,w,h);
+      const land=(pts,fill)=>{
+        g.fillStyle=fill; g.beginPath();
+        pts.forEach(([x,y],i)=>i?g.lineTo(x*w,y*h):g.moveTo(x*w,y*h));
+        g.closePath(); g.fill();
+      };
+      land([[.05,.24],[.11,.14],[.19,.12],[.27,.19],[.29,.29],[.24,.37],[.19,.44],[.12,.40],[.08,.31]],'#5f8d49');
+      land([[.22,.43],[.29,.47],[.34,.57],[.33,.73],[.28,.88],[.23,.75],[.20,.57]],'#65944e');
+      land([[.43,.19],[.51,.13],[.64,.14],[.76,.23],[.80,.31],[.72,.38],[.63,.36],[.56,.43],[.48,.38]],'#638f48');
+      land([[.49,.40],[.58,.42],[.63,.52],[.61,.68],[.55,.82],[.49,.72],[.46,.55]],'#6e984e');
+      land([[.80,.58],[.87,.56],[.92,.63],[.91,.72],[.84,.75],[.78,.68]],'#739c54');
+      speckles(170,'rgba(194,169,93,.12)',1,5);
+      for(let i=0;i<46;i++){
+        const y=rand()*h,x=rand()*w,len=24+rand()*80;
+        g.strokeStyle=`rgba(255,255,255,${.07+rand()*.14})`;
+        g.lineWidth=2+rand()*6; g.beginPath(); g.arc(x,y,len,0.2,2.7); g.stroke();
+      }
+      g.fillStyle='rgba(245,251,255,.88)'; g.fillRect(0,0,w,h*.035); g.fillRect(0,h*.965,w,h*.035);
+    }else if(name==='Mars'){
+      band(0,h,'#b85632','#6e2c24');
+      speckles(320,'rgba(77,31,24,.16)',1,8);
+      speckles(120,'rgba(230,146,92,.12)',2,8);
+      for(let i=0;i<26;i++){
+        const x=rand()*w,y=rand()*h,r=8+rand()*22;
+        g.fillStyle='rgba(62,28,28,.14)'; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
+      }
+      g.fillStyle='rgba(245,235,218,.82)'; g.fillRect(0,0,w,h*.025); g.fillRect(0,h*.975,w,h*.025);
+    }else if(name==='Jupiter'){
+      const colors=['#caa17e','#e5c19a','#a97258','#f0d0a4','#b87955','#dcc09c','#8f614e','#e9ca9f','#bd8b68'];
+      let y=0;
+      while(y<h){
+        const hh=24+rand()*46;
+        g.fillStyle=colors[Math.floor(rand()*colors.length)];
+        g.fillRect(0,y,w,hh);
+        y+=hh;
+      }
+      for(let i=0;i<70;i++){
+        g.strokeStyle=`rgba(255,246,220,${.05+rand()*.12})`; g.lineWidth=2+rand()*7;
+        const yy=rand()*h; g.beginPath(); g.moveTo(0,yy);
+        for(let x=0;x<=w;x+=52)g.lineTo(x,yy+Math.sin(x*.011+rand()*5)*(2+rand()*8));
+        g.stroke();
+      }
+      g.fillStyle='rgba(181,68,47,.88)'; g.beginPath(); g.ellipse(w*.69,h*.61,w*.085,h*.075,-.08,0,Math.PI*2); g.fill();
+      g.strokeStyle='rgba(245,179,136,.45)'; g.lineWidth=9; g.stroke();
+    }else if(name==='Saturn'){
+      const colors=['#ead6a3','#cdb681','#f0dfb2','#bfa875','#e8cf91'];
+      let y=0;
+      while(y<h){
+        const hh=22+rand()*38; g.fillStyle=colors[Math.floor(rand()*colors.length)];
+        g.fillRect(0,y,w,hh); y+=hh;
+      }
+      for(let i=0;i<50;i++){
+        g.fillStyle=`rgba(91,67,42,${.025+rand()*.055})`;
+        g.fillRect(0,rand()*h,w,1+rand()*3);
+      }
+    }else if(name==='Uranus'){
+      band(0,h,'#93e0e5','#4aa6b8');
+      for(let i=0;i<30;i++){
+        g.fillStyle=`rgba(225,255,255,${.025+rand()*.08})`; g.fillRect(0,rand()*h,w,2+rand()*6);
+      }
+    }else if(name==='Neptune'){
+      band(0,h,'#346ccc','#102b82');
+      for(let i=0;i<42;i++){
+        g.fillStyle=`rgba(122,177,255,${.035+rand()*.10})`; g.fillRect(0,rand()*h,w,2+rand()*8);
+      }
+      g.fillStyle='rgba(9,22,78,.55)'; g.beginPath(); g.ellipse(w*.64,h*.58,w*.07,h*.05,-.18,0,Math.PI*2); g.fill();
+      g.fillStyle='rgba(181,215,255,.34)'; g.beginPath(); g.ellipse(w*.27,h*.37,w*.055,h*.025,.1,0,Math.PI*2); g.fill();
     }
   });
 }
 
-function buildEndWindowSolarSystem(lowPower = false, reduced = false) {
-  const group = new THREE.Group();
-  group.name = 'End-window solar system';
+function sunSurfaceTex() {
+  const rand=seededRandom(93117);
+  return canvasTex(1024,512,(g,w,h)=>{
+    const base=g.createLinearGradient(0,0,0,h);
+    base.addColorStop(0,'#fff0a6'); base.addColorStop(.35,'#ffb92f'); base.addColorStop(.72,'#f17414'); base.addColorStop(1,'#ffc93f');
+    g.fillStyle=base; g.fillRect(0,0,w,h);
+    for(let i=0;i<900;i++){
+      const x=rand()*w,y=rand()*h,r=1+rand()*8;
+      g.fillStyle=`rgba(255,255,210,${.04+rand()*.15})`; g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();
+    }
+    for(let i=0;i<55;i++){
+      const x=rand()*w,y=rand()*h,r=2+rand()*10;
+      g.fillStyle=`rgba(156,55,8,${.05+rand()*.16})`; g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();
+    }
+  });
+}
 
-  const sunGeometry = new THREE.SphereGeometry(1.28, lowPower ? 24 : 40, lowPower ? 16 : 28), sun = new THREE.Mesh(
-    sunGeometry,
-    new THREE.MeshBasicMaterial({ color: 0xffc24a, toneMapped: false })
+const PLANET_SPECS=[
+  {name:'Mercury', radius:.18, orbit:1.65, speed:.72, spin:.32, tilt:2, phase:.2},
+  {name:'Venus', radius:.25, orbit:2.12, speed:.54, spin:-.17, tilt:177, phase:1.1},
+  {name:'Earth', radius:.27, orbit:2.72, speed:.43, spin:.72, tilt:23.4, phase:2.0},
+  {name:'Mars', radius:.22, orbit:3.28, speed:.35, spin:.66, tilt:25, phase:2.8},
+  {name:'Jupiter', radius:.58, orbit:4.15, speed:.23, spin:1.02, tilt:3, phase:3.6},
+  {name:'Saturn', radius:.49, orbit:5.05, speed:.18, spin:.94, tilt:26.7, phase:4.3},
+  {name:'Uranus', radius:.33, orbit:5.92, speed:.14, spin:-.58, tilt:98, phase:5.1},
+  {name:'Neptune', radius:.32, orbit:6.72, speed:.115, spin:.61, tilt:28, phase:5.8},
+];
+
+function buildEndWindowSolarSystem(lowPower = false, reduced = false) {
+  const group=new THREE.Group();
+  group.name='End-window full solar system';
+
+  const sun=new THREE.Mesh(
+    new THREE.SphereGeometry(.92,lowPower?32:56,lowPower?20:36),
+    new THREE.MeshBasicMaterial({map:sunSurfaceTex(),toneMapped:false,fog:false})
   );
-  sun.name = 'Sun';
+  sun.name='Sun';
   group.add(sun);
 
-  const glowTexture = radialTex();
-  const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: glowTexture, color: 0xffd36a, transparent: true,
-    opacity: 0.88, blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+  const glowTexture=radialTex();
+  const corona=new THREE.Sprite(new THREE.SpriteMaterial({
+    map:glowTexture,color:0xffc34f,transparent:true,opacity:.68,
+    blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false
   }));
-  sunGlow.scale.set(4.9, 4.9, 1);
-  group.add(sunGlow);
+  corona.scale.set(3.4,3.4,1);
+  group.add(corona);
+  const coronaWide=new THREE.Sprite(new THREE.SpriteMaterial({
+    map:glowTexture,color:0xff9d32,transparent:true,opacity:.20,
+    blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false
+  }));
+  coronaWide.scale.set(5.2,5.2,1);
+  group.add(coronaWide);
 
-  const sunLight = new THREE.PointLight(0xffd7a0, 5.2, 28, 1.4);
-  sunLight.position.set(0, 0, 0.7);
-  group.add(sunLight);
-
-  const orbitPlane = new THREE.Group();
-  orbitPlane.rotation.x = 0.24;
-  orbitPlane.rotation.z = -0.08;
+  const orbitPlane=new THREE.Group();
+  orbitPlane.rotation.x=.33;
+  orbitPlane.rotation.z=-.11;
   group.add(orbitPlane);
 
-  const orbit = new THREE.Mesh(
-    new THREE.RingGeometry(3.08, 3.105, lowPower ? 64 : 128),
-    new THREE.MeshBasicMaterial({
-      color: 0x8fb3d9, transparent: true, opacity: 0.24,
-      side: THREE.DoubleSide, depthWrite: false, fog: false, toneMapped: false,
-    })
-  );
-  orbit.rotation.x = Math.PI / 2;
-  orbitPlane.add(orbit);
+  const moving=[];
+  for(const spec of PLANET_SPECS){
+    const orbit=new THREE.Mesh(
+      new THREE.RingGeometry(spec.orbit-.009,spec.orbit+.009,lowPower?64:128),
+      new THREE.MeshBasicMaterial({
+        color:0x7891b5,transparent:true,opacity:spec.name==='Jupiter'||spec.name==='Saturn'?.18:.13,
+        side:THREE.DoubleSide,depthWrite:false,fog:false,toneMapped:false
+      })
+    );
+    orbit.rotation.x=Math.PI/2;
+    orbitPlane.add(orbit);
 
-  const earthPivot = new THREE.Group();
-  orbitPlane.add(earthPivot);
+    const pivot=new THREE.Group();
+    pivot.rotation.y=spec.phase;
+    orbitPlane.add(pivot);
 
-  const earth = new THREE.Mesh(
-    new THREE.SphereGeometry(0.66, lowPower ? 24 : 36, lowPower ? 16 : 24),
-    new THREE.MeshStandardMaterial({
-      map: earthSurfaceTex(), roughness: 0.76, metalness: 0.02,
-    })
-  );
-  earth.name = 'Earth';
-  earth.position.set(3.1, 0, 0);
-  earth.rotation.z = THREE.MathUtils.degToRad(23.4);
-  earthPivot.add(earth);
+    const body=new THREE.Group();
+    body.position.x=spec.orbit;
+    body.rotation.z=THREE.MathUtils.degToRad(spec.tilt);
+    pivot.add(body);
 
-  const atmosphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.70, lowPower ? 20 : 32, lowPower ? 14 : 20),
-    new THREE.MeshBasicMaterial({
-      color: 0x73b9ff, transparent: true, opacity: 0.16,
-      side: THREE.BackSide, blending: THREE.AdditiveBlending,
-      depthWrite: false, fog: false, toneMapped: false,
-    })
-  );
-  atmosphere.position.copy(earth.position);
-  earthPivot.add(atmosphere);
+    const planet=new THREE.Mesh(
+      new THREE.SphereGeometry(spec.radius,lowPower?28:48,lowPower?18:32),
+      new THREE.MeshStandardMaterial({
+        map:planetSurfaceTex(spec.name),
+        roughness:spec.name==='Earth'?.72:.86,
+        metalness:0,
+        emissive:spec.name==='Neptune'?0x07122f:0x080604,
+        emissiveIntensity:.12,
+        fog:false
+      })
+    );
+    planet.name=spec.name;
+    body.add(planet);
+
+    if(spec.name==='Earth'){
+      const atmosphere=new THREE.Mesh(
+        new THREE.SphereGeometry(spec.radius*1.045,lowPower?24:40,lowPower?16:26),
+        new THREE.MeshBasicMaterial({
+          color:0x62aaff,transparent:true,opacity:.10,side:THREE.BackSide,
+          blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false
+        })
+      );
+      body.add(atmosphere);
+    }
+
+    if(spec.name==='Saturn'){
+      const ring=new THREE.Mesh(
+        new THREE.RingGeometry(spec.radius*1.35,spec.radius*2.25,lowPower?72:144),
+        new THREE.MeshBasicMaterial({
+          color:0xd8c08c,transparent:true,opacity:.72,side:THREE.DoubleSide,
+          depthWrite:false,fog:false,toneMapped:false
+        })
+      );
+      ring.name='Saturn ring';
+      ring.rotation.x=Math.PI/2;
+      body.add(ring);
+      const ringGap=new THREE.Mesh(
+        new THREE.RingGeometry(spec.radius*1.72,spec.radius*1.82,lowPower?72:144),
+        new THREE.MeshBasicMaterial({
+          color:0x201a15,transparent:true,opacity:.46,side:THREE.DoubleSide,
+          depthWrite:false,fog:false,toneMapped:false
+        })
+      );
+      ringGap.rotation.x=Math.PI/2;
+      body.add(ringGap);
+    }
+
+    moving.push({spec,pivot,planet});
+  }
 
   return {
-    group, sun, earth, earthPivot,
-    update(t) {
-      if (reduced) return;
-      sun.rotation.y = t * 0.11;
-      earth.rotation.y = t * 0.58;
-      atmosphere.rotation.y = t * 0.36;
-      earthPivot.rotation.y = t * 0.13;
-      sunGlow.material.opacity = 0.82 + Math.sin(t * 1.4) * 0.08;
-    },
+    group,
+    update(t){
+      if(reduced)return;
+      sun.rotation.y=t*.09;
+      corona.material.opacity=.62+Math.sin(t*1.7)*.08;
+      coronaWide.material.opacity=.18+Math.sin(t*.9+.6)*.04;
+      for(const {spec,pivot,planet} of moving){
+        pivot.rotation.y=spec.phase+t*spec.speed;
+        planet.rotation.y=t*spec.spin;
+      }
+    }
   };
 }
 
@@ -358,7 +514,8 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     || navigator.hardwareConcurrency <= 4;
   // Two wall-mounted portraits can share the same corridor bay; all candidates fit.
   const lastBay = photos.reduce((max,photo)=>Math.max(max,Number.isInteger(photo.bay)?photo.bay:0),-1);
-  const LENGTH = START + (lastBay + 1) * SEG + 32;
+  const END_BUFFER = 23;
+  const LENGTH = START + (lastBay + 1) * SEG + END_BUFFER;
 
   // alpha:true is not cosmetic — three derives its clear alpha from it, and a
   // clear alpha of 1 paints the AR framebuffer opaque, burying the passthrough
@@ -469,7 +626,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   // The window is the literal end of the gallery. Beyond the glass is only sky
   // and a small animated solar view — no wall art, wallpaper, floor, or columns.
   const solarSystem = buildEndWindowSolarSystem(lowPower, reduced);
-  solarSystem.group.position.set(0, 3.55, endZ - 13.5);
+  solarSystem.group.position.set(0, 3.55, endZ - 16);
   scene.add(solarSystem.group);
 
   // The original Galiyaara corridor carries a continuous wallpaper gallery.
