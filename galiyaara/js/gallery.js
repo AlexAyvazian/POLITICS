@@ -399,7 +399,7 @@ function buildEndWindowSolarSystem(lowPower = false, reduced = false) {
     const orbit=new THREE.Mesh(
       new THREE.RingGeometry(spec.orbit-.009,spec.orbit+.009,lowPower?64:128),
       new THREE.MeshBasicMaterial({
-        color:0x7891b5,transparent:true,opacity:spec.name==='Jupiter'||spec.name==='Saturn'?.18:.13,
+        color:0x7891b5,transparent:true,opacity:(spec.name==='Jupiter'||spec.name==='Saturn') ? .18 : .13,
         side:THREE.DoubleSide,depthWrite:false,fog:false,toneMapped:false
       })
     );
