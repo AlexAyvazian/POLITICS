@@ -359,41 +359,47 @@ def federal_candidates(today):
                 for f in csv.DictReader(io.StringIO(statements.decode("utf-8-sig", errors="replace"))):
                     add(f["CANDIDATE_ID"], f["CANDIDATE_NAME"], f["CANDIDATE_OFFICE_CODE"],
                         f["CANDIDATE_OFFICE_STATE_CODE"], f["PARTY_CODE"], f["ELECTION_YEAR"])
-    # Confirm pre-threshold filers against their own Statement of Candidacy.
-    # Candidate master rows can also be created by an independent draft committee.
-    ids = sorted(possible_filers)
-    api_key = os.getenv("FEC_API_KEY") or "DEMO_KEY"
-    for i in range(0, len(ids), 100):
-        params = {"api_key": api_key, "candidate_id": ids[i:i+100], "per_page": 100}
-        profiles = json.loads(read("https://api.open.fec.gov/v1/candidates/?" + urlencode(params, doseq=True)))
-        for profile in profiles["results"]:
-            key = profile["candidate_id"]
-            year = possible_filers[key]
-            if (profile.get("last_f2_date") and not profile.get("candidate_inactive") and
-                    year in profile["election_years"] and year not in (profile.get("inactive_election_years") or [])):
-                add(key, profile["name"], profile["office"], profile["state"], profile["party"], year)
-    # Electronic filings arrive before the future cycle's bulk file exists.
-    # Keep prior verified filings and overlap receipt dates to pick up late indexing.
+    # Public bulk candidate-master and Form 2 filer files are the baseline.
+    # API enrichment is optional so the daily refresh still completes when no
+    # repository FEC key is configured.
+    api_key = (os.getenv("FEC_API_KEY") or "").strip()
+    if api_key:
+        ids = sorted(possible_filers)
+        for i in range(0, len(ids), 100):
+            params = {"api_key": api_key, "candidate_id": ids[i:i+100], "per_page": 100}
+            profiles = json.loads(read("https://api.open.fec.gov/v1/candidates/?" + urlencode(params, doseq=True)))
+            for profile in profiles["results"]:
+                key = profile["candidate_id"]
+                year = possible_filers[key]
+                if (profile.get("last_f2_date") and not profile.get("candidate_inactive") and
+                        year in profile["election_years"] and year not in (profile.get("inactive_election_years") or [])):
+                    add(key, profile["name"], profile["office"], profile["state"], profile["party"], year)
+    else:
+        print("FEC_API_KEY not configured; using public bulk candidate and Statement of Candidacy files", flush=True)
+
+    # Electronic filings can arrive before the next bulk file exists. Retain
+    # previously verified filings, and use the API increment only when a key exists.
     past = json.loads(OUT.read_text()) if OUT.exists() else {}
     for record in past.get("upcoming", []):
         if record.get("filingId") and record["year"] >= earliest and november_election(record["year"]) >= today:
             records[(record["filingId"], record["year"])] = dict(record)
-    checkpoint = past.get("filingsThrough")
-    since = date.fromisoformat(checkpoint) - timedelta(days=14) if checkpoint else date(2026,11,3)
-    page = 1
-    while True:
-        params = {"api_key": os.getenv("FEC_API_KEY") or "DEMO_KEY", "form_type":"F2",
-                  "min_receipt_date":since.isoformat(), "max_receipt_date":today.isoformat(),
-                  "most_recent":"true", "page":page, "per_page":100, "sort":"receipt_date"}
-        payload = json.loads(read("https://api.open.fec.gov/v1/filings/?" + urlencode(params)))
-        for filing in payload["results"]:
-            key, election = filing.get("candidate_id"), filing.get("election_year")
-            add(key, filing.get("candidate_name"), filing.get("office"), filing.get("state"),
-                filing.get("party"), election, filing.get("html_url"))
-            if (key, election) in records:
-                records[key, election]["filingId"] = key
-        if page >= payload["pagination"]["pages"]: break
-        page += 1
+    if api_key:
+        checkpoint = past.get("filingsThrough")
+        since = date.fromisoformat(checkpoint) - timedelta(days=14) if checkpoint else date(2026,11,3)
+        page = 1
+        while True:
+            params = {"api_key": api_key, "form_type":"F2",
+                      "min_receipt_date":since.isoformat(), "max_receipt_date":today.isoformat(),
+                      "most_recent":"true", "page":page, "per_page":100, "sort":"receipt_date"}
+            payload = json.loads(read("https://api.open.fec.gov/v1/filings/?" + urlencode(params)))
+            for filing in payload["results"]:
+                key, election = filing.get("candidate_id"), filing.get("election_year")
+                add(key, filing.get("candidate_name"), filing.get("office"), filing.get("state"),
+                    filing.get("party"), election, filing.get("html_url"))
+                if (key, election) in records:
+                    records[key, election]["filingId"] = key
+            if page >= payload["pagination"]["pages"]: break
+            page += 1
     return records
 
 
@@ -442,8 +448,12 @@ def cache_portrait(record):
 
 def main():
     today=date.today()
+    print("Refreshing Issue Stances hallway rosters", flush=True)
     voters=json.loads(read(VOTERIST))["candidates"]
-    serving, upcoming=officials(today), candidates(today,voters)
+    print("Building 119th/120th Congress and governor hallway", flush=True)
+    serving=officials(today)
+    print("Building 2027+ President, U.S. House, U.S. Senate and governor candidate hallway", flush=True)
+    upcoming=candidates(today,voters)
     past = json.loads(OUT.read_text()) if OUT.exists() else {}
     stored = {r["slug"]:r for hall in ("serving","upcoming") for r in past.get(hall,[])}
     old_identity = {(norm(r["name"]), r["state"], r["office"], r.get("year")): r for r in stored.values()}
@@ -461,8 +471,17 @@ def main():
         if member and not r.get("portrait"):
             r.update(portrait=member.get("portrait") or member.get("officialPortrait"), portraitCredit=member["source"])
         old = stored.get(r["slug"]) or old_identity.get((norm(r["name"]), r["state"], r["office"], r.get("year")), {})
-        if not r.get("portrait") and old.get("portrait") and old["name"]==r["name"]:
-            r["portrait"] = old["portrait"]
+        old_portrait = old.get("portrait", "")
+        current_portrait = r.get("portrait", "")
+        if (old.get("name") == r["name"] and old_portrait.startswith("assets/img/hallway-portraits/") and
+                (not current_portrait or old.get("originalPortrait") == current_portrait)):
+            if current_portrait.startswith("https://"):
+                r.setdefault("originalPortrait", current_portrait)
+            r["portrait"] = old_portrait
+            if old.get("portraitCredit"):
+                r.setdefault("portraitCredit", old["portraitCredit"])
+        elif not r.get("portrait") and old_portrait and old.get("name") == r["name"]:
+            r["portrait"] = old_portrait
             for field in ("originalPortrait", "portraitCredit"):
                 if old.get(field): r[field] = old[field]
     missing=[dict(r,nameKey=clean_name(r["name"])) for r in serving+upcoming if not r.get("portrait") and r["state"] in STATES]
