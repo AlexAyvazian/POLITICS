@@ -16,6 +16,21 @@ test('Issue Stances is a sixth shared-nav section and does not replace other fiv
  assert.match(read('issues.html'),/href="issues\.html" aria-current="page"/);
 });
 
+test('Issue Stances uses the requested two hallway scopes and door labels',()=>{
+ const html=read('issues.html'),js=read('assets/js/issue-stances.js'),updater=read('scripts/update_issue_hallways.py');
+ assert.match(html,/>Current Congresspeople and Governors<\/span>/);
+ assert.match(html,/All U\.S\. House &amp; Senate members from the 119th and 120th Congresses · All 50 governors/);
+ assert.match(html,/>Future Election Candidates<\/span>/);
+ assert.match(html,/2027 onward · President · U\.S\. House · U\.S\. Senate · Governor/);
+ for(const office of ['Candidate for President','Candidate for U.S. House','Candidate for U.S. Senate','Candidate for Governor']){
+  assert.ok(js.includes("'"+office+"'"),office);
+ }
+ assert.match(js,/person\.year>=2027/);
+ assert.match(updater,/CONGRESSES\s*=\s*\{119:[^\n]+120:/);
+ assert.match(updater,/FEC_OFFICES\s*=\s*\{[^\n]*"P": "President"/);
+ assert.doesNotMatch(js,/Candidate for State (?:House|Senate)/);
+});
+
 test('Issue Stances contains only portrait identity and sourced issue-sheet content',()=>{
  const html=read('issues.html'),js=read('assets/js/issue-stances.js'),css=read('assets/css/issue-stances.css');
  assert.match(html,/class="unifiedTopNav"/);
