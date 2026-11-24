@@ -25,6 +25,18 @@ test('Democratic and Republican politicians occupy separate walls, including par
  assert.ok(result.find(p=>p.slug==='ind').bay>result.find(p=>p.slug==='r2').bay);
 });
 
+test('the shorter party roster is spread through the full main corridor instead of ending early',()=>{
+ const people=[
+  ...Array.from({length:5},(_,i)=>({slug:'d'+i,party:'Democratic'})),
+  ...Array.from({length:3},(_,i)=>({slug:'r'+i,party:'Republican'}))
+ ];
+ const slots=arrangeCorridor(people);
+ const republicans=slots.filter(p=>p.wing==='republican');
+ assert.deepEqual(republicans.map(p=>p.bay),[0,2,4]);
+ assert.equal(republicans.at(-1).bay,4,'Republican wall should still contain a portrait at the final main bay');
+ assert.ok(republicans.every(p=>p.side===1));
+});
+
 test('all 477 candidates fit in the existing 3D corridor without truncation or duplicates',()=>{
  const people=Array.from({length:477},(_,i)=>({slug:'candidate-'+i,party:i%3===0?'DEM':i%3===1?'REP':'Independent'}));
  const slots=arrangeCorridor(people);
