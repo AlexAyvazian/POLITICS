@@ -31,6 +31,18 @@ test('Issue Stances uses the requested two hallway scopes and door labels',()=>{
  assert.doesNotMatch(js,/Candidate for State (?:House|Senate)/);
 });
 
+test('Issue Stances lobby uses bright eagle background and circular portal selectors',()=>{
+ const css=read('assets/css/issue-stances.css');
+ assert.match(css,/American-Eagle-Flag-Patriotic-4th-png-Graphics-113400236-1\.jpeg/);
+ assert.match(css,/\.issueDoor\{[\s\S]*aspect-ratio:1[\s\S]*border-radius:50%/);
+ assert.match(css,/@keyframes portalShimmer/);
+ assert.match(css,/@keyframes portalPulse/);
+ assert.match(css,/\.issueDoor span,\.issueDoor small\{[\s\S]*background:none!important/);
+ assert.doesNotMatch(css,/border:\s*8px\s+ridge/);
+ assert.doesNotMatch(css,/Capitol Hill\.jpeg/);
+ assert.doesNotMatch(css,/linear-gradient\(#142030cf,#101722ec\)/);
+});
+
 test('Issue Stances contains only portrait identity and sourced issue-sheet content',()=>{
  const html=read('issues.html'),js=read('assets/js/issue-stances.js'),css=read('assets/css/issue-stances.css');
  assert.match(html,/class="unifiedTopNav"/);
