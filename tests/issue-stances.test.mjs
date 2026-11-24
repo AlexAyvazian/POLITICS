@@ -43,6 +43,21 @@ test('Issue Stances lobby uses bright eagle background and circular portal selec
  assert.doesNotMatch(css,/linear-gradient\(#142030cf,#101722ec\)/);
 });
 
+test('Issue Stances uses the supplied portal artwork below the wings with wing-only starlight',()=>{
+ const css=read('assets/css/issue-stances.css');
+ assert.match(css,/\.issueDoor:first-child\{[^}]*background-image:url\("data:image\/webp;base64,/s);
+ assert.match(css,/\.issueDoor:nth-child\(2\)\{[^}]*background-image:url\("data:image\/webp;base64,/s);
+ assert.match(css,/\.issueDoor:first-child\{[^}]*left:[^;]+;[^}]*bottom:/s);
+ assert.match(css,/\.issueDoor:nth-child\(2\)\{[^}]*right:[^;]+;[^}]*bottom:/s);
+ assert.match(css,/\.issueLobby::before,\.issueLobby::after\{/);
+ assert.match(css,/@keyframes wingSparkleA/);
+ assert.match(css,/@keyframes wingSparkleB/);
+ const portalStart=css.indexOf('.issueDoor{');
+ const portalEnd=css.indexOf('.issueReturn',portalStart);
+ assert.ok(portalStart>=0&&portalEnd>portalStart);
+ assert.doesNotMatch(css.slice(portalStart,portalEnd),/conic-gradient/);
+});
+
 test('Issue Stances contains only portrait identity and sourced issue-sheet content',()=>{
  const html=read('issues.html'),js=read('assets/js/issue-stances.js'),css=read('assets/css/issue-stances.css');
  assert.match(html,/class="unifiedTopNav"/);
