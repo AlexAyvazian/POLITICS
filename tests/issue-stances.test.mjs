@@ -18,9 +18,9 @@ test('Issue Stances is a sixth shared-nav section and does not replace other fiv
 
 test('Issue Stances uses the requested two hallway scopes and door labels',()=>{
  const html=read('issues.html'),js=read('assets/js/issue-stances.js'),updater=read('scripts/update_issue_hallways.py');
- assert.match(html,/>Current Congresspeople and Governors<\/span>/);
+ assert.match(html,/>Current<br>Congresspeople<br>and Governors<\/span>/);
  assert.match(html,/All U\.S\. House &amp; Senate members from the 119th and 120th Congresses · All 50 governors/);
- assert.match(html,/>Future Election Candidates<\/span>/);
+ assert.match(html,/>Future<br>Election<br>Candidates<\/span>/);
  assert.match(html,/2027 onward · President · U\.S\. House · U\.S\. Senate · Governor/);
  for(const office of ['Candidate for President','Candidate for U.S. House','Candidate for U.S. Senate','Candidate for Governor']){
   assert.ok(js.includes("'"+office+"'"),office);
@@ -47,13 +47,17 @@ test('Issue Stances uses the supplied portal artwork below the wings with wing-o
  const css=read('assets/css/issue-stances.css');
  assert.match(css,/\.issueDoor:first-child\{[^}]*background-image:url\("\.\.\/\.\.\/wallpaper\/issue-portal-1\.webp"\)/s);
  assert.match(css,/\.issueDoor:nth-child\(2\)\{[^}]*background-image:url\("\.\.\/\.\.\/wallpaper\/issue-portal-2\.webp"\)/s);
- assert.match(css,/\.issueDoor:first-child\{[^}]*left:clamp\(70px,12vw,240px\);[^}]*bottom:/s);
- assert.match(css,/\.issueDoor:nth-child\(2\)\{[^}]*right:clamp\(70px,12vw,240px\);[^}]*bottom:/s);
- assert.match(css,/\.issueDoor span\{[^}]*font:700 clamp\(15px,1\.05vw,18px\)/s);
- assert.match(css,/\.issueDoor span\{[^}]*max-width:62%/s);
+ assert.match(css,/\.issueDoor:first-child\{[^}]*left:clamp\(34px,6\.5vw,125px\);[^}]*bottom:/s);
+ assert.match(css,/\.issueDoor:nth-child\(2\)\{[^}]*right:clamp\(34px,6\.5vw,125px\);[^}]*bottom:/s);
+ assert.match(css,/\.issueDoor span\{[^}]*font:700 clamp\(14px,\.95vw,16px\)/s);
+ assert.match(css,/\.issueDoor span\{[^}]*max-width:74%/s);
  assert.match(css,/\.issueLobby::before,\.issueLobby::after\{/);
  assert.match(css,/@keyframes wingSparkleA/);
  assert.match(css,/@keyframes wingSparkleB/);
+ assert.match(css,/brightness\(2\.35\)/);
+ assert.match(css,/brightness\(2\.45\)/);
+ assert.match(css,/wingSparkleA 1\.55s/);
+ assert.match(css,/wingSparkleB 1\.95s/);
  const portalStart=css.indexOf('.issueDoor{');
  const portalEnd=css.indexOf('.issueReturn',portalStart);
  assert.ok(portalStart>=0&&portalEnd>portalStart);
