@@ -73,7 +73,7 @@ test('Issue Stances end window is a hard gallery boundary with an animated sun a
  assert.match(gallery,/new THREE\.SphereGeometry\([^\n]+sun/i);
  assert.match(gallery,/earthPivot\.rotation\.y/);
  assert.match(gallery,/earth\.rotation\.y/);
- assert.match(gallery,/solarSystem\.position\.z = endZ -/);
+ assert.match(gallery,/solarSystem\.group\.position\.set\(0, 3\.55, endZ - 13\.5\)/);
 });
 
 test('Issue Stances contains only portrait identity and sourced issue-sheet content',()=>{
