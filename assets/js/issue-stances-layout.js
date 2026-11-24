@@ -30,12 +30,23 @@ export function arrangeCorridor(people){
  }
  const positions=[];
  const mainBays=Math.max(democrats.length,republicans.length);
- for(let bay=0;bay<mainBays;bay++){
-  if(democrats[bay])positions.push({...democrats[bay],side:-1,bay,wing:'democratic'});
-  if(republicans[bay])positions.push({...republicans[bay],side:1,bay,wing:'republican'});
- }
+ const spreadParty=(rows,side,wing)=>{
+  if(!rows.length)return;
+  if(rows.length===1){
+   positions.push({...rows[0],side,bay:Math.floor((mainBays-1)/2),wing});
+   return;
+  }
+  const span=Math.max(0,mainBays-1);
+  rows.forEach((person,i)=>{
+   const bay=Math.round(i*span/(rows.length-1));
+   positions.push({...person,side,bay,wing});
+  });
+ };
+ spreadParty(democrats,-1,'democratic');
+ spreadParty(republicans,1,'republican');
  for(let i=0;i<others.length;i++){
   positions.push({...others[i],side:i%2?-1:1,bay:mainBays+Math.floor(i/2),wing:'other'});
  }
+ positions.sort((a,b)=>a.bay-b.bay||a.side-b.side);
  return positions;
 }
