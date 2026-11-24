@@ -215,6 +215,115 @@ function buildMeteor() {
   };
 }
 
+function earthSurfaceTex() {
+  return canvasTex(768, 384, (g, w, h) => {
+    g.fillStyle = '#0f4d86';
+    g.fillRect(0, 0, w, h);
+
+    // Stylized, deterministic continents so Earth reads clearly from the end window.
+    g.fillStyle = '#5f8d4c';
+    const continent = (points) => {
+      g.beginPath();
+      points.forEach(([x,y],i) => i ? g.lineTo(x*w,y*h) : g.moveTo(x*w,y*h));
+      g.closePath();
+      g.fill();
+    };
+    continent([[.10,.22],[.18,.13],[.26,.18],[.29,.32],[.23,.42],[.19,.58],[.13,.52],[.08,.37]]);
+    continent([[.27,.49],[.33,.54],[.35,.71],[.31,.86],[.25,.76],[.22,.60]]);
+    continent([[.47,.22],[.56,.14],[.69,.18],[.78,.27],[.74,.39],[.64,.37],[.58,.47],[.50,.42]]);
+    continent([[.53,.43],[.61,.47],[.62,.66],[.56,.81],[.49,.69],[.47,.53]]);
+    continent([[.80,.61],[.87,.58],[.91,.68],[.87,.76],[.80,.72]]);
+
+    g.fillStyle = 'rgba(255,255,255,.88)';
+    g.fillRect(0, 0, w, h * .045);
+    g.fillRect(0, h * .955, w, h * .045);
+
+    g.strokeStyle = 'rgba(255,255,255,.34)';
+    g.lineWidth = 5;
+    for (const [x,y,len] of [[.16,.35,.09],[.55,.30,.12],[.70,.27,.08],[.57,.58,.09],[.83,.65,.06]]) {
+      g.beginPath();
+      g.arc(x*w,y*h,len*w*.42,0,Math.PI*1.35);
+      g.stroke();
+    }
+  });
+}
+
+function buildEndWindowSolarSystem(lowPower = false, reduced = false) {
+  const group = new THREE.Group();
+  group.name = 'End-window solar system';
+
+  const sunGeometry = new THREE.SphereGeometry(1.28, lowPower ? 24 : 40, lowPower ? 16 : 28), sun = new THREE.Mesh(
+    sunGeometry,
+    new THREE.MeshBasicMaterial({ color: 0xffc24a, toneMapped: false })
+  );
+  sun.name = 'Sun';
+  group.add(sun);
+
+  const glowTexture = radialTex();
+  const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glowTexture, color: 0xffd36a, transparent: true,
+    opacity: 0.88, blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+  }));
+  sunGlow.scale.set(4.9, 4.9, 1);
+  group.add(sunGlow);
+
+  const sunLight = new THREE.PointLight(0xffd7a0, 5.2, 28, 1.4);
+  sunLight.position.set(0, 0, 0.7);
+  group.add(sunLight);
+
+  const orbitPlane = new THREE.Group();
+  orbitPlane.rotation.x = 0.24;
+  orbitPlane.rotation.z = -0.08;
+  group.add(orbitPlane);
+
+  const orbit = new THREE.Mesh(
+    new THREE.RingGeometry(3.08, 3.105, lowPower ? 64 : 128),
+    new THREE.MeshBasicMaterial({
+      color: 0x8fb3d9, transparent: true, opacity: 0.24,
+      side: THREE.DoubleSide, depthWrite: false, fog: false, toneMapped: false,
+    })
+  );
+  orbit.rotation.x = Math.PI / 2;
+  orbitPlane.add(orbit);
+
+  const earthPivot = new THREE.Group();
+  orbitPlane.add(earthPivot);
+
+  const earth = new THREE.Mesh(
+    new THREE.SphereGeometry(0.66, lowPower ? 24 : 36, lowPower ? 16 : 24),
+    new THREE.MeshStandardMaterial({
+      map: earthSurfaceTex(), roughness: 0.76, metalness: 0.02,
+    })
+  );
+  earth.name = 'Earth';
+  earth.position.set(3.1, 0, 0);
+  earth.rotation.z = THREE.MathUtils.degToRad(23.4);
+  earthPivot.add(earth);
+
+  const atmosphere = new THREE.Mesh(
+    new THREE.SphereGeometry(0.70, lowPower ? 20 : 32, lowPower ? 14 : 20),
+    new THREE.MeshBasicMaterial({
+      color: 0x73b9ff, transparent: true, opacity: 0.16,
+      side: THREE.BackSide, blending: THREE.AdditiveBlending,
+      depthWrite: false, fog: false, toneMapped: false,
+    })
+  );
+  atmosphere.position.copy(earth.position);
+  earthPivot.add(atmosphere);
+
+  return {
+    group, sun, earth, earthPivot,
+    update(t) {
+      if (reduced) return;
+      sun.rotation.y = t * 0.11;
+      earth.rotation.y = t * 0.58;
+      atmosphere.rotation.y = t * 0.36;
+      earthPivot.rotation.y = t * 0.13;
+      sunGlow.material.opacity = 0.82 + Math.sin(t * 1.4) * 0.08;
+    },
+  };
+}
+
 function namePanel(photo) {
   return canvasTex(256, 320, (g, w, h) => {
     g.fillStyle = '#172631';
@@ -344,7 +453,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   endPanel(windowWidth, windowBottom, 0, windowBottom / 2, surround);
   endPanel(windowWidth, wallHeight - windowTop, 0, (wallHeight + windowTop) / 2, surround);
   const glazing = new THREE.MeshBasicMaterial({
-    color: 0x182c4a, opacity: 0.2, transparent: true, depthWrite: false, toneMapped: false,
+    color: 0x244a73, opacity: 0.11, transparent: true, depthWrite: false, toneMapped: false,
   });
   const windowHeight = windowTop - windowBottom;
   const windowY = (windowTop + windowBottom) / 2;
@@ -357,6 +466,12 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
   }
   scene.add(endWall);
 
+  // The window is the literal end of the gallery. Beyond the glass is only sky
+  // and a small animated solar view — no wall art, wallpaper, floor, or columns.
+  const solarSystem = buildEndWindowSolarSystem(lowPower, reduced);
+  solarSystem.group.position.set(0, 3.55, endZ - 13.5);
+  scene.add(solarSystem.group);
+
   // The original Galiyaara corridor carries a continuous wallpaper gallery.
   // Reuse the 25 existing textures across the *entire* hallway rather than
   // showing each once, leaving the remainder as bare plaster.
@@ -365,8 +480,9 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     : [];
   const wallpaperLoader = new THREE.TextureLoader();
   const wallPanelWidth = SEG * 3; // seamless horizontal panels, no breaks by columns
-  const wallPanelCount = Math.ceil((6 - endZ) / wallPanelWidth);
-  const wallpaperGeo = new THREE.PlaneGeometry(wallPanelWidth + 0.04, 6.85);
+  const wallpaperSpan = 6 - endZ;
+  const wallPanelCount = Math.ceil(wallpaperSpan / wallPanelWidth);
+  const wallpaperGeo = new THREE.PlaneGeometry(wallPanelWidth, 6.85);
   // One material per image, reused across all sections of that wall.
   wallpaperImages.forEach((path, imageIndex) => {
     wallpaperLoader.load(encodeURI(path), tex => {
@@ -382,9 +498,15 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
         for (let j = 0; j < wallPanelCount; j++) {
           const assigned = (j + (side === 1 ? 7 : 0)) % wallpaperImages.length;
           if (assigned !== imageIndex) continue;
-          const panel = new THREE.Mesh(wallpaperGeo, material);
-          panel.position.set(side * (HALF_W - 0.019), 3.46,
-            6 - ((j + 0.5) * wallPanelWidth));
+          const nearEdge = 6 - j * wallPanelWidth;
+          const panelWidth = Math.min(wallPanelWidth, nearEdge - endZ);
+          if (panelWidth <= 0) continue;
+          const panelZ = nearEdge - panelWidth / 2;
+          const geometry = panelWidth === wallPanelWidth
+            ? wallpaperGeo
+            : new THREE.PlaneGeometry(panelWidth, 6.85);
+          const panel = new THREE.Mesh(geometry, material);
+          panel.position.set(side * (HALF_W - 0.019), 3.46, panelZ);
           panel.rotation.y = side * -Math.PI / 2;
           scene.add(panel);
         }
@@ -958,6 +1080,7 @@ export function createGallery(canvas, photos, hooks = {}, options = {}) {
     stars.position.copy(eye);
     shootingStar?.update(time * 0.001 + 5, eye, yaw);
     moonDisc.position.set(eye.x - 130, 220, eye.z + 90);
+    solarSystem.update(time * 0.001);
 
     // Stream textures and breathe the glows.
     const t = performance.now() * 0.001;
