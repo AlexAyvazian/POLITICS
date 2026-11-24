@@ -45,10 +45,12 @@ test('Issue Stances lobby uses bright eagle background and circular portal selec
 
 test('Issue Stances uses the supplied portal artwork below the wings with wing-only starlight',()=>{
  const css=read('assets/css/issue-stances.css');
- assert.match(css,/\.issueDoor:first-child\{[^}]*background-image:url\("data:image\/webp;base64,/s);
- assert.match(css,/\.issueDoor:nth-child\(2\)\{[^}]*background-image:url\("data:image\/webp;base64,/s);
- assert.match(css,/\.issueDoor:first-child\{[^}]*left:[^;]+;[^}]*bottom:/s);
- assert.match(css,/\.issueDoor:nth-child\(2\)\{[^}]*right:[^;]+;[^}]*bottom:/s);
+ assert.match(css,/\.issueDoor:first-child\{[^}]*background-image:url\("\.\.\/\.\.\/wallpaper\/issue-portal-1\.webp"\)/s);
+ assert.match(css,/\.issueDoor:nth-child\(2\)\{[^}]*background-image:url\("\.\.\/\.\.\/wallpaper\/issue-portal-2\.webp"\)/s);
+ assert.match(css,/\.issueDoor:first-child\{[^}]*left:clamp\(70px,12vw,240px\);[^}]*bottom:/s);
+ assert.match(css,/\.issueDoor:nth-child\(2\)\{[^}]*right:clamp\(70px,12vw,240px\);[^}]*bottom:/s);
+ assert.match(css,/\.issueDoor span\{[^}]*font:700 clamp\(15px,1\.05vw,18px\)/s);
+ assert.match(css,/\.issueDoor span\{[^}]*max-width:62%/s);
  assert.match(css,/\.issueLobby::before,\.issueLobby::after\{/);
  assert.match(css,/@keyframes wingSparkleA/);
  assert.match(css,/@keyframes wingSparkleB/);
